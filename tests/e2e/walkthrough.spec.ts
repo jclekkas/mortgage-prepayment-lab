@@ -17,6 +17,8 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   await expect(page.getByTestId('explanation-stale')).toContainText('not yet run');
   await expect(page.getByTestId('explanation-headline')).toContainText('When last run');
   await expect(page.getByTestId('charts-stale')).toBeVisible();
+  await expect(page.getByTestId('export-csv')).toBeDisabled();
+  await expect(page.getByTestId('export-csv-paused')).toBeVisible();
   await expect(page.getByTestId('kpi-npv-value')).toHaveText(baseNpv!);
   await expect(page.getByTestId('same-as-baseline')).toBeVisible();
   await expect(page.getByTestId('kpi-cpr').getByTestId('trend')).toHaveCount(0);

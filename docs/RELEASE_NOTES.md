@@ -137,8 +137,8 @@ Walked a fresh session in a browser at desktop and phone widths: Mixed book, rat
 - Previous-run results are labeled on every screen that shows them: overview and lab
   headline cards, explanation, charts, cohort table caption, decision room columns, and the
   sensitivity and grid panels (which state they use the last run's assumptions).
-- The brief and the scenario export are paused while any scenario has edits that have not
-  been run, so an exported or printed result is always paired with the assumptions that
+- The brief, the scenario export and the monthly ledger download are paused while any
+  scenario has edits that have not been run, so an exported or printed result is always paired with the assumptions that
   produced it.
 
 

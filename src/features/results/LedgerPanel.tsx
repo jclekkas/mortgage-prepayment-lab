@@ -1,4 +1,4 @@
-import { useStore } from '../../app/store';
+import { isDirty, useStore } from '../../app/store';
 import { formatMonth } from '../../domain/calendar';
 import { num, pct, usdExact } from '../../domain/format';
 import type { LedgerMonth, RunOutput } from '../../domain/types';
@@ -33,7 +33,9 @@ const ROWS: Row[] = [
 ];
 
 export function MonthLedger({ out, baseOut, name }: { out: RunOutput; baseOut: RunOutput | null; name: string }) {
-  const { state, dispatch } = useStore();
+  const { state, dispatch, active } = useStore();
+  // A download while edits are unrun would carry previous-run numbers under the edited scenario's name.
+  const editsUnrun = active.draft.scenarioId !== state.baselineId && isDirty(active);
   const i = Math.min(state.selectedMonth ?? 0, Math.max(0, out.ledger.length - 1));
   const m = out.ledger[i];
   if (!m) return <p className="muted">No ledger months: no loans in this population have payments left.</p>;
@@ -84,9 +86,10 @@ export function MonthLedger({ out, baseOut, name }: { out: RunOutput; baseOut: R
         </table>
       </div>
       <div className="row no-print" style={{ marginTop: '0.5rem' }}>
-        <button type="button" onClick={() => downloadText(`${safeFileName(name)}-ledger.csv`, ledgerCsv(out, name), 'text/csv')} data-testid="export-csv">
+        <button type="button" onClick={() => downloadText(`${safeFileName(name)}-ledger.csv`, ledgerCsv(out, name), 'text/csv')} disabled={editsUnrun} data-testid="export-csv">
           Download full monthly ledger (spreadsheet file)
         </button>
+        {editsUnrun && <span className="muted" style={{ fontSize: '0.85rem' }} data-testid="export-csv-paused">Paused: run or undo your edits first, so the file matches the assumptions that produced it.</span>}
         <span className="muted" style={{ fontSize: '0.85rem' }}>A comma-separated file that opens in any spreadsheet. All {out.ledger.length} months to full maturity; formula-like text is neutralized. Column names are listed in the data dictionary.</span>
       </div>
     </section>
