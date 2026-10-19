@@ -12,11 +12,11 @@ coefficient is a FICO parameter.
 - Rates are annual decimals internally (6.25% is `0.0625`). Basis-point inputs are divided by 10,000.
 - Cash is in dollars. Nothing is rounded during calculation; rounding happens only in display.
 - Portfolio ratios are computed from summed dollars, never by averaging loan ratios.
-- A ratio with a zero denominator is `null` and displays as "Not applicable", never 0 or NaN.
+- A ratio with a zero denominator is `null` and displays as "Not applicable", never 0 or not a number (NaN).
 
-## Scope (P0)
+## Scope
 
-Performing, fixed-rate, fully amortizing, first-lien residential loans with monthly
+The priority-0 (P0) release covers performing, fixed-rate, fully amortizing, first-lien residential loans with monthly
 payments. Not modeled: negative amortization, adjustable rates, interest-only periods,
 balloons, modifications, scheduled-payment delinquency, partial curtailments. The import
 validator rejects records that imply them (payment not equal to the level payment for
@@ -56,9 +56,14 @@ Fractional expected loan counts are intentional. In the maturity month q = 0, so
 is never counted as a voluntary payoff.
 
 Conservation: beginning = scheduled + prepaid + ending for every loan-month and
-portfolio-month, within max($0.01, beginning UPB x 1e-10). Tested in N04.
+portfolio-month, within max($0.01, beginning unpaid principal balance (UPB) x 1e-10). Tested in
+numerical acceptance test N04 of the product requirements document (PRD).
 
 ## Speeds
+
+Prepayment speed is expressed as single monthly mortality (SMM), the share of the
+balance left after scheduled principal that prepays in the month, and its annualized
+form, the conditional prepayment rate (CPR):
 
 ```
 SMM = prepaid principal / (beginning UPB - scheduled principal)
@@ -78,7 +83,7 @@ from the effective input and the hash.
 ## Payoff causes
 
 Only behavioral mode identifies why a loan pays off (refinance or turnover). Fixed CPR and
-PSA give a speed, not a reason, so their payoffs are **unclassified voluntary payoffs**:
+the Public Securities Association (PSA) benchmark give a speed, not a reason, so their payoffs are **unclassified voluntary payoffs**:
 
 ```
 voluntary payoffs_t     = sum of w q                       (every mode)
@@ -88,7 +93,7 @@ unclassified            = 0; refinance + turnover = voluntary                   
 ```
 
 Total prepaid principal is identical either way; only the labeling differs. The ledger,
-CSV and per-loan drill-down show the refinance and turnover split as "not applicable"
+comma-separated values (CSV) export and per-loan drill-down show the refinance and turnover split as "not applicable"
 outside behavioral mode, and recapture stays disabled there because it needs refinance
 payoffs.
 
@@ -114,7 +119,7 @@ q       = 1 - exp(-h_move - h_refi)
 q_refi  = q h_refi / (h_move + h_refi);  q_move = q - q_refi   (both 0 when total hazard is 0)
 ```
 
-E counts prior months with x > 0. An x smaller than 10⁻⁶ bps is floating-point noise and is set to exactly 0, so a loan exactly at the threshold never accrues burnout (see `docs/CALCULATION_REVIEW.md`, finding F1). It starts at 0 for every synthetic loan (disclosed in
+E counts prior months with x > 0. An x smaller than 10⁻⁶ basis points (bps) is floating-point noise and is set to exactly 0, so a loan exactly at the threshold never accrues burnout (see `docs/CALCULATION_REVIEW.md`, finding F1). It starts at 0 for every synthetic loan (disclosed in
 every behavioral run) and is incremented after the current month is computed. Default
 seasonality is 1; the optional preset is
 `0.80 0.80 0.95 1.05 1.15 1.20 1.20 1.15 1.05 0.95 0.85 0.85` (January first), mean
@@ -144,7 +149,7 @@ discount rate d is an annual effective rate, independent of the mortgage-rate pa
 
 **Excluded:** escrow and remittance float, ancillary and late fees, servicing advances,
 default and foreclosure costs, taxes, hedges, any terminal value or multiple. The number
-is labeled "illustrative servicing NPV" and is never called market value or fair value.
+is labeled "illustrative servicing net present value (NPV)" and is never called market value or fair value.
 Negative values are not clamped; a negative-margin book can violate the usual heuristic
 that slower prepayment raises value. Discounting projected servicing income under
 explicit prepayment, cost and discount assumptions follows the broad framing in [S1].
@@ -154,13 +159,14 @@ explicit prepayment, cost and discount assumptions follows the broad framing in 
 Principal (scheduled and prepaid) and note interest are shown separately from servicing
 fees; owner net interest = note interest - servicing fee. Simplified: before credit
 losses, funding costs, guaranty fees, remittance delays and any security structure; not a
-priced agency MBS.
+priced agency mortgage-backed security (MBS).
 
 ```
 WAL = sum over all months of (t / 12) x (scheduled_t + prepaid_t) / current UPB
 ```
 
-Full remaining maturity, independent of the chart window (N13).
+Weighted-average life (WAL) uses the full remaining maturity, independent of the chart
+window (N13).
 
 ## Recapture (behavioral mode only)
 
@@ -193,8 +199,8 @@ as an error in that cell; a cancel stops the whole job. Tested in
 
 ## Hashes and reproducibility
 
-- Portfolio hash: SHA-256 of canonical JSON (sorted keys, shortest round-trip numbers) of
-  loans, as-of month, seed and generator version.
+- Portfolio hash: Secure Hash Algorithm 256 (SHA-256) hash of canonical JavaScript Object Notation (JSON), with sorted keys and shortest round-trip
+  numbers, of loans, as-of month, seed and generator version.
 - Input hash: SHA-256 of the effective input: only mode-relevant fields; names, ids and
   chart horizon excluded.
 - Run key: hash of input hash plus the normalized population filter.
@@ -229,7 +235,7 @@ Bernoulli payoffs (seed 9001), so the forecast cannot fit by construction. Score
 CPR error (bias) and mean absolute error in percentage points, prepaid-dollar error,
 and cohort bias by note rate, against fixed 8% CPR and 100% PSA benchmarks.
 
-Real-data validation (P1) needs chronological train/validation/test windows, loan-level
+Real-data validation, a priority-1 (P1) item for a later release, needs chronological train/validation/test windows, loan-level
 grouping, as-of features, censoring at observation end, and separate voluntary payoff,
 default/liquidation, repurchase and maturity, keeping "unknown voluntary payoff" when the
 reason is unknown.
@@ -241,6 +247,6 @@ reason is unknown.
 
 ## Sources (checked October 18, 2026)
 
-- **S1** OCC, Comptroller's Handbook, *Mortgage Banking*, servicing-asset and valuation sections (printed pages 67-72). Context only; not certification of this simulator. https://www.occ.treas.gov/publications-and-resources/publications/comptrollers-handbook/files/mortgage-banking/pub-ch-mortgage-banking.pdf
+- **S1** Office of the Comptroller of the Currency (OCC), Comptroller's Handbook, *Mortgage Banking*, servicing-asset and valuation sections (printed pages 67-72). Context only; not certification of this simulator. https://www.occ.treas.gov/publications-and-resources/publications/comptrollers-handbook/files/mortgage-banking/pub-ch-mortgage-banking.pdf
 - **S2** Oracle Financial Services, *PSA Method*. https://docs.oracle.com/en/industries/financial-services/ofs-analytical-applications/analytical-applications-infrastructure/812/almug/psa-method.html
 - **S3** Fannie Mae Single-Family Loan Performance Data: candidate for a licensed P1 adapter; terms restrict redistribution, and no records are bundled. https://capitalmarkets.fanniemae.com/credit-risk-transfer/fannie-mae-single-family-loan-performance-data

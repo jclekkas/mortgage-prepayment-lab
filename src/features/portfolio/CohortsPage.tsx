@@ -6,6 +6,7 @@ import type { CohortRow, PopulationFilter, SegmentDimension } from '../../domain
 import { PopulationBadge, RunStatus } from '../results/RunStatus';
 import { useComparison } from '../results/useComparison';
 import { BlockedNotice } from '../results/BlockedNotice';
+import { TermKey } from '../../ui/TermKey';
 
 export function CohortsPage() {
   const { state, dispatch } = useStore();
@@ -27,6 +28,7 @@ export function CohortsPage() {
   return (
     <div className="stack">
       <h1>Cohort explorer: {actSlot.draft.name}</h1>
+      <TermKey terms={['UPB', 'bps', 'CPR', 'NPV']} />
       <p className="muted">
         Filter the population to a segment and every chart, card and comparison updates. Dollars show size; the normalized columns (share of UPB, bps) show intensity, so a large segment is not automatically the riskier one.
         There is no credit-score effect in this release: a credit score is not a prepayment probability.

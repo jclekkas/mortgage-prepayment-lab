@@ -7,6 +7,7 @@ import { KpiCards } from '../results/KpiCards';
 import { PopulationBadge, RunStatus } from '../results/RunStatus';
 import { entriesFor, ExcludedNotice, NpvComparison } from '../results/ScenarioCharts';
 import { useComparison } from '../results/useComparison';
+import { TermKey } from '../../ui/TermKey';
 
 export function OverviewPage() {
   const { state, active, applyAndRun, dispatch } = useStore();
@@ -36,12 +37,13 @@ export function OverviewPage() {
         <p className="muted">
           {state.portfolio.meta.description} Synthetic as of {formatMonth(state.portfolio.meta.asOfMonth)}. The synthetic offer rate is an assumption, not today’s market rate.
         </p>
+        <TermKey terms={['CPR', 'bps', 'pp', 'UPB', 'NPV', 'WAL']} />
         <PopulationBadge />
       </div>
       <RunStatus />
       <section className="card" aria-labelledby="try-h">
         <h2 id="try-h">Predict, then run</h2>
-        <p>Before you press a button, decide: will next-month CPR go up or down, and which coupon band will move most? Each button changes one assumption on {target?.draft.name ?? 'a scenario'} and runs it against the frozen baseline.</p>
+        <p>Before you press a button, decide: will next-month prepayment speed (conditional prepayment rate, CPR) go up or down, and which coupon band will move most? Each button changes one assumption on {target?.draft.name ?? 'a scenario'} and runs it against the frozen baseline. Rate moves are in basis points (bps): 100 bps is 1 percentage point.</p>
         <div className="row">
           {quick('Rates fall 100 bps', (n) => { n.mode = 'behavioral'; n.ratePath.shockBps = -100; })}
           {quick('Rates rise 100 bps', (n) => { n.mode = 'behavioral'; n.ratePath.shockBps = 100; })}

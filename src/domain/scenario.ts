@@ -142,6 +142,6 @@ export function validateScenario(s: ScenarioInput): FieldError[] {
 
 export const MODE_LABELS: Record<ModelMode, string> = {
   behavioral: 'Behavioral (rate-responsive)',
-  fixedCpr: 'Fixed CPR',
-  psa: 'PSA benchmark',
+  fixedCpr: 'Fixed conditional prepayment rate (CPR)',
+  psa: 'Public Securities Association (PSA) benchmark',
 };

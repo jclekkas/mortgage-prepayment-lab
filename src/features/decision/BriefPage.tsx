@@ -8,6 +8,7 @@ import { explainComparison } from '../../domain/narrative';
 import { describeFilter } from '../../domain/segments';
 import { MODE_LABELS } from '../../domain/scenario';
 import { MODEL_VERSION } from '../../domain/version';
+import { TermKey } from '../../ui/TermKey';
 
 /** One-page printable scenario brief. */
 export function BriefPage() {
@@ -22,10 +23,11 @@ export function BriefPage() {
     <article className="stack" style={{ maxWidth: 900 }} data-testid="brief">
       <div className="row no-print">
         <a href={href('decision')}>← Back to decision room</a>
-        <button type="button" className="primary" onClick={() => window.print()} disabled={!ready}>Print or save as PDF</button>
+        <button type="button" className="primary" onClick={() => window.print()} disabled={!ready}>Print or save as PDF (Portable Document Format)</button>
       </div>
       <header>
         <h1>Scenario brief: {p.name}</h1>
+        <TermKey terms={['CPR', 'UPB', 'NPV', 'PV', 'bps', 'ARM']} />
         <p>
           Synthetic portfolio, as of {formatMonth(p.asOfMonth)} · {state.portfolio.loans.length.toLocaleString()} loans · population: {describeFilter(state.filter)} · model {MODEL_VERSION} · prepared {new Date().toLocaleDateString()}
         </p>
@@ -86,7 +88,7 @@ export function BriefPage() {
             <ul style={{ fontSize: '0.9rem' }}>
               <li>Synthetic data and illustrative, uncalibrated behavioral coefficients. Not a FICO model, a forecast, or a validated valuation.</li>
               <li>Illustrative servicing NPV is not market value or accounting fair value. It excludes float, ancillary fees, advances, default costs, taxes, hedges and any terminal value.</li>
-              <li>Performing, fixed-rate, fully amortizing first liens only. No delinquency, curtailments, modifications, ARMs, interest-only or balloon loans.</li>
+              <li>Performing, fixed-rate, fully amortizing first liens only. No delinquency, curtailments, modifications, adjustable-rate mortgages (ARMs), interest-only or balloon loans.</li>
               <li>Recapture contribution is separate from the original book and excludes replacement servicing value. Assumed uplift is not proven causality.</li>
               <li>The loan-owner view is before credit losses, funding costs, guaranty fees, remittance delays and any security structure.</li>
             </ul>

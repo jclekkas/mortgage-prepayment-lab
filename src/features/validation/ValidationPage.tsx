@@ -5,6 +5,7 @@ import { pct, pp, usd } from '../../domain/format';
 import type { ValidationResult } from '../../domain/validation';
 import { LineChart } from '../../ui/LineChart';
 import { Notice } from '../../ui/misc';
+import { TermKey } from '../../ui/TermKey';
 
 export function useValidation() {
   const { client } = useStore();
@@ -28,6 +29,7 @@ export function ValidationPage() {
   return (
     <div className="stack">
       <h1>Validation lab</h1>
+      <TermKey terms={['CPR', 'PSA', 'bps', 'pp']} />
       <Notice kind="warn"><strong>Synthetic history.</strong> {v.disclosure}</Notice>
       <p>
         A forecast was frozen at {formatMonth(v.origin)} assuming the offer rate stayed at 6.75%. Below are the 24 months that followed. Compare the frozen forecast with what happened, then with the same model re-run on the rates that actually occurred, to separate a <em>rate-path miss</em> from a <em>behavior miss</em>.
@@ -98,7 +100,7 @@ export function ValidationPage() {
           </table>
         </div>
       </details>
-      <p className="muted" style={{ fontSize: '0.85rem' }}>Planned for real data (P1): chronological train/validation/test windows, loan-level grouping, as-of features, censoring at the observation end, and separating voluntary payoff, default, repurchase and maturity. Unknown payoff reasons stay “unknown voluntary payoff”.</p>
+      <p className="muted" style={{ fontSize: '0.85rem' }}>Planned for a later release with real data: chronological train/validation/test windows, loan-level grouping, as-of features, censoring at the observation end, and separating voluntary payoff, default, repurchase and maturity. Unknown payoff reasons stay “unknown voluntary payoff”.</p>
     </div>
   );
 }

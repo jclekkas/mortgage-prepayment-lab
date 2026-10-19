@@ -7,7 +7,7 @@ import type { Lens } from '../../domain/narrative';
 const GOALS: { id: Lens; title: string; body: string }[] = [
   { id: 'servicing', title: 'Protect servicing cash flow', body: 'See how payoffs end servicing fees, which segments are exposed, and what you can influence.' },
   { id: 'investor', title: 'Compare investment cash flows', body: 'Follow principal and note interest to the loan owner, and how faster payoff changes timing.' },
-  { id: 'learn', title: 'Learn prepayment math', body: 'Guided exercises on CPR, SMM, PSA, refinance incentive and recapture.' },
+  { id: 'learn', title: 'Learn prepayment math', body: 'Guided exercises on prepayment speed (conditional prepayment rate and single monthly mortality), the Public Securities Association benchmark, refinance incentive and recapture.' },
 ];
 
 const ROLES: { id: Role; title: string; body: string }[] = [

@@ -3,6 +3,9 @@ import { href } from '../../app/router';
 import { useStore } from '../../app/store';
 import { Notice } from '../../ui/misc';
 import { LESSONS, type Lesson, type LessonOutcome } from './lessons';
+import { TermKey, type Term } from '../../ui/TermKey';
+
+const LEARN_TERMS: Term[] = ['CPR', 'SMM', 'PSA', 'bps', 'UPB', 'NPV', 'PV'];
 
 export function LearnPage({ sub }: { sub: string | null }) {
   const { state } = useStore();
@@ -12,6 +15,7 @@ export function LearnPage({ sub }: { sub: string | null }) {
   return (
     <div className="stack" style={{ maxWidth: 900 }}>
       <h1>Learn by predicting</h1>
+      <TermKey terms={LEARN_TERMS} />
       <p>Six short exercises. Each asks you to commit to a prediction before it shows the calculated answer. Progress is stored on this device. Completed: {done} of {LESSONS.length}.</p>
       <ol className="stack" style={{ paddingLeft: '1.2rem' }}>
         {LESSONS.map((l) => (
@@ -57,6 +61,7 @@ function LessonView({ lesson }: { lesson: Lesson }) {
     <div className="stack" style={{ maxWidth: 820 }} data-testid={`lesson-view-${lesson.id}`}>
       <a href={href('learn')}>← All exercises</a>
       <h1>{lesson.title}</h1>
+      <TermKey terms={LEARN_TERMS} />
       <p>{lesson.intro}</p>
       <fieldset className="card" disabled={!!outcome}>
         <legend style={{ fontWeight: 700 }}>Predict first: {lesson.question}</legend>

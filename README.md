@@ -12,13 +12,13 @@ not a FICO model. Behavioral coefficients are deliberately simple teaching value
 ## What it does
 
 - **Three synthetic books** (1,000 loans each, seed 42): mixed, low-rate seasoned, recent higher-rate.
-- **Three prepayment modes**: transparent behavioral hazard model (rates, age, turnover, burnout), fixed CPR, PSA. Only the selected mode drives prepayment; disabled controls cannot change the result or the input hash.
-- **Servicing economics**: monthly fee and cost, net servicing cash flow, illustrative lifetime NPV to full maturity.
+- **Three prepayment modes**: transparent behavioral hazard model (rates, age, turnover, burnout), fixed conditional prepayment rate (CPR), Public Securities Association (PSA) benchmark. Only the selected mode drives prepayment; disabled controls cannot change the result or the input hash.
+- **Servicing economics**: monthly fee and cost, net servicing cash flow, illustrative lifetime net present value (NPV) to full maturity.
 - **Loan-owner lens**: scheduled and prepaid principal, note interest net of the fee, principal weighted-average life, kept separate from servicing.
 - **Recapture overlay**: origination contribution from recaptured refinances, shown separately from the original book.
 - **Scenario lab**: baseline plus up to three scenarios, undo, reset, duplicate, rename, freeze as baseline, stale-run protection, cancellation.
 - **Cohort explorer**, one-factor sensitivities (labeled non-additive) and a two-way sensitivity grid.
-- **Decision room** with notes, JSON export/import that re-runs and checks reproduction, cash-flow CSV, and a printable one-page brief with a reproducibility hash.
+- **Decision room** with notes, JavaScript Object Notation (JSON) export/import that re-runs and checks reproduction, cash-flow comma-separated values (CSV) file, and a printable one-page brief with a reproducibility hash.
 - **Six predict-first exercises** and a **validation lab** comparing a frozen forecast with a synthetic 24-month history generated from different parameters.
 
 ## Run it
@@ -33,9 +33,9 @@ npm run dev            # http://localhost:5173
 | `npm run dev` / `build` / `preview` | Vite dev server, production build to `dist/`, local preview of the build |
 | `npm run typecheck` | `tsc -b --noEmit` |
 | `npm run lint` | ESLint |
-| `npm run test:numerics` | PRD acceptance tests N01-N16 and reconciliation against the independent Python reference model |
+| `npm run test:numerics` | Product requirements document (PRD) numerical acceptance tests N01-N16 and reconciliation against the independent Python reference model |
 | `npm test` | All Vitest suites: numerics, unit (files, validation lab), engine benchmark |
-| `npm run test:e2e` | Playwright against the production build: walkthrough, cancellation, stale runs, malformed import, storage failure, keyboard-only, deep-link refresh, axe WCAG 2.x AA scan, 390/768/1280 px overflow, browser timings |
+| `npm run test:e2e` | Playwright against the production build: walkthrough, cancellation, stale runs, malformed import, storage failure, keyboard-only, deep-link refresh, axe Web Content Accessibility Guidelines (WCAG) 2.x level AA scan, 390/768/1280-pixel overflow, browser timings |
 | `npm run reference` | Regenerates `tests/fixtures/reference-*.json` from `scripts/reference_model.py` |
 | `npm run licenses` | Regenerates `THIRD_PARTY_LICENSES.md` |
 
@@ -44,11 +44,11 @@ In a sandbox without Playwright's browser download, point at an installed Chromi
 
 ## How it is built
 
-- TypeScript, React 19, Vite 8. Static, client-only: no server, database, API key or analytics.
+- TypeScript, React 19, Vite 8. Static, client-only: no server, database, application programming interface (API) key or analytics.
 - `src/domain`: the single numerical engine, pure functions, used unchanged by tests and the Web Worker. Components never compute financial metrics; explanation text is generated from engine output.
 - `src/worker`: runs jobs off the main thread in chunks with progress, cancellation by run id, and a cache keyed by the canonical input hash.
-- `src/data`: deterministic synthetic generator and presets. `src/storage`: strict Zod import schema, export, IndexedDB.
-- `src/features`: portfolio, scenarios, results, decision, learn, validation UI.
+- `src/data`: deterministic synthetic generator and presets. `src/storage`: strict Zod import schema, export, the browser's built-in database (IndexedDB).
+- `src/features`: portfolio, scenarios, results, decision, learn, validation user interface (UI).
 - Hash routing (`#/lab`), so deep links survive refresh on any static host. `BASE_PATH` sets a sub-path at build time.
 
 ## Documentation
@@ -64,7 +64,7 @@ In a sandbox without Playwright's browser download, point at an installed Chromi
 
 ## Status
 
-Educational P0 build. A mortgage-domain reviewer has **not** yet approved the
+Educational priority-0 (P0) build. A mortgage-domain reviewer has **not** yet approved the
 conventions, so the tool must not be described as financially validated. An internal
 corporate deployment would additionally need an approved host, authentication, a
 security review and a data policy; the role selector is not authorization.

@@ -11,6 +11,7 @@ import { entriesFor, ExcludedNotice, ScenarioCharts } from '../results/ScenarioC
 import { SensitivityPanel } from '../results/SensitivityPanel';
 import { Controls } from './Controls';
 import { RunBar } from './RunBar';
+import { TermKey } from '../../ui/TermKey';
 
 export function LabPage() {
   const { state, active, baseline } = useStore();
@@ -26,6 +27,7 @@ export function LabPage() {
         <h1 style={{ margin: 0 }}>Scenario lab: {active.draft.name}</h1>
         <PopulationBadge />
       </div>
+      <TermKey terms={['bps', 'pp', 'CPR', 'PSA', 'UPB', 'NPV', 'PV', 'SMM', 'WAL', 'MSR', 'MBS', 'CSV']} />
       <div className="lab-layout">
         <section aria-labelledby="assump-h" className="card" style={{ padding: 0 }}>
           <div style={{ padding: '1rem 1rem 0' }}>

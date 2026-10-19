@@ -91,6 +91,7 @@ label { font-weight: 500; }
 .app-header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
 /* On phones a sticky header plus the sticky Run bar leaves too little room for content. */
 @media (max-width: 820px) { .app-header { position: static; } nav.main-nav { flex-wrap: wrap; overflow-x: visible; } html { scroll-padding-top: 0; } }
+.term-key { font-size: 0.85rem; margin: 0.25rem 0 0; }
 .preview-note { background: var(--warn-bg); color: var(--warn-ink); font-size: 0.82rem; text-align: center; padding: 0.3rem 1rem; }
 .header-inner { max-width: 1440px; margin: 0 auto; padding: 0.5rem 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
 .brand { font-weight: 700; margin-right: auto; }

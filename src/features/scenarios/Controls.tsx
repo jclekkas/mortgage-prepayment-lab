@@ -34,7 +34,7 @@ export function Controls() {
           help="Synthetic starting level of the rate borrowers could refinance into. Not today’s market rate." />
         <NumberControl testId="ctl-shock" label="Rate shock" value={d.ratePath.shockBps} min={BOUNDS.shockBps.min} max={BOUNDS.shockBps.max} step={5} unit="bps" defaultValue={0} digits={0}
           onChange={(v) => edit((n) => { n.ratePath.shockBps = v; })} source="Market assumption" disabledReason={why(notBehavioral)}
-          help="Added to the offer rate path. A resulting rate outside 1% to 15% is rejected." />
+          help="In basis points (bps): 100 bps is 1 percentage point. Added to the offer rate path. A resulting rate outside 1% to 15% is rejected." />
         <div className="control">
           <div className="control-head"><span id="shape-l" style={{ fontWeight: 500 }}>Shock timing</span><span className="source">Market assumption</span></div>
           <div role="radiogroup" aria-labelledby="shape-l" className="chips" style={{ marginTop: '0.25rem' }}>
@@ -76,8 +76,8 @@ export function Controls() {
           <div role="radiogroup" aria-labelledby="mode-l" className="stack" style={{ marginTop: '0.25rem' }}>
             {([
               ['behavioral', 'Behavioral (rates, age, turnover, burnout)'],
-              ['fixedCpr', 'Fixed CPR (same speed every month)'],
-              ['psa', 'PSA benchmark (age-based ramp)'],
+              ['fixedCpr', 'Fixed conditional prepayment rate (CPR): same speed every month'],
+              ['psa', 'Public Securities Association (PSA) benchmark: age-based ramp'],
             ] as [ModelMode, string][]).map(([m, label]) => (
               <label key={m} className="row" style={{ gap: '0.35rem', fontWeight: 400, marginTop: 0 }}>
                 <input type="radio" name="mode" value={m} checked={d.mode === m} disabled={!!frozenReason} onChange={() => edit((n) => { n.mode = m; })} data-testid={`mode-${m}`} />

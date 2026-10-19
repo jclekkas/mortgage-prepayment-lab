@@ -13,6 +13,7 @@ import { Notice } from '../../ui/misc';
 import { PopulationBadge } from '../results/RunStatus';
 import { entriesFor, ExcludedNotice, ScenarioCharts } from '../results/ScenarioCharts';
 import { GridPanel } from './GridPanel';
+import { TermKey } from '../../ui/TermKey';
 
 const METRICS: [string, (s: SummaryMetrics) => string][] = [
   ['Current UPB', (s) => usd(s.currentUpb, { compact: true })],
@@ -101,6 +102,7 @@ export function DecisionPage() {
   return (
     <div className="stack">
       <h1>Decision room</h1>
+      <TermKey terms={['UPB', 'CPR', 'NPV', 'PV', 'bps', 'PSA', 'JSON', 'MB']} />
       <p className="muted">Up to four scenarios, including the frozen baseline, on the same valuation date ({formatMonth(state.portfolio.meta.asOfMonth)}) and the same population.</p>
       <PopulationBadge />
       {!assessment.comparable && (

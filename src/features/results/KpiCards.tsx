@@ -19,13 +19,13 @@ const pctChange = (b: number, s: number) => (b === 0 ? '' : ` (${signedPct((s - 
 
 const CARDS: CardDef[] = [
   { id: 'upb', label: 'Current unpaid principal balance (UPB)', period: (a) => `As of ${formatMonth(a)}`, value: (s) => usd(s.currentUpb, { compact: true }), delta: (b, s) => usd(s.currentUpb - b.currentUpb, { compact: true, signed: true }) },
-  { id: 'cpr', label: 'Next-month annualized prepayment speed (CPR)', period: (a) => `${formatMonth(addMonths(a, 1))}, annualized`, value: (s) => pct(s.nextMonthCpr), delta: (b, s) => (s.nextMonthCpr === null || b.nextMonthCpr === null ? 'Not applicable' : pp(s.nextMonthCpr - b.nextMonthCpr)) },
+  { id: 'cpr', label: 'Next-month prepayment speed: conditional prepayment rate (CPR), annualized', period: (a) => `${formatMonth(addMonths(a, 1))}, annualized`, value: (s) => pct(s.nextMonthCpr), delta: (b, s) => (s.nextMonthCpr === null || b.nextMonthCpr === null ? 'Not applicable' : pp(s.nextMonthCpr - b.nextMonthCpr)) },
   { id: 'prepaid12', label: 'Projected 12-month prepaid principal', period: (a) => `${formatMonth(addMonths(a, 1))} to ${formatMonth(addMonths(a, 12))}`, value: (s) => usd(s.prepaid12, { compact: true }), delta: (b, s) => `${usd(s.prepaid12 - b.prepaid12, { compact: true, signed: true })}${pctChange(b.prepaid12, s.prepaid12)}` },
   { id: 'net12', label: 'Projected 12-month net servicing cash flow', period: (a) => `${formatMonth(addMonths(a, 1))} to ${formatMonth(addMonths(a, 12))}`, value: (s) => usd(s.netServicing12, { compact: true }), delta: (b, s) => `${usd(s.netServicing12 - b.netServicing12, { compact: true, signed: true })}${pctChange(b.netServicing12, s.netServicing12)}` },
-  { id: 'npv', label: 'Illustrative lifetime servicing NPV', period: () => 'All remaining months, discounted', value: (s) => `${usd(s.servicingNpv, { compact: true })}`, delta: (b, s) => `${usd(s.servicingNpv - b.servicingNpv, { compact: true, signed: true })}${pctChange(b.servicingNpv, s.servicingNpv)}` },
+  { id: 'npv', label: 'Illustrative lifetime servicing net present value (NPV)', period: () => 'All remaining months, discounted', value: (s) => `${usd(s.servicingNpv, { compact: true })}`, delta: (b, s) => `${usd(s.servicingNpv - b.servicingNpv, { compact: true, signed: true })}${pctChange(b.servicingNpv, s.servicingNpv)}` },
 ];
 
-const WAL: CardDef = { id: 'wal', label: 'Loan principal weighted-average life', period: () => 'Loan owner view; not servicing duration', value: (s) => years(s.wal), delta: (b, s) => (s.wal === null || b.wal === null ? 'Not applicable' : `${s.wal - b.wal >= 0 ? '+' : '−'}${Math.abs(s.wal - b.wal).toFixed(2)} years`) };
+const WAL: CardDef = { id: 'wal', label: 'Loan principal weighted-average life (WAL)', period: () => 'Loan owner view; not servicing duration', value: (s) => years(s.wal), delta: (b, s) => (s.wal === null || b.wal === null ? 'Not applicable' : `${s.wal - b.wal >= 0 ? '+' : '−'}${Math.abs(s.wal - b.wal).toFixed(2)} years`) };
 
 export function KpiCards() {
   const { state } = useStore();
@@ -66,7 +66,7 @@ function Kpi({ def, asOf, isBaseline, secondary }: { def: CardDef; asOf: string;
     <article className="card kpi" data-testid={`kpi-${def.id}`} style={secondary ? { background: 'var(--surface-2)' } : undefined}>
       <div className="label">{def.label}</div>
       <div className="value" data-testid={`kpi-${def.id}-value`}>{def.value(s)}</div>
-      {def.id === 'npv' && <div className="period">{s.servicingValueBps === null ? 'Not applicable' : `${s.servicingValueBps.toFixed(1)} bps of current UPB`}</div>}
+      {def.id === 'npv' && <div className="period">{s.servicingValueBps === null ? 'Not applicable' : `${s.servicingValueBps.toFixed(1)} basis points (bps) of current UPB`}</div>}
       <div className="period">{def.period(asOf)}</div>
       {!isBaseline && <div className="delta">vs baseline: {def.delta(b, s)}</div>}
       <button type="button" className="link" aria-expanded={open} onClick={() => setOpen((v) => !v)}>

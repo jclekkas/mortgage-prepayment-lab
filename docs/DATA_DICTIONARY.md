@@ -1,6 +1,6 @@
 # Data dictionary
 
-All data is synthetic. No names, addresses, SSNs or real account identifiers exist anywhere in the app.
+All data is synthetic. No names, addresses, Social Security numbers (SSNs) or real account identifiers exist anywhere in the app.
 
 ## Loan (`Loan`, `src/domain/types.ts`)
 
@@ -14,22 +14,22 @@ All data is synthetic. No names, addresses, SSNs or real account identifiers exi
 | `originalTerm` | months | Original amortization term (360 in fixtures) | integer 1-480 |
 | `ageMonths` | months | Payments made | integer; age + remaining = original |
 | `remainingTerm` | months | Payments left | integer 1-480 |
-| `contractualPayment` | dollars/month | Level P&I payment for the original terms | Must equal the level payment (fully amortizing) |
-| `servicingFeeBps` | bps/year | Contractual servicing fee | 0-100 |
+| `contractualPayment` | dollars/month | Level principal and interest (P&I) payment for the original terms | Must equal the level payment (fully amortizing) |
+| `servicingFeeBps` | basis points (bps) per year | Contractual servicing fee | 0-100 |
 | `annualCost` | dollars/year | Cost to service while active | 0-1,000 |
-| `state` | 2 letters | US state code | `[A-Z]{2}` |
+| `state` | 2 letters | United States (US) state code | `[A-Z]{2}` |
 | `refiPropensity` | factor | Synthetic refinance propensity | 0.5-1.5 |
 | `cohort` | string | Generator cohort label (reference only) | `[A-Za-z0-9_-]{1,40}` |
 
 ## Portfolio metadata (`PortfolioMeta`)
 
 `schemaVersion` (1), `generatorVersion`, `seed`, `synthetic` (must be `true`),
-`createdDate`, `hash` (SHA-256, recomputed and checked on import), `presetId`, `name`,
-`description`, `asOfMonth`.
+`createdDate`, `hash`, `presetId`, `name`, `description`, `asOfMonth`. The `hash` is a
+Secure Hash Algorithm 256 (SHA-256) hash, recomputed and checked on import.
 
 ## Generator (`src/data/generator.ts`)
 
-Seed 42, 1,000 loans, mulberry32 PRNG. Cohorts: low coupon 2.75-3.75% aged 48-72 months;
+Seed 42, 1,000 loans, mulberry32 pseudo-random number generator (PRNG). Cohorts: low coupon 2.75-3.75% aged 48-72 months;
 middle 4.50-5.50% aged 24-42; high 6.75-7.75% aged 3-15. Rates on a 1/8-point grid.
 Original balances lognormal around $330,000 (sigma 0.35, bounded $60k-$1.2m, rounded to
 $1,000). Current balance and remaining term are derived from the contractual schedule.
@@ -43,7 +43,7 @@ low-rate), 1:2:7 (recent higher-rate).
 | `schemaVersion`, `modelVersion` | Must be supported exactly; no migration |
 | `portfolioHash`, `valuationMonth` | Must match the loaded portfolio |
 | `baselineId`, `scenarioId`, `name` | Identity and label (not in the input hash) |
-| `mode` | `behavioral`, `fixedCpr`, `psa` |
+| `mode` | `behavioral`, `fixedCpr` or `psa`: the behavioral model, a fixed conditional prepayment rate (CPR), or the Public Securities Association (PSA) benchmark |
 | `ratePath` | `offerRate` (decimal), `shockBps`, `shape` (`immediate`, `ramp12`, `custom`), `customPath` (decimals) |
 | `behavioralParameters` | `turnoverMultiplier`, `refiMultiplier`, `frictionBps`, `burnout`, `seasonality` |
 | `prepaymentParameters` | `fixedCpr` (decimal), `psaPercent` |
@@ -52,12 +52,12 @@ low-rate), 1:2:7 (recent higher-rate).
 | `seed` | Recorded for reproducibility |
 | `chartHorizon` | 12, 36 or 60; display only |
 
-Bounds are in `src/domain/config.ts` (`BOUNDS`) and shared by the UI, the engine and the import schema.
+Bounds are in `src/domain/config.ts` (`BOUNDS`) and shared by the user interface (UI), the engine and the import schema.
 
 ## Run output (`RunOutput`)
 
 `inputHash`, `runKey`, `modelVersion`, `portfolioHash`, `valuationMonth`, `scenarioId`, `mode`,
-`population` (filter, counts, UPB), `ledger` (one `LedgerMonth` per month to the last
+`population` (filter, counts, unpaid principal balance (UPB)), `ledger` (one `LedgerMonth` per month to the last
 maturity), `cohorts` (per segment dimension), `summary` (`SummaryMetrics`), `warnings`,
 `durationMs`. Per-loan monthly drill-down is computed on demand (`loanLedger`).
 
@@ -66,7 +66,9 @@ Ledger payoff fields: `voluntaryPayoffs` (all causes); `refiPayoffs`, `turnoverP
 `unclassifiedPayoffs`, `unclassifiedPrepaidPrincipal` (fixed CPR and PSA, 0 in behavioral
 mode); `maturedLoans` (never voluntary).
 
-## Cash-flow CSV columns
+## Cash-flow export columns
+
+The cash-flow export is a comma-separated values (CSV) file with these columns:
 
 `scenario, run_key, model_version, valuation_month, population, month_index, month,
 beginning_upb, scheduled_principal, prepaid_principal, ending_upb, note_interest,
@@ -81,8 +83,8 @@ expected_recaptured_loans, recapture_contribution`.
 portfolio"). In fixed CPR and PSA modes the refinance and turnover columns are
 `not applicable` and every payoff is in the unclassified columns; in behavioral mode the
 unclassified columns are 0. Missing values export as `not applicable`. Text beginning with
-`= + - @`, tab or CR is prefixed with `'`.
+`= + - @`, tab or carriage return (CR) is prefixed with `'`.
 
 ## Scenario file (`mortgage-prepayment-lab/scenarios`, schema 1)
 
-`fileType`, `schemaVersion`, `modelVersion`, `exportedAt`, `portfolio` (`{kind: "preset", presetId, hash}` or `{kind: "embedded", meta, loans}`), `baselineId`, `scenarios` (1-4), `filter`, `notes`, `results` (scenario id, input hash, run key, summary). Unknown fields are rejected. Limits: 10 MB, 10,000 loans. URLs in a file are never fetched.
+`fileType`, `schemaVersion`, `modelVersion`, `exportedAt`, `portfolio` (`{kind: "preset", presetId, hash}` or `{kind: "embedded", meta, loans}`), `baselineId`, `scenarios` (1-4), `filter`, `notes`, `results` (scenario id, input hash, run key, summary). Unknown fields are rejected. Limits: 10 megabytes (MB), 10,000 loans. Web addresses (URLs) in a file are never fetched.

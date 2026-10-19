@@ -1,10 +1,12 @@
 import { BEHAVIORAL_COEFFICIENTS as C, SEASONAL_TURNOVER_PRESET } from '../../domain/config';
 import { GENERATOR_VERSION, MODEL_VERSION, SCHEMA_VERSION } from '../../domain/version';
+import { TermKey } from '../../ui/TermKey';
 
 export function MethodologyPage() {
   return (
     <div className="stack" style={{ maxWidth: 900 }}>
       <h1>Methodology</h1>
+      <TermKey terms={['NPV', 'SMM', 'UPB', 'CPR', 'PSA', 'bps', 'WAL', 'PV', 'OCC']} />
       <p className="notice warn">
         <strong>Excluded cash flows.</strong> Illustrative servicing NPV leaves out escrow and remittance float, ancillary and late fees, servicing advances, default and foreclosure costs, taxes, hedges and any terminal value or multiple. It is not market value or accounting fair value.
       </p>
@@ -56,7 +58,7 @@ recapture PV = Σ recaptured_t × contribution / (1 + d)^(t/12) − campaign cos
       <section className="card">
         <h2>Sources (checked October 18, 2026)</h2>
         <ul>
-          <li>S1: OCC, Comptroller’s Handbook, Mortgage Banking, servicing-asset and valuation sections (printed pages 67 to 72). Context for separating servicing rights from the loan and valuing projected servicing cash flows under explicit prepayment, cost and discount assumptions. Not a certification of this tool.</li>
+          <li>S1: Office of the Comptroller of the Currency (OCC), Comptroller’s Handbook, Mortgage Banking, servicing-asset and valuation sections (printed pages 67 to 72). Context for separating servicing rights from the loan and valuing projected servicing cash flows under explicit prepayment, cost and discount assumptions. Not a certification of this tool.</li>
           <li>S2: Oracle Financial Services, PSA Method documentation: 0.2-point monthly CPR ramp to 6% at month 30, scaled by the PSA multiplier.</li>
           <li>S3: Fannie Mae Single-Family Loan Performance Data: a candidate for a later licensed adapter. Its terms restrict redistribution; no records are bundled here.</li>
         </ul>
