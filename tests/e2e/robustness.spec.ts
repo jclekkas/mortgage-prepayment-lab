@@ -105,6 +105,7 @@ test('cancelling a 10,000-loan grid or sensitivity frees the worker immediately 
   await startFresh(page);
   await page.goto('/#/decision');
   await page.getByTestId('import-input').setInputFiles({ name: 'big.json', mimeType: 'application/json', buffer: bigFile() });
+  await expect(page.getByTestId('import-message')).toContainText('Imported', { timeout: 30_000 });
   await page.goto('/#/lab');
   await expect(page.getByText('Ten thousand loans')).toBeVisible();
   await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 30_000 });
@@ -151,7 +152,10 @@ test('REGRESSION: after a filter change, a cancelled recalculation is never comp
   // All high-coupon loans, so filtering to 7%+ keeps about three quarters of 10,000 loans:
   // each recalculation takes long enough to cancel.
   await page.getByTestId('import-input').setInputFiles({ name: 'big.json', mimeType: 'application/json', buffer: bigFile({ cohortWeights: [0, 0, 1] }) });
+  // Wait for the import to replace the workspace before acting on it.
+  await expect(page.getByTestId('import-message')).toContainText('Imported', { timeout: 30_000 });
   await page.goto('/#/lab');
+  await expect(page.getByText('Ten thousand loans')).toBeVisible();
   await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 30_000 });
 
   await page.goto('/#/cohorts');
