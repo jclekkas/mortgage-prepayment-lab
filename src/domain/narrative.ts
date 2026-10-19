@@ -78,7 +78,7 @@ export function explainComparison(
   if (changes.some((c) => c.id === 'mode')) {
     headline = `The scenario switches the model from ${changes.find((c) => c.id === 'mode')!.from} to ${changes.find((c) => c.id === 'mode')!.to}. Differences come from the modeling convention, not from a market event.`;
   } else if (lowerRates && faster && onlyRates) {
-    headline = `Under your lower-rate assumption, borrowers’ refinance incentive (their note rate minus the offer rate, less friction) rises, so the model projects more refinance payoffs: 12-month prepaid principal rises by ${usd(dPrep, { compact: true })}.`;
+    headline = `Under your lower-rate assumption, borrowers’ refinance incentive (their existing mortgage rate minus the offer rate, less friction) rises, so the model projects more refinance payoffs: 12-month prepaid principal rises by ${usd(dPrep, { compact: true })}.`;
   } else if (higherRates && slower && onlyRates) {
     headline = `Under your higher-rate assumption, borrowers’ refinance incentive falls, so the model projects fewer refinance payoffs: 12-month prepaid principal falls by ${usd(-dPrep, { compact: true })}.`;
   } else if (lowerRates && !faster && !onlyRates) {

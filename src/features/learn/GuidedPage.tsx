@@ -199,7 +199,7 @@ function GuidedResult({ result, answers, onRestart, onAdd, added, canAdd }: {
     <section className="card stack" aria-labelledby="g4" data-testid="guided-result">
       <h1 id="g4" ref={heading} tabIndex={-1}>What the model calculated</h1>
       <div className="table-wrap">
-        <table data-testid="guided-table">
+        <table data-testid="guided-table" className="stack-table">
           <caption>Baseline versus the rate cut, all {base.population.loanCount.toLocaleString()} loans</caption>
           <thead><tr><th scope="col">Result</th><th scope="col">Baseline</th><th scope="col">After the rate cut</th><th scope="col">Difference</th><th scope="col">Your prediction</th></tr></thead>
           <tbody>
@@ -210,10 +210,10 @@ function GuidedResult({ result, answers, onRestart, onAdd, added, canAdd }: {
               return (
                 <tr key={o.id} data-testid={`guided-row-${o.id}`}>
                   <th scope="row">{o.measure}</th>
-                  <td>{o.format(b)}</td>
-                  <td>{o.format(s)}</td>
-                  <td>{o.diff(b, s)} <TrendArrow trend={trendOf(o.trend, b, s)} /></td>
-                  <td>{guess === actual ? `Matches (${words[guess]})` : `You said ${words[guess]}; it went ${words[actual]}`}</td>
+                  <td data-label="Baseline">{o.format(b)}</td>
+                  <td data-label="After the rate cut">{o.format(s)}</td>
+                  <td data-label="Difference">{o.diff(b, s)} <TrendArrow trend={trendOf(o.trend, b, s)} /></td>
+                  <td data-label="Your prediction">{guess === actual ? `Matches (${words[guess]})` : `You said ${words[guess]}; it went ${words[actual]}`}</td>
                 </tr>
               );
             })}
@@ -222,7 +222,7 @@ function GuidedResult({ result, answers, onRestart, onAdd, added, canAdd }: {
       </div>
       <h2>Why</h2>
       <p data-testid="guided-headline"><strong>{n.headline}</strong></p>
-      <ul>{n.points.map((x, i) => <li key={i}>{x}</li>)}</ul>
+      <ul>{n.points.filter((x) => !/recapture|net present value/i.test(x)).map((x, i) => <li key={i}>{x}</li>)}</ul>
       <p data-testid="guided-takeaway">
         {(() => {
           const pb = servicingPvParts(base), ps = servicingPvParts(cut);

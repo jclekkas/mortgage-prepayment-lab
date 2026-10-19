@@ -47,9 +47,10 @@ export function DecisionPage() {
   const [legacy, setLegacy] = useState<ImportResult['legacy']>(null);
   // A saved workspace an earlier visit could not open is kept; offer it as a file.
   const [backup, setBackup] = useState<{ file: string; savedAt?: string } | null>(null);
+  // Re-read when the storage status changes: the store may keep an unreadable record after this page mounts.
   useEffect(() => {
     kv.get<{ file: string; savedAt?: string }>(BACKUP_KEY).then((b) => setBackup(b ?? null), () => setBackup(null));
-  }, []);
+  }, [state.storage.status, state.storage.message]);
   // One gate for comparing, printing and exporting: every result must be for the current population.
   const assessment = assessSlots(state);
   const { entries, excluded } = entriesFor(state);
@@ -222,7 +223,7 @@ export function DecisionPage() {
           )}
         </div>
         <p className="muted" style={{ fontSize: '0.85rem' }}>
-          Files stay on your computer and are plain-text JavaScript Object Notation (JSON) files you can re-import. Imports are limited to 10 megabytes and 10,000 synthetic loans, are checked against a strict schema, and are never migrated or reinterpreted. Saved: {state.storage.savedAt ? new Date(state.storage.savedAt).toLocaleString() : 'not yet'}.
+          Files stay on your computer and are plain-text JavaScript Object Notation (JSON) files you can re-import. Imports are limited to 10 megabytes and 10,000 synthetic loans, are checked against a strict schema, and are never silently reinterpreted: a file from an older model version keeps its assumptions and notes, is recalculated with the current model, and shows its old and new results side by side. Saved: {state.storage.savedAt ? new Date(state.storage.savedAt).toLocaleString() : 'not yet'}.
         </p>
         {state.storage.message && <Notice kind={state.storage.status === 'unavailable' ? 'err' : 'info'}>{state.storage.message}</Notice>}
         {importMsg && (
