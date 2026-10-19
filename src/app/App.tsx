@@ -1,3 +1,5 @@
+import { GuidedPage } from '../features/learn/GuidedPage';
+import { TrustNote } from '../ui/TrustNote';
 import { Component, useEffect, useRef, type ReactNode } from 'react';
 import { BriefPage } from '../features/decision/BriefPage';
 import { DecisionPage } from '../features/decision/DecisionPage';
@@ -50,6 +52,7 @@ function Routes() {
   const page = (() => {
     switch (route) {
       case 'start': return <StartPage />;
+      case 'guided': return <GuidedPage />;
       case 'overview': return <OverviewPage />;
       case 'lab': return <LabPage />;
       case 'cohorts': return <CohortsPage />;
@@ -73,6 +76,7 @@ function Routes() {
       </main>
       <div className="sr-only" role="status" aria-live="polite" data-testid="announcer">{state.announcement}</div>
       <footer className="footer">
+        <TrustNote compact />
         Independent educational project, not affiliated with, sponsored or endorsed by FICO or any lender. Synthetic data only. Illustrative results are
         not market value, accounting fair value or investment advice. Model {MODEL_VERSION} · build <span data-testid="build-commit">{__BUILD_COMMIT__.slice(0, 7)}</span>.
       </footer>

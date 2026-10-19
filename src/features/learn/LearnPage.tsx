@@ -19,6 +19,7 @@ export function LearnPage({ sub }: { sub: string | null }) {
       <h1>Learn by predicting</h1>
       <TermsOnPage ids={LEARN_TERMS} />
       <p>Six short exercises. Each asks you to commit to a prediction before it shows the calculated answer. Progress is stored on this device. Completed: {done} of {LESSONS.length}.</p>
+      <p>New to mortgages? Start with the <a href={href('guided')} data-testid="learn-guided">3-minute guided experiment</a>: it introduces the borrower, loan owner and servicer and walks through one rate cut before any quiz.</p>
       <ol className="stack" style={{ paddingLeft: '1.2rem' }}>
         {LESSONS.map((l) => (
           <li key={l.id}>

@@ -53,7 +53,7 @@ export const DIMENSIONS: readonly SegmentDimension[] = [
 ];
 
 export const DIMENSION_LABELS: Record<SegmentDimension, string> = {
-  coupon: 'Note rate (coupon)',
+  coupon: 'Borrower’s existing mortgage rate (note rate)',
   age: 'Loan age',
   remainingTerm: 'Remaining term',
   balance: 'Current balance',

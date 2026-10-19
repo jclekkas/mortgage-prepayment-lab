@@ -21,9 +21,9 @@ export function StartPage() {
   const [goal, setGoal] = useState<Lens>(state.goal);
   const [role, setRole] = useState<Role>(state.role);
   const [preset, setPreset] = useState(state.portfolio.meta.presetId && PRESETS.some((p) => p.id === state.portfolio.meta.presetId) ? state.portfolio.meta.presetId : 'mixed');
-  const go = () => {
+  const go = (guided: boolean) => {
     dispatch({ type: 'start', goal, role, portfolio: loadPreset(preset) });
-    navigate(goal === 'learn' ? 'learn' : 'overview');
+    navigate(guided ? 'guided' : goal === 'learn' ? 'learn' : 'overview');
   };
   return (
     <div className="stack" style={{ maxWidth: 980 }}>
@@ -63,16 +63,23 @@ export function StartPage() {
           {PRESETS.map((p) => (
             <button key={p.id} type="button" className="choice" aria-pressed={preset === p.id} onClick={() => setPreset(p.id)} data-testid={`preset-${p.id}`}>
               <strong>{p.name}</strong>
-              <span className="muted">{p.description} 1,000 loans, seed 42.</span>
+              <span className="muted">{p.description} 1,000 synthetic loans.</span>
             </button>
           ))}
         </div>
       </section>
+      {state.started && (
+        <p className="notice warn" data-testid="restart-warning">
+          You already have a workspace ({state.portfolio.meta.name}, {state.slots.length} scenario{state.slots.length === 1 ? '' : 's'}). Starting again replaces those scenarios and notes with fresh ones for the portfolio you pick. To keep them, export them first from the Decision room, or go back with your browser’s Back button.
+        </p>
+      )}
       <div className="row">
-        <button type="button" className="primary" onClick={go} data-testid="start">
-          Start
+        <button type="button" className="primary" onClick={() => go(true)} data-testid="start-guided">
+          Start with a 3-minute guided experiment
         </button>
-        {state.started && <span className="muted">Starting again with a different portfolio replaces your current scenarios.</span>}
+        <button type="button" onClick={() => go(false)} data-testid="start">
+          Skip the guide and open the dashboard
+        </button>
       </div>
     </div>
   );

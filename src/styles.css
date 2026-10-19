@@ -81,6 +81,8 @@ button.primary { background: var(--accent); color: var(--accent-ink); border-col
 button.link { border: none; background: none; color: var(--accent); padding: 0.2rem 0.3rem; min-height: 0; text-decoration: underline; }
 button:disabled { opacity: 0.55; cursor: not-allowed; }
 input, select, textarea { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.5rem; }
+select { max-width: 100%; }
+label.row { flex-wrap: wrap; max-width: 100%; }
 textarea { width: 100%; min-height: 5rem; }
 input[type='range'] { padding: 0; accent-color: var(--accent); width: 100%; }
 input[type='radio'], input[type='checkbox'] { width: 20px; height: 20px; margin: 2px; flex: none; accent-color: var(--accent); }
@@ -198,3 +200,11 @@ details.drawer { border: 1px solid var(--border); border-radius: var(--radius); 
   main { padding: 0; max-width: none; }
   .card { box-shadow: none; border-color: #999; break-inside: avoid; }
 }
+.trust-note { border-left: 3px solid var(--accent); background: var(--surface-2); padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.9rem; }
+.trust-note span { display: block; margin-top: 0.2rem; }
+.trust-note.compact { font-size: 0.8rem; border-left-width: 2px; padding: 0.4rem 0.6rem; }
+.trust-note.compact span { display: inline; }
+.guided h1 { font-size: 1.4rem; margin: 0; }
+.guided h1:focus { outline: none; }
+.guided h1:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.guided fieldset .row label { cursor: pointer; }

@@ -52,6 +52,7 @@ export function OverviewPage() {
       <RunStatus />
       <section className="card" aria-labelledby="try-h">
         <h2 id="try-h">Predict, then run</h2>
+        <p className="muted" style={{ fontSize: '0.9rem' }}>First time here? The <a href={href('guided')} data-testid="overview-guided">guided experiment</a> explains who is who and walks through one rate cut without changing your scenarios.</p>
         <p>Before you press a button, decide: will next month’s conditional prepayment rate (CPR), the yearly pace of early payoffs, go up or down? Rate moves are in basis points: 100 basis points equal 1 percentage point.</p>
         <p data-testid="quick-scope">
           Each button sets one assumption on <strong>{target?.draft.name ?? 'a scenario'}</strong> and runs it against the frozen baseline. It keeps that scenario’s other changes:{' '}
