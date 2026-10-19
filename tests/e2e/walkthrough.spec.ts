@@ -20,6 +20,17 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   await expect(page.getByTestId('kpi-npv-value')).toHaveText(baseNpv!);
   await expect(page.getByTestId('same-as-baseline')).toBeVisible();
   await expect(page.getByTestId('kpi-cpr').getByTestId('trend')).toHaveCount(0);
+  // Other screens: previous-run results are labeled, and nothing exports edits next to old results.
+  await page.goto('/#/cohorts');
+  await expect(page.getByTestId('cohort-table').locator('caption')).toContainText('previous run; edits not yet run');
+  await page.goto('/#/decision');
+  await expect(page.getByTestId('edits-unrun')).toContainText('Brief and export are paused');
+  await expect(page.getByTestId('compare-table')).toContainText('Previous run');
+  await expect(page.getByTestId('export-json')).toBeDisabled();
+  await expect(page.getByTestId('open-brief')).toBeDisabled();
+  await page.goto('/#/brief');
+  await expect(page.getByTestId('brief-blocked')).toContainText('edited but not run');
+  await page.goto('/#/lab');
   await page.getByTestId('run').click();
   await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
   await expect(page.getByTestId('explanation-headline')).toContainText('lower-rate assumption');
@@ -36,6 +47,8 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   await expect(cprTrend).toContainText('Up, worse for the servicer.');
   await expect(page.getByTestId('kpi-npv').getByTestId('trend')).toHaveAttribute('data-direction', 'down');
   await expect(page.getByTestId('kpi-upb').getByTestId('trend')).toHaveAttribute('data-tone', 'flat');
+  await expect(page.getByTestId('kpi-upb').getByTestId('trend')).toContainText('no change');
+  await expect(page.getByTestId('kpi-upb')).toContainText('vs baseline: $0');
 
   // Inspect a month via the ledger; reconciliation must pass.
   await page.getByRole('button', { name: 'Next month' }).click();

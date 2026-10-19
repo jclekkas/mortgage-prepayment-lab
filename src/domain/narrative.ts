@@ -115,7 +115,7 @@ export function explainComparison(
   }
   if (lens === 'investor' || lens === 'learn') {
     if (b.wal !== null && s.wal !== null && Math.abs(s.wal - b.wal) > 1e-4) {
-      points.push(`For the loan owner, principal weighted-average life moves from ${years(b.wal)} to ${years(s.wal)}. ${s.wal < b.wal ? 'Principal comes back sooner, which raises a reinvestment question; it is not an equal-dollar loss.' : 'Principal comes back later; the owner earns the note rate for longer.'}`);
+      points.push(`For the loan owner, principal weighted-average life moves from ${years(b.wal)} to ${years(s.wal)}. ${s.wal < b.wal ? 'Principal comes back sooner. That changes cash-flow timing and can affect the investment’s value; this simulator does not determine whether it is favorable for the owner.' : 'Principal comes back later; the owner earns the note rate for longer.'}`);
     }
   }
   if (base.population.isFiltered) points.push('Both runs use the same filtered population.');

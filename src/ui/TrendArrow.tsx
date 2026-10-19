@@ -4,7 +4,7 @@ const GLYPH = { up: '▲', down: '▼', flat: '►' } as const;
 
 /**
  * A small arrow for a change versus the baseline. Shape shows direction; color shows the
- * effect for the servicer (green better, red worse, yellow flat, grey neither). A short
+ * effect for the servicer (green better, red worse, yellow small or no change, grey not assessed). A short
  * visible word and a screen-reader sentence carry the same meaning, so color is never the only cue.
  */
 export function TrendArrow({ trend }: { trend: Trend | null }) {
@@ -27,10 +27,11 @@ export function TrendKey({ investor }: { investor: boolean }) {
       Arrows show direction versus the baseline; color shows the effect for the servicer:{' '}
       <span className="trend trend-good"><span aria-hidden="true">▲</span> better</span>{' '}
       <span className="trend trend-bad"><span aria-hidden="true">▼</span> worse</span>{' '}
-      <span className="trend trend-flat"><span aria-hidden="true">►</span> flat</span>{' '}
-      <span className="trend trend-neutral"><span aria-hidden="true">▲</span> neither</span>.
+      <span className="trend trend-neutral"><span aria-hidden="true">▲</span> not assessed</span>{' '}
+      <span className="trend trend-flat"><span aria-hidden="true">►</span> small change</span> (nonzero, below a display threshold set for readability, not economic importance) or{' '}
+      <span className="trend trend-flat"><span aria-hidden="true">►</span> no change</span>.
       {investor
-        ? ' For a loan owner, faster prepayment changes timing, not value, so it shows as neither.'
+        ? ' For a loan owner, faster repayment changes cash-flow timing and can affect investment value; this simulator does not determine whether that is favorable, so it is not assessed.'
         : ' Faster prepayment counts as worse: payoffs end fee income.'}
     </p>
   );

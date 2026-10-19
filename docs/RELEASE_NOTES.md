@@ -92,16 +92,22 @@ Items R1 to R3 are the findings of that review.
 ### Change arrows
 
 - Every change versus the baseline (headline cards, decision room comparison, cohort
-  change columns, sensitivity details) has a small arrow. Its shape shows direction
-  (▲ up, ▼ down, ► little or no change).
-- Its color shows the effect for the servicer: green better, red worse, yellow flat, grey
-  neither in itself. A short word ("better", "worse", "flat") and a screen-reader sentence
-  carry the same meaning, so color is never the only cue.
-- As the PRD requires, prepayment speed is not judged by direction: faster prepayment is red
-  for the servicer because payoffs end fee income, and grey in the loan owner view, where it
-  changes timing rather than value. Balance and weighted-average life are always grey.
-- "Flat" thresholds: 0.05 percentage points for speeds, half a basis point, 0.05 years, and
-  under $1 or 0.5% of the baseline for dollars (`src/domain/trend.ts`, tested in
+  change columns, sensitivity details) has a tag next to the numerical difference, which
+  always stays visible. Shape shows direction (▲ up, ▼ down, ► small or no change).
+- Color shows the effect for the servicer: green "better", red "worse", grey "not
+  assessed" where the model does not establish an effect, yellow "small change" or "no
+  change". A word and a screen-reader sentence carry the same meaning, so color is never
+  the only cue.
+- As the PRD requires, prepayment speed is not judged by direction: faster prepayment is
+  "worse" for the servicer because payoffs end fee income. In the loan owner view it is
+  "not assessed": faster repayment changes cash-flow timing and can affect investment value,
+  and this simulator does not determine whether that is favorable for the owner. Balance and
+  weighted-average life are always "not assessed".
+- "No change" means the difference is zero within a tolerance of 1e-9 relative to the
+  baseline (`ZERO_TOLERANCE`). "Small change" means a nonzero difference below a display
+  threshold: 0.05 percentage points for speeds, half a basis point, 0.05 years, and under $1
+  or 0.5% of the baseline for dollars. These are display thresholds chosen for readability,
+  not economic materiality thresholds (`src/domain/trend.ts`, tested in
   `tests/unit/trend.test.ts`).
 
 ### First-use journey review
@@ -128,6 +134,12 @@ Walked a fresh session in a browser at desktop and phone widths: Mixed book, rat
   remaining balance, after the scheduled payment, paid off early in the month; the Mixed
   book description drops "coupon" and "seasoned"; "Run key" became "Reproducibility key".
 - Chart axis labels are larger on phones.
+- Previous-run results are labeled on every screen that shows them: overview and lab
+  headline cards, explanation, charts, cohort table caption, decision room columns, and the
+  sensitivity and grid panels (which state they use the last run's assumptions).
+- The brief and the scenario export are paused while any scenario has edits that have not
+  been run, so an exported or printed result is always paired with the assumptions that
+  produced it.
 
 
 ### Known limitations

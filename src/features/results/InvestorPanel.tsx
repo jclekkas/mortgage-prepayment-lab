@@ -33,7 +33,7 @@ export function InvestorPanel({ out, baseOut, name }: { out: RunOutput; baseOut:
           </table>
         </div>
         <p className="muted" style={{ fontSize: '0.85rem' }}>
-          Faster payoff returns principal sooner. That is a timing and reinvestment question for the owner, not an equal-dollar loss. Premium or discount return claims need a purchase price and a yield model, planned for a later release.
+          Faster payoff returns principal sooner. That changes cash-flow timing and can affect the investment’s value; this simulator does not determine whether it is favorable for the owner. Premium or discount return claims need a purchase price and a yield model, planned for a later release.
         </p>
       </div>
       <LineChart

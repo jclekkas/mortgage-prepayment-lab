@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useStore } from '../../app/store';
+import { isDirty, useStore } from '../../app/store';
 import { pp, usd } from '../../domain/format';
 import type { SensitivityRow } from '../../domain/sensitivity';
 import type { ScenarioInput } from '../../domain/types';
@@ -9,7 +9,8 @@ import { trendOfDelta } from '../../domain/trend';
 import { TrendArrow } from '../../ui/TrendArrow';
 
 export function SensitivityPanel({ input }: { input: ScenarioInput }) {
-  const { client, state } = useStore();
+  const { client, state, active } = useStore();
+  const stale = active.draft.scenarioId !== state.baselineId && isDirty(active);
   const [rows, setRows] = useState<SensitivityRow[] | null>(null);
   const [status, setStatus] = useState<'idle' | 'running' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
@@ -47,6 +48,7 @@ export function SensitivityPanel({ input }: { input: ScenarioInput }) {
   return (
     <section className="card" aria-labelledby="sens-h" data-testid="sensitivity-panel">
       <h3 id="sens-h">One-factor sensitivities for {input.name}</h3>
+      {stale && <p className="notice warn" data-testid="sensitivity-stale"><strong>Previous run.</strong> Based on the assumptions used in the last run of {input.name}; your edits since then are not included until you press Run.</p>}
       <p className="muted" style={{ fontSize: '0.85rem' }}>
         Each row changes one assumption from this scenario and keeps everything else. The effects interact, so they are <strong>not additive</strong>: their sum is not the total change from moving several at once.
       </p>

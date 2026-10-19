@@ -19,8 +19,10 @@ describe('trend arrows', () => {
 
   it('in the loan owner view, prepayment speed has a direction but no good or bad color', () => {
     const t = trendOf('cpr', 0.08, 0.1, 'investor')!;
-    expect(t).toMatchObject({ direction: 'up', tone: 'neutral', word: '' });
-    expect(t.label).toContain('timing');
+    expect(t).toMatchObject({ direction: 'up', tone: 'neutral', word: 'not assessed' });
+    expect(t.label).toContain('can affect investment value');
+    expect(t.label).toContain('does not determine whether that is favorable');
+    expect(t.label).not.toMatch(/not value/);
   });
 
   it('balance and weighted-average life are never judged good or bad', () => {
@@ -28,14 +30,22 @@ describe('trend arrows', () => {
     expect(trendOf('wal', 9, 8, 'servicing')).toMatchObject({ direction: 'down', tone: 'neutral' });
   });
 
-  it('small changes are flat, by metric-specific thresholds', () => {
-    expect(trendOf('cpr', 0.08, 0.0804, 'servicing')).toMatchObject({ direction: 'flat', tone: 'flat', word: 'flat' }); // 0.04 points
+  it('exact zero is "no change"; nonzero changes below the display threshold are "small change"', () => {
+    expect(trendOf('npv', 3_500_000, 3_500_000, 'servicing')).toMatchObject({ direction: 'flat', tone: 'flat', word: 'no change' });
+    expect(trendOf('npv', 3_500_000, 3_500_000 + 3e-4, 'servicing')?.word).toBe('no change'); // within 1e-9 relative
+    expect(trendOf('npv', 3_500_000, 3_500_001, 'servicing')?.word).toBe('small change');
+    expect(trendOfDelta('npv', 0.4, null, 'servicing')?.word).toBe('small change');
+    expect(trendOfDelta('cpr', 0, null, 'servicing')?.word).toBe('no change');
+    expect(trendOf('npv', 3_500_000, 3_500_001, 'servicing')?.label).toContain('not a judgment of economic importance');
+  });
+
+  it('display thresholds by metric', () => {
+    expect(trendOf('cpr', 0.08, 0.0804, 'servicing')).toMatchObject({ direction: 'flat', tone: 'flat', word: 'small change' }); // 0.04 points
     expect(trendOf('cpr', 0.08, 0.0806, 'servicing')?.direction).toBe('up'); // 0.06 points
     expect(trendOf('npv', 3_500_000, 3_510_000, 'servicing')?.tone).toBe('flat'); // 0.29%
     expect(trendOf('npv', 3_500_000, 3_520_000, 'servicing')?.tone).toBe('good'); // 0.57%
     expect(trendOf('npvBps', 106.2, 106.5, 'servicing')?.tone).toBe('flat');
     expect(trendOf('wal', 8.95, 8.97, 'servicing')?.tone).toBe('flat');
-    expect(trendOfDelta('npv', 0.4, null, 'servicing')?.tone).toBe('flat');
     expect(trendOfDelta('npv', -25_000, null, 'servicing')?.tone).toBe('bad');
   });
 

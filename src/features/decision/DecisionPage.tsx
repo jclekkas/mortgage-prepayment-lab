@@ -46,7 +46,9 @@ export function DecisionPage() {
   const assessment = assessSlots(state);
   const { entries, excluded } = entriesFor(state);
   const anyRunning = state.slots.some((s) => s.run.status === 'running');
-  const settled = assessment.comparable && !anyRunning;
+  // Exported assumptions must be the ones that produced the results, so unrun edits pause the brief and exports.
+  const editedUnrun = state.slots.filter((s) => s.draft.scenarioId !== state.baselineId && s.run.output && isDirty(s));
+  const settled = assessment.comparable && !anyRunning && editedUnrun.length === 0;
 
   // After an import, compare every saved metric with the re-run results once all are current.
   useEffect(() => {
@@ -118,6 +120,11 @@ export function DecisionPage() {
       <TermsOnPage ids={['upb', 'cpr', 'prepaid', 'npv', 'pv', 'wal', 'bp', 'psa', 'recapture', 'discount']} />
       <p className="muted">Up to four scenarios, including the frozen baseline, on the same valuation date ({formatMonth(state.portfolio.meta.asOfMonth)}) and the same population.</p>
       <PopulationBadge />
+      {editedUnrun.length > 0 && (
+        <div className="notice warn" role="status" data-testid="edits-unrun">
+          <strong>Brief and export are paused.</strong> {editedUnrun.map((s) => s.draft.name).join(', ')} {editedUnrun.length === 1 ? 'has' : 'have'} edits that have not been run, so {editedUnrun.length === 1 ? 'its' : 'their'} columns show the previous run. Run or undo the edits so every result matches the assumptions it was calculated with.
+        </div>
+      )}
       {!assessment.comparable && (
         <div className="notice warn" role="status" data-testid="comparison-blocked">
           <strong>{anyRunning ? 'Recalculating for the current population.' : 'Comparison, brief and export are unavailable until every scenario has a result for the current population.'}</strong>

@@ -12,7 +12,8 @@ import { TrendArrow, TrendKey } from '../../ui/TrendArrow';
 
 export function CohortsPage() {
   const { state, dispatch } = useStore();
-  const { baseOut, actOut, isBaseline, actSlot, blockers } = useComparison();
+  const { baseOut, actOut, isBaseline, actSlot, blockers, dirty } = useComparison();
+  const stale = dirty && !isBaseline && !!actOut;
   const [dim, setDim] = useState<SegmentDimension>('coupon');
   const filter = state.filter;
   const toggle = (d: SegmentDimension, key: string) => {
@@ -75,7 +76,7 @@ export function CohortsPage() {
         {!isBaseline && <TrendKey investor={state.goal === 'investor'} />}
         <div className="table-wrap">
           <table data-testid="cohort-table">
-            <caption>{DIMENSION_LABELS[dim]}: {actSlot.draft.name}{!isBaseline ? ', with change versus baseline' : ''}</caption>
+            <caption>{DIMENSION_LABELS[dim]}: {actSlot.draft.name}{!isBaseline ? ', with change versus baseline' : ''}{stale ? ' (previous run; edits not yet run)' : ''}</caption>
             <thead>
               <tr>
                 <th scope="col">Segment</th>

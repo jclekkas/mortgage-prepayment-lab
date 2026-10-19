@@ -1,5 +1,5 @@
 import { href } from '../../app/router';
-import { assessSlots, useStore } from '../../app/store';
+import { assessSlots, isDirty, useStore } from '../../app/store';
 import { formatMonth } from '../../domain/calendar';
 import { diffInputs } from '../../domain/diff';
 import { pct, usd, years } from '../../domain/format';
@@ -17,7 +17,8 @@ export function BriefPage() {
   const { state, baseline } = useStore();
   // The brief prints only when every scenario has a result for the current population.
   const assessment = assessSlots(state);
-  const ready = assessment.comparable && state.slots.every((s) => s.run.outputInput && s.run.status !== 'running');
+  const editedUnrun = state.slots.filter((s) => s.draft.scenarioId !== state.baselineId && s.run.output && isDirty(s));
+  const ready = assessment.comparable && editedUnrun.length === 0 && state.slots.every((s) => s.run.outputInput && s.run.status !== 'running');
   const slots = ready ? state.slots : [];
   const reproHash = ready ? hashValue(slots.map((s) => s.run.output!.runKey)) : null;
   const p = state.portfolio.meta;
@@ -36,8 +37,11 @@ export function BriefPage() {
       </header>
       {!ready && (
         <div className="notice warn" role="status" data-testid="brief-blocked">
-          <strong>The brief is unavailable until every scenario has a result for the current population.</strong>
-          <ul style={{ margin: '0.25rem 0 0' }}>{assessment.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
+          <strong>The brief is unavailable until every scenario has a current result: calculated for its present assumptions and the current population.</strong>
+          <ul style={{ margin: '0.25rem 0 0' }}>
+            {assessment.blockers.map((b) => <li key={b}>{b}</li>)}
+            {editedUnrun.map((s) => <li key={s.draft.scenarioId}>{s.draft.name}: edited but not run, so its result would not match its assumptions. Run or undo the edits.</li>)}
+          </ul>
         </div>
       )}
       {ready && (

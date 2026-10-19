@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
-import { newScenarioId, useStore } from '../../app/store';
+import { isDirty, newScenarioId, useStore } from '../../app/store';
 import { pct, usd } from '../../domain/format';
 import type { GridAxis, GridResult } from '../../domain/sensitivity';
 import { Notice, Progress } from '../../ui/misc';
@@ -11,6 +11,7 @@ const axisFmt = (a: GridAxis, v: number) => (a.format === 'pct' ? pct(v) : a.for
 export function GridPanel() {
   const { client, state, active, dispatch } = useStore();
   const input = active.run.outputInput;
+  const stale = active.draft.scenarioId !== state.baselineId && isDirty(active);
   const [grid, setGrid] = useState<GridResult | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +63,7 @@ export function GridPanel() {
   return (
     <section className="card" aria-labelledby="grid-h" data-testid="grid-panel">
       <h2 id="grid-h">Two-way sensitivity grid: {input.name}</h2>
+      {stale && <p className="notice warn" data-testid="grid-stale"><strong>Previous run.</strong> Based on the assumptions used in the last run of {input.name}; your edits since then are not included until you press Run.</p>}
       <p className="muted" style={{ fontSize: '0.88rem' }}>
         {input.mode === 'behavioral' ? 'Mortgage offer rate versus refinance response.' : input.mode === 'fixedCpr' ? 'Fixed conditional prepayment rate (CPR) versus discount rate.' : 'Public Securities Association (PSA) benchmark multiplier versus discount rate.'} Each cell is a full recalculation of illustrative servicing net present value (NPV), in today’s dollars. Select a cell to open it as a scenario you can inspect.
       </p>
