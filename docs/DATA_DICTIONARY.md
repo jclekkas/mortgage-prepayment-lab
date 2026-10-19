@@ -40,7 +40,7 @@ low-rate), 1:2:7 (recent higher-rate).
 
 | Field | Meaning |
 | --- | --- |
-| `schemaVersion`, `modelVersion` | Must be supported exactly; no migration |
+| `schemaVersion`, `modelVersion` | Schema must be supported exactly. Model version: current (`mpl-engine-1.1.0`) loads as is; a listed older version (`mpl-engine-1.0.0`) keeps its assumptions and notes, is marked, and is recalculated with the current model only through an explicit path that shows old and new results; any other version is refused with a reason and nothing is changed |
 | `portfolioHash`, `valuationMonth` | Must match the loaded portfolio |
 | `baselineId`, `scenarioId`, `name` | Identity and label (not in the input hash) |
 | `mode` | `behavioral`, `fixedCpr` or `psa`: the behavioral model, a fixed conditional prepayment rate (CPR), or the Public Securities Association (PSA) benchmark |
@@ -70,7 +70,7 @@ mode); `maturedLoans` (never voluntary).
 
 The cash-flow export is a comma-separated values (CSV) file with these columns:
 
-`scenario, run_key, model_version, valuation_month, population, month_index, month,
+`scenario, run_key, model_version, app_build, valuation_month, population, month_index, month,
 beginning_upb, scheduled_principal, prepaid_principal, ending_upb, note_interest,
 owner_net_interest, expected_beginning_loans, expected_voluntary_payoffs,
 expected_refinance_payoffs, expected_turnover_payoffs, expected_unclassified_payoffs,
@@ -79,7 +79,7 @@ expected_matured_loans, smm, cpr_annualized, gross_servicing_fee, operating_cost
 net_servicing_cash_flow, discount_factor, pv_net_servicing, offer_rate,
 expected_recaptured_loans, recapture_contribution`.
 
-`population` describes the filter the numbers were calculated for (for example "Whole
+`app_build` is the source commit of the build that produced the file. `population` describes the filter the numbers were calculated for (for example "Whole
 portfolio"). In fixed CPR and PSA modes the refinance and turnover columns are
 `not applicable` and every payoff is in the unclassified columns; in behavioral mode the
 unclassified columns are 0. Missing values export as `not applicable`. Text beginning with
@@ -87,4 +87,4 @@ unclassified columns are 0. Missing values export as `not applicable`. Text begi
 
 ## Scenario file (`mortgage-prepayment-lab/scenarios`, schema 1)
 
-`fileType`, `schemaVersion`, `modelVersion`, `exportedAt`, `portfolio` (`{kind: "preset", presetId, hash}` or `{kind: "embedded", meta, loans}`), `baselineId`, `scenarios` (1-4), `filter`, `notes`, `results` (scenario id, input hash, run key, summary). Unknown fields are rejected. Limits: 10 megabytes (MB), 10,000 loans. Web addresses (URLs) in a file are never fetched.
+`fileType`, `schemaVersion`, `modelVersion`, `appBuild` (optional: the source commit of the build that wrote the file; added in model 1.1.0), `exportedAt`, `portfolio` (`{kind: "preset", presetId, hash}` or `{kind: "embedded", meta, loans}`), `baselineId`, `scenarios` (1-4), `filter`, `notes`, `results` (scenario id, input hash, run key, summary). Unknown fields are rejected. Limits: 10 megabytes (MB), 10,000 loans. Web addresses (URLs) in a file are never fetched.

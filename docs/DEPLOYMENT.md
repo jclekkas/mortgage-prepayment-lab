@@ -8,7 +8,7 @@ fallback. There are no secrets, environment variables or servers.
 
 1. The commit to deploy has green continuous integration (CI) checks: typecheck, lint, numerics, unit, build, end-to-end.
 2. The destination is confirmed by the product owner. Nothing deploys automatically.
-3. Record: commit hash (SHA), model version (`mpl-engine-1.0.0`), build date, web address (URL), smoke-test result, rollback command.
+3. Record: commit hash (SHA), model version (currently `mpl-engine-1.1.0`, shown in the header and footer next to the build stamp), build date, web address (URL), smoke-test result, rollback command.
 
 ## Review preview: `gh-pages` branch (no merge required)
 

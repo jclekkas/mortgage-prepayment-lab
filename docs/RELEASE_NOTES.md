@@ -1,8 +1,9 @@
 # Release notes
 
-## 1.0.0, priority-0 (P0) educational build, unreleased
+## Model 1.1.0, priority-0 (P0) educational build, preview only
 
-Status: built and verified locally; **not deployed**. No production web address (URL) exists yet.
+Status: published as a preview at https://jclekkas.github.io/mortgage-prepayment-lab/ from
+the `p0-educational-build` branch; pull request #1 is not merged. No production release exists.
 
 ### Verification evidence
 
@@ -142,10 +143,58 @@ Walked a fresh session in a browser at desktop and phone widths: Mixed book, rat
   produced it.
 
 
+### Trust and first-learner fixes (model 1.1.0, after `b2016bd`)
+
+Each defect below was reproduced on `b2016bd` before it was fixed, and each has a regression test.
+
+- **Lesson sequence.** Following "Next" from lesson 1 opened lesson 2 with lesson 1's state:
+  the answers were disabled, lesson 1's table showed, and the "Calculated answer" was empty.
+  Each lesson now starts fresh. A calculation still running when you leave a lesson can no
+  longer publish into the next one. The reasoning shows after every answer, right or wrong.
+  Test: `tests/e2e/lessons.spec.ts`.
+- **Direction versus judgment.** Prepayment speed, prepaid principal, balance and average life now get
+  neutral words (faster, slower, higher, lower, longer, shorter). Only servicer cash-flow and value measures are judged,
+  and the label names the horizon and the perspective. A move from a larger loss to a smaller loss is labeled "smaller loss",
+  never a profit. Counterexample: Mixed book, fee 0, cost $100, rates down 100 bps. Servicing value goes
+  from -$595,769 to -$506,698, which is now labeled an improvement that is still a loss; previously the
+  faster prepayment was called "worse". Test: `tests/unit/trend.test.ts`.
+- **One perspective.** A single Servicer / Loan owner switch drives the headline cards, arrows,
+  charts, lab details, loan-group table and explanations. The loan-owner view shows principal and
+  interest timing and says plainly that it does not calculate investment value, yield or profit.
+  Test: `tests/e2e/perspective.spec.ts`.
+- **Honest quick experiments.** The rate and recapture shortcuts no longer silently switch a fixed
+  CPR or PSA scenario to the behavioral model; they are disabled with the reason. Each shortcut says which
+  scenario it changes and lists that scenario's existing changes. Test: `tests/e2e/experiments.spec.ts`.
+- **Calculation versioning.** A written version policy covers major, minor and patch changes. The model moves to `mpl-engine-1.1.0` for
+  the F1 threshold correction, which first shipped under the 1.0.0 label. Exports record the model version and
+  the source build. Older files and saved work are kept, marked, and recalculated only
+  through an explicit path showing before and after. Unknown versions are refused without changing anything. An
+  unreadable saved workspace is kept as a downloadable backup, never erased. Tests:
+  `tests/unit/versioning.test.ts`, `tests/e2e/versioning.spec.ts`, with real files exported from the old builds.
+- **Engine-dependent synthetic data (found during this work).** `Math.pow` differs in its last digits between
+  JavaScript engines, so the preset fingerprints differed between Chromium and Safari. The generator
+  (`synthetic-gen-1.1.0`) now rounds payments and balances to whole cents. Test:
+  `tests/unit/generator-determinism.test.ts`.
+- **Guided first experiment.** A skippable guided experiment teaches before it tests: who the borrower, loan owner and
+  servicer are, why an early payoff ends the fee, the starting assumptions, a prediction, then
+  the rate cut with baseline, scenario and difference. Its explanation is arithmetic: fees given up
+  versus costs saved, in today's dollars. Test: `tests/e2e/guided.spec.ts`.
+- **Explanations audited.** Causes are stated only when the calculation supports them. When several
+  assumptions change, the text reports the combined effect. Glossary entries that describe model
+  assumptions say so. "Validation lab" is renamed "Forecast check", and the page says what a synthetic
+  back-test cannot show. A plain trust note ("arithmetic checked, assumptions illustrative,
+  real-world accuracy not established") appears in the footer, the guided result and the brief.
+- **Evidence.** `docs/EVIDENCE.md` maps every calculation rule to a source or a labeled assumption, an independent
+  expected value and a test. No external source could be retrieved from the build environment,
+  so none is marked verified. New invariants: lifetime principal reconciles; exports refuse
+  results paired with edited assumptions; "rates down, value down" holds only when margins are positive.
+  Domain-review questions are in `docs/DOMAIN_REVIEW_QUESTIONS.md`.
+
 ### Known limitations
 
 - Synthetic data and uncalibrated, illustrative behavioral coefficients. Not a forecast, a FICO model or a validated valuation.
 - A mortgage-domain reviewer has not yet approved the conventions; do not describe the tool as financially validated.
+- The source documents for the conventions (SIFMA Standard Formulas, OCC handbook) were not retrievable from the build environment; see `docs/EVIDENCE.md`.
 - Illustrative servicing NPV excludes float, ancillary fees, advances, default costs, taxes, hedges and terminal value.
 - No delinquency, curtailments, modifications, adjustable-rate mortgages (ARMs), interest-only or balloon loans; these are later-phase, priority-1 (P1) scope.
 - Burnout history starts at zero for every loan.
