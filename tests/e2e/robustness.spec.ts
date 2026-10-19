@@ -24,8 +24,22 @@ test('10,000-loan import runs with progress and can be cancelled', async ({ page
   await expect(page.getByText('Ten thousand loans')).toBeVisible();
   await expect(page.getByTestId('kpi-npv-value')).toBeVisible({ timeout: 30_000 });
   await setNumber(page, 'ctl-shock', '-150');
-  await page.getByTestId('run').click();
-  await page.getByTestId('cancel').click();
+  // Click Run, then Cancel as soon as React renders it, inside the page. Clicking Cancel
+  // through Playwright waits for the button to be stable, which on a slow-rendering browser
+  // can outlast the run itself; the worker checks for cancellation between 250-loan chunks.
+  const cancelled = await page.evaluate(async () => {
+    (document.querySelector('[data-testid=run]') as HTMLButtonElement).click();
+    for (let i = 0; i < 500; i++) {
+      const c = document.querySelector('[data-testid=cancel]') as HTMLButtonElement | null;
+      if (c) {
+        c.click();
+        return true;
+      }
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    return false;
+  });
+  expect(cancelled, 'the Cancel button appeared while the run was in progress').toBe(true);
   await expect(page.getByTestId('dirty-badge')).toHaveText(/Unsaved changes/);
   await expect(page.getByTestId('cancel')).toHaveCount(0);
   // The app still works after cancellation.
@@ -81,7 +95,7 @@ test('saved workspace is restored after reload', async ({ page }) => {
   await page.goto('/#/lab');
   await setNumber(page, 'ctl-friction', '75');
   await page.getByTestId('run').click();
-  await expect(page.getByText('Saved on this device')).toBeVisible();
+  await expect(page.getByText('Saved on this device', { exact: true })).toBeVisible();
   await page.waitForTimeout(1200);
   await page.reload();
   await expect(page.getByTestId('ctl-friction').locator('input[type=number]')).toHaveValue('75');
@@ -125,7 +139,7 @@ test('the validation hypothesis survives navigation and reload (D2)', async ({ p
   await page.goto('/#/overview');
   await page.goto('/#/validation');
   await expect(page.getByTestId('hypothesis')).toHaveValue(text);
-  await expect(page.getByText('Saved on this device')).toBeVisible();
+  await expect(page.getByText('Saved on this device', { exact: true })).toBeVisible();
   await page.waitForTimeout(1200); // debounced save
   await page.reload();
   await expect(page.getByTestId('hypothesis')).toHaveValue(text);

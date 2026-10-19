@@ -310,12 +310,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (slotId: string, input: ScenarioInput, filter: PopulationFilter, announce: boolean) => {
       const prev = latest.current.get(slotId);
       prev?.cancel(); // supersede any older run for this slot
-      const h = client.request({ kind: 'run', scenario: input, filter }, (done, total) => dispatch({ type: 'runProgress', id: slotId, progress: total ? done / total : 1 }));
+      // Progress re-renders the whole app, so dispatch at most every 100 ms (and the final update).
+      let lastProgress = 0;
+      const h = client.request({ kind: 'run', scenario: input, filter }, (done, total) => {
+        const now = performance.now();
+        if (done < total && now - lastProgress < 100) return;
+        lastProgress = now;
+        dispatch({ type: 'runProgress', id: slotId, progress: total ? done / total : 1 });
+      });
+      performance.mark(`mpl:run-start:${h.id}`);
       latest.current.set(slotId, { id: h.id, cancel: h.cancel });
       dispatch({ type: 'runStart', id: slotId });
       h.promise.then(
         ({ result, cached }) => {
           if (latest.current.get(slotId)?.id !== h.id) return; // stale: a newer run exists
+          // Calculation round trip (worker compute plus message transfer), excluding rendering.
+          performance.measure('mpl:run-roundtrip', `mpl:run-start:${h.id}`);
           dispatch({ type: 'runDone', id: slotId, output: result, input, cached });
           if (announce) dispatch({ type: 'announce', text: `Calculation complete for ${input.name}. ${result.population.loanCount} loans.` });
         },
