@@ -56,14 +56,14 @@ test('a slower older run never overwrites a newer one', async ({ page }) => {
   await page.getByTestId('run').click();
   await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs');
   await page.waitForTimeout(500);
-  await expect(page.getByTestId('explanation')).toContainText('Rate shock: 0 bps → 50 bps');
+  await expect(page.getByTestId('explanation')).toContainText('Rate shock: 0 basis points → 50 basis points');
 });
 
 test('malformed and future-version imports are rejected and change nothing', async ({ page }) => {
   await startFresh(page);
   await page.goto('/#/decision');
   await page.getByTestId('import-input').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{oops') });
-  await expect(page.getByTestId('import-message')).toContainText('not valid JSON');
+  await expect(page.getByTestId('import-message')).toContainText('not valid JavaScript Object Notation');
   const future = JSON.stringify({ fileType: 'mortgage-prepayment-lab/scenarios', schemaVersion: 9, modelVersion: 'x' });
   await page.getByTestId('import-input').setInputFiles({ name: 'f.json', mimeType: 'application/json', buffer: Buffer.from(future) });
   await expect(page.getByTestId('import-message')).toContainText('newer version');
@@ -178,7 +178,7 @@ test('REGRESSION: after a filter change, a cancelled recalculation is never comp
   // The brief cannot be printed, even by direct link.
   await page.goto('/#/brief');
   await expect(page.getByTestId('brief-blocked')).toContainText('Scenario 1');
-  await expect(page.getByRole('button', { name: 'Print or save as PDF' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Print or save this brief' })).toBeDisabled();
 
   // The lab shows no ledger or CSV export for the retained result.
   await page.goto('/#/lab');

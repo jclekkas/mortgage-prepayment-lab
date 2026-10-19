@@ -9,7 +9,7 @@ import { SUPPORTED_SCHEMA_VERSIONS } from '../domain/version';
 
 const fin = () => z.number().refine(Number.isFinite, 'must be a finite number');
 const ranged = (b: { min: number; max: number }) => fin().min(b.min).max(b.max);
-const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'must be YYYY-MM');
+const month = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'must be a year and month, like 2026-09');
 const hash = z.string().regex(/^[0-9a-f]{64}$/, 'must be a 64-character hex hash');
 const safeName = z.string().min(1).max(120);
 const schemaVersion = z.number().int().refine((v) => SUPPORTED_SCHEMA_VERSIONS.includes(v), 'unsupported schema version');

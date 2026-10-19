@@ -39,7 +39,7 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
 
   // Compare in the decision room.
   await page.goto('/#/decision');
-  await expect(page.getByTestId('compare-table')).toContainText('Illustrative servicing NPV');
+  await expect(page.getByTestId('compare-table')).toContainText('Illustrative servicing net present value (NPV)');
 
   // Export JSON, then import it and confirm results reproduce.
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);

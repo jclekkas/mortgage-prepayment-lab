@@ -6,7 +6,7 @@ import type { CohortRow, PopulationFilter, SegmentDimension } from '../../domain
 import { PopulationBadge, RunStatus } from '../results/RunStatus';
 import { useComparison } from '../results/useComparison';
 import { BlockedNotice } from '../results/BlockedNotice';
-import { TermKey } from '../../ui/TermKey';
+import { LabelWithHelp, TermsOnPage } from '../../ui/TermHelp';
 
 export function CohortsPage() {
   const { state, dispatch } = useStore();
@@ -28,9 +28,9 @@ export function CohortsPage() {
   return (
     <div className="stack">
       <h1>Cohort explorer: {actSlot.draft.name}</h1>
-      <TermKey terms={['UPB', 'bps', 'CPR', 'NPV']} />
+      <TermsOnPage ids={['upb', 'cpr', 'npv', 'bp', 'netServicing']} />
       <p className="muted">
-        Filter the population to a segment and every chart, card and comparison updates. Dollars show size; the normalized columns (share of UPB, bps) show intensity, so a large segment is not automatically the riskier one.
+        Filter the population to a segment and every chart, card and comparison updates. Each row shows the segment’s unpaid principal balance (UPB), its conditional prepayment rate (CPR), the yearly pace of early payoffs, and its servicing net present value (NPV), future fees less costs in today’s dollars. Dollars show size; the normalized columns (share of balance, and basis points of balance) show intensity, so a large segment is not automatically the riskier one.
         There is no credit-score effect in this release: a credit score is not a prepayment probability.
       </p>
       <PopulationBadge />
@@ -77,17 +77,17 @@ export function CohortsPage() {
               <tr>
                 <th scope="col">Segment</th>
                 <th scope="col">Loans</th>
-                <th scope="col">Beginning UPB</th>
-                <th scope="col">Month-1 CPR</th>
+                <th scope="col"><LabelWithHelp label="Beginning balance (UPB)" term="upb" /></th>
+                <th scope="col"><LabelWithHelp label="Next-month CPR" term="cpr" /></th>
                 <th scope="col">12-month CPR</th>
                 <th scope="col">12-month scheduled principal</th>
                 <th scope="col">12-month prepaid principal</th>
-                <th scope="col">Prepaid, share of UPB</th>
+                <th scope="col">Prepaid, share of balance</th>
                 <th scope="col">12-month net servicing</th>
-                <th scope="col">Servicing NPV</th>
-                <th scope="col">NPV, bps of UPB</th>
-                {!isBaseline && <th scope="col">Δ prepaid vs baseline</th>}
-                {!isBaseline && <th scope="col">Δ NPV vs baseline</th>}
+                <th scope="col"><LabelWithHelp label="Servicing NPV" term="npv" /></th>
+                <th scope="col"><LabelWithHelp label="NPV, basis points of balance" term="bp" /></th>
+                {!isBaseline && <th scope="col">Change in prepaid vs baseline</th>}
+                {!isBaseline && <th scope="col">Change in NPV vs baseline</th>}
                 <th scope="col"><span className="sr-only">Action</span></th>
               </tr>
             </thead>

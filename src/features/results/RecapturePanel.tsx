@@ -1,14 +1,18 @@
 import { num, usd } from '../../domain/format';
 import type { RunOutput, ScenarioInput } from '../../domain/types';
+import { TermHelp } from '../../ui/TermHelp';
 
 export function RecapturePanel({ out, input, baseOut }: { out: RunOutput; input: ScenarioInput; baseOut: RunOutput | null }) {
   const s = out.summary;
   return (
     <section className="card" aria-labelledby="recap-h" data-testid="recapture-panel">
-      <h3 id="recap-h">Recapture overlay (business decision)</h3>
+      <div>
+        <h3 id="recap-h" style={{ display: 'inline' }}>Recapture overlay (business decision)</h3>
+        <TermHelp id="recapture" />
+      </div>
       {input.mode !== 'behavioral' ? (
         <p className="muted">
-          Not available in {input.mode === 'psa' ? 'PSA' : 'fixed CPR'} mode: these modes do not say whether a payoff was a refinance or a move, so there is nothing to recapture.
+          Not available in {input.mode === 'psa' ? 'the PSA benchmark' : 'the fixed-rate'} mode: these modes do not say whether a payoff was a refinance or a move, so there is nothing to recapture.
         </p>
       ) : (
         <>
@@ -34,12 +38,12 @@ export function RecapturePanel({ out, input, baseOut }: { out: RunOutput; input:
                   {baseOut && baseOut.summary.recapturePv !== null && <td>{num(baseOut.summary.recapturedLoans, 1)}</td>}
                 </tr>
                 <tr>
-                  <th scope="row">Recapture contribution PV (after campaign cost)</th>
+                  <th scope="row">Recapture contribution in today’s dollars (after campaign cost)</th>
                   <td>{usd(s.recapturePv, { compact: true })}</td>
                   {baseOut && baseOut.summary.recapturePv !== null && <td>{usd(baseOut.summary.recapturePv, { compact: true })}</td>}
                 </tr>
                 <tr>
-                  <th scope="row">Combined contribution (illustrative, not MSR fair value)</th>
+                  <th scope="row">Combined contribution (illustrative, not the fair value of the mortgage servicing right)</th>
                   <td>{usd(s.combinedContribution, { compact: true })}</td>
                   {baseOut && baseOut.summary.recapturePv !== null && <td>{usd(baseOut.summary.combinedContribution, { compact: true })}</td>}
                 </tr>

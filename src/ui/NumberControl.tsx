@@ -1,4 +1,6 @@
 import { useEffect, useId, useState } from 'react';
+import { TermHelp } from './TermHelp';
+import type { TermId } from './terms';
 
 export type SourceClass = 'Market assumption' | 'Behavior assumption' | 'Teaching assumption' | 'Business decision' | 'Modeling assumption' | 'Convention' | 'Contract term';
 
@@ -21,6 +23,8 @@ export interface NumberControlProps {
   disabledReason?: string | null;
   digits?: number;
   testId?: string;
+  /** Adds a "What is this?" button explaining the term. */
+  term?: TermId;
 }
 
 /** A slider paired with a keyboard-accessible number field, units, reset and explanation. */
@@ -56,7 +60,10 @@ export function NumberControl(p: NumberControlProps) {
   return (
     <div className={`control${disabled ? ' disabled' : ''}`} data-testid={p.testId}>
       <div className="control-head">
-        <label htmlFor={`${id}-n`}>{p.label}</label>
+        <span>
+          <label htmlFor={`${id}-n`}>{p.label}</label>
+          {p.term && <TermHelp id={p.term} />}
+        </span>
         <span className="source">{p.source}</span>
       </div>
       <div className="control-inputs">

@@ -4,6 +4,8 @@ import { BOUNDS, CHART_HORIZONS, type ChartHorizon } from '../../domain/config';
 import { defaultScenario } from '../../domain/scenario';
 import type { ModelMode, RatePathShape, ScenarioInput } from '../../domain/types';
 import { NumberControl } from '../../ui/NumberControl';
+import { TermHelp } from '../../ui/TermHelp';
+import type { TermId } from '../../ui/terms';
 
 export function Controls() {
   const { state, dispatch, active } = useStore();
@@ -32,9 +34,9 @@ export function Controls() {
         <NumberControl testId="ctl-offer" label="Mortgage offer rate" value={d.ratePath.offerRate} min={BOUNDS.offerRate.min} max={BOUNDS.offerRate.max} step={0.05} scale={100} unit="%" defaultValue={defaults.ratePath.offerRate} digits={3}
           onChange={(v) => edit((n) => { n.ratePath.offerRate = v; })} source="Market assumption" disabledReason={why(notBehavioral)}
           help="Synthetic starting level of the rate borrowers could refinance into. Not today’s market rate." />
-        <NumberControl testId="ctl-shock" label="Rate shock" value={d.ratePath.shockBps} min={BOUNDS.shockBps.min} max={BOUNDS.shockBps.max} step={5} unit="bps" defaultValue={0} digits={0}
+        <NumberControl testId="ctl-shock" label="Rate shock" term="bp" value={d.ratePath.shockBps} min={BOUNDS.shockBps.min} max={BOUNDS.shockBps.max} step={5} unit="basis points" defaultValue={0} digits={0}
           onChange={(v) => edit((n) => { n.ratePath.shockBps = v; })} source="Market assumption" disabledReason={why(notBehavioral)}
-          help="In basis points (bps): 100 bps is 1 percentage point. Added to the offer rate path. A resulting rate outside 1% to 15% is rejected." />
+          help="In basis points: 100 basis points equal 1 percentage point, so −100 moves rates 1 point lower. Added to the offer rate path. A resulting rate outside 1% to 15% is rejected." />
         <div className="control">
           <div className="control-head"><span id="shape-l" style={{ fontWeight: 500 }}>Shock timing</span><span className="source">Market assumption</span></div>
           <div role="radiogroup" aria-labelledby="shape-l" className="chips" style={{ marginTop: '0.25rem' }}>
@@ -52,16 +54,16 @@ export function Controls() {
 
       <fieldset>
         <legend>Borrower behavior</legend>
-        <NumberControl testId="ctl-turnover" label="Turnover multiplier" value={d.behavioralParameters.turnoverMultiplier} min={0} max={2} step={0.05} unit="×" defaultValue={1}
+        <NumberControl testId="ctl-turnover" label="Turnover multiplier" term="turnover" value={d.behavioralParameters.turnoverMultiplier} min={0} max={2} step={0.05} unit="×" defaultValue={1}
           onChange={(v) => edit((n) => { n.behavioralParameters.turnoverMultiplier = v; })} source="Behavior assumption" disabledReason={why(notBehavioral)}
           help="Scales background full payoffs from moves and home sales." />
-        <NumberControl testId="ctl-refi" label="Refinance response multiplier" value={d.behavioralParameters.refiMultiplier} min={0} max={2} step={0.05} unit="×" defaultValue={1}
+        <NumberControl testId="ctl-refi" label="Refinance response multiplier" term="incentive" value={d.behavioralParameters.refiMultiplier} min={0} max={2} step={0.05} unit="×" defaultValue={1}
           onChange={(v) => edit((n) => { n.behavioralParameters.refiMultiplier = v; })} source="Behavior assumption" disabledReason={why(notBehavioral)}
           help="Scales how strongly borrowers respond to an incentive. It does not change who has an incentive." />
-        <NumberControl testId="ctl-friction" label="Refinance friction" value={d.behavioralParameters.frictionBps} min={0} max={200} step={5} unit="bps" defaultValue={50} digits={0}
+        <NumberControl testId="ctl-friction" label="Refinance friction" term="friction" value={d.behavioralParameters.frictionBps} min={0} max={200} step={5} unit="basis points" defaultValue={50} digits={0}
           onChange={(v) => edit((n) => { n.behavioralParameters.frictionBps = v; })} source="Teaching assumption" disabledReason={why(notBehavioral)}
-          help="Rate saving a borrower needs before refinancing is worth the cost and hassle. Reduces the effective incentive." />
-        <Toggle label="Burnout" checked={d.behavioralParameters.burnout} disabledReason={why(notBehavioral)} source="Behavior assumption"
+          help="Rate saving a borrower needs before refinancing is worth the cost and hassle; 50 basis points is half a percentage point. Reduces the effective incentive." />
+        <Toggle label="Burnout" term="burnout" checked={d.behavioralParameters.burnout} disabledReason={why(notBehavioral)} source="Behavior assumption"
           help="Borrowers who have ignored past refinance chances respond less. Starts from zero history in these synthetic loans."
           onChange={(v) => edit((n) => { n.behavioralParameters.burnout = v; })} />
         <Toggle label="Seasonal turnover" checked={d.behavioralParameters.seasonality === 'seasonal'} disabledReason={why(notBehavioral)} source="Teaching assumption"
@@ -75,25 +77,28 @@ export function Controls() {
           <div className="control-head"><span id="mode-l" style={{ fontWeight: 500 }}>Model mode</span><span className="source">Modeling assumption</span></div>
           <div role="radiogroup" aria-labelledby="mode-l" className="stack" style={{ marginTop: '0.25rem' }}>
             {([
-              ['behavioral', 'Behavioral (rates, age, turnover, burnout)'],
-              ['fixedCpr', 'Fixed conditional prepayment rate (CPR): same speed every month'],
-              ['psa', 'Public Securities Association (PSA) benchmark: age-based ramp'],
-            ] as [ModelMode, string][]).map(([m, label]) => (
-              <label key={m} className="row" style={{ gap: '0.35rem', fontWeight: 400, marginTop: 0 }}>
-                <input type="radio" name="mode" value={m} checked={d.mode === m} disabled={!!frozenReason} onChange={() => edit((n) => { n.mode = m; })} data-testid={`mode-${m}`} />
-                {label}
-              </label>
+              ['behavioral', 'Behavioral (rates, age, turnover, burnout)', null],
+              ['fixedCpr', 'Fixed conditional prepayment rate (CPR): same speed every month', 'cpr'],
+              ['psa', 'Public Securities Association (PSA) benchmark: speed rises with loan age', 'psa'],
+            ] as [ModelMode, string, TermId | null][]).map(([m, label, term]) => (
+              <div key={m}>
+                <label className="row" style={{ gap: '0.35rem', fontWeight: 400, marginTop: 0, display: 'inline-flex' }}>
+                  <input type="radio" name="mode" value={m} checked={d.mode === m} disabled={!!frozenReason} onChange={() => edit((n) => { n.mode = m; })} data-testid={`mode-${m}`} />
+                  {label}
+                </label>
+                {term && <TermHelp id={term} />}
+              </div>
             ))}
           </div>
           <p className="help">Only the selected mode drives prepayment.</p>
         </div>
-        <NumberControl testId="ctl-cpr" label="Fixed annual CPR" value={d.prepaymentParameters.fixedCpr} min={0} max={0.6} step={0.5} scale={100} unit="%" defaultValue={0.08}
+        <NumberControl testId="ctl-cpr" label="Fixed annual CPR" term="cpr" value={d.prepaymentParameters.fixedCpr} min={0} max={0.6} step={0.5} scale={100} unit="%" defaultValue={0.08}
           onChange={(v) => edit((n) => { n.prepaymentParameters.fixedCpr = v; })} source="Modeling assumption" disabledReason={why(d.mode === 'fixedCpr' ? null : 'Only used in fixed CPR mode.')}
           help="Applied to every loan every month, regardless of rates." />
-        <NumberControl testId="ctl-psa" label="PSA multiplier" value={d.prepaymentParameters.psaPercent} min={0} max={500} step={5} unit="% PSA" defaultValue={100} digits={0}
+        <NumberControl testId="ctl-psa" label="PSA multiplier" term="psa" value={d.prepaymentParameters.psaPercent} min={0} max={500} step={5} unit="% of PSA" defaultValue={100} digits={0}
           onChange={(v) => edit((n) => { n.prepaymentParameters.psaPercent = v; })} source="Convention" disabledReason={why(d.mode === 'psa' ? null : 'Only used in PSA mode.')}
-          help="Applied to each loan’s own age: 100% PSA ramps 0.2% CPR per month to 6% at month 30." />
-        <NumberControl testId="ctl-discount" label="Annual effective discount rate" value={d.servicingParameters.discountRate} min={0} max={0.3} step={0.25} scale={100} unit="%" defaultValue={0.1}
+          help="Applied to each loan’s own age: 100% PSA rises from a 0.2% to a 6% prepayment rate by month 30, then stays flat." />
+        <NumberControl testId="ctl-discount" label="Annual effective discount rate" term="discount" value={d.servicingParameters.discountRate} min={0} max={0.3} step={0.25} scale={100} unit="%" defaultValue={0.1}
           onChange={(v) => edit((n) => { n.servicingParameters.discountRate = v; })} source="Modeling assumption" disabledReason={frozenReason}
           help="Independent of the mortgage-rate path in this model." />
         <div className="control">
@@ -107,11 +112,11 @@ export function Controls() {
 
       <fieldset>
         <legend>Business decisions</legend>
-        <Toggle label={`Use a hypothetical servicing fee instead of the contract${uniformFee ? ` (${contractFee} bps)` : ''}`} checked={d.servicingParameters.feeOverrideBps !== null} disabledReason={frozenReason} source="Contract term"
+        <Toggle label={`Use a hypothetical servicing fee instead of the contract${uniformFee ? ` (${contractFee} basis points)` : ''}`} checked={d.servicingParameters.feeOverrideBps !== null} disabledReason={frozenReason} source="Contract term"
           help="For a hypothetical acquisition on different terms. Labeled as a contract change assumption in results."
           onChange={(v) => edit((n) => { n.servicingParameters.feeOverrideBps = v ? contractFee : null; })} />
         {d.servicingParameters.feeOverrideBps !== null && (
-          <NumberControl testId="ctl-fee" label="Annual servicing fee (hypothetical)" value={d.servicingParameters.feeOverrideBps} min={0} max={100} step={1} unit="bps" defaultValue={contractFee} digits={1}
+          <NumberControl testId="ctl-fee" label="Annual servicing fee (hypothetical)" term="servicingFee" value={d.servicingParameters.feeOverrideBps} min={0} max={100} step={1} unit="basis points" defaultValue={contractFee} digits={1}
             onChange={(v) => edit((n) => { n.servicingParameters.feeOverrideBps = v; })} source="Contract term" disabledReason={frozenReason}
             help="Annual fee as basis points of each loan’s balance, accrued monthly." />
         )}
@@ -123,7 +128,7 @@ export function Controls() {
             onChange={(v) => edit((n) => { n.servicingParameters.costPerLoan = v; })} source="Business decision" disabledReason={frozenReason}
             help="All-in annual servicing cost for each loan that is still active." />
         )}
-        <NumberControl testId="ctl-recapture" label="Refinance recapture share" value={d.recaptureParameters.share} min={0} max={1} step={1} scale={100} unit="%" defaultValue={0.2} digits={0}
+        <NumberControl testId="ctl-recapture" label="Refinance recapture share" term="recapture" value={d.recaptureParameters.share} min={0} max={1} step={1} scale={100} unit="%" defaultValue={0.2} digits={0}
           onChange={(v) => edit((n) => { n.recaptureParameters.share = v; })} source="Business decision"
           disabledReason={why(behavioral ? null : 'Recapture needs behavioral mode, where refinance payoffs are separated from moves.')}
           help="Share of refinancing borrowers who take their new loan from you. Applies to refinance payoffs only." />
@@ -140,7 +145,7 @@ export function Controls() {
   );
 }
 
-function Toggle(p: { label: string; checked: boolean; onChange: (v: boolean) => void; help: string; source: string; disabledReason: string | null }) {
+function Toggle(p: { label: string; checked: boolean; onChange: (v: boolean) => void; help: string; source: string; disabledReason: string | null; term?: TermId }) {
   return (
     <div className={`control${p.disabledReason ? ' disabled' : ''}`}>
       <div className="control-head">
@@ -148,6 +153,7 @@ function Toggle(p: { label: string; checked: boolean; onChange: (v: boolean) => 
           <input type="checkbox" checked={p.checked} disabled={!!p.disabledReason} onChange={(e) => p.onChange(e.target.checked)} />
           {p.label}
         </label>
+        {p.term && <TermHelp id={p.term} />}
         <span className="source">{p.source}</span>
       </div>
       <p className="help">{p.disabledReason ? <strong>Disabled: {p.disabledReason} </strong> : null}{p.help}</p>

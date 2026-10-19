@@ -1,14 +1,14 @@
 import { BEHAVIORAL_COEFFICIENTS as C, SEASONAL_TURNOVER_PRESET } from '../../domain/config';
 import { GENERATOR_VERSION, MODEL_VERSION, SCHEMA_VERSION } from '../../domain/version';
-import { TermKey } from '../../ui/TermKey';
+import { TermsOnPage } from '../../ui/TermHelp';
 
 export function MethodologyPage() {
   return (
     <div className="stack" style={{ maxWidth: 900 }}>
       <h1>Methodology</h1>
-      <TermKey terms={['NPV', 'SMM', 'UPB', 'CPR', 'PSA', 'bps', 'WAL', 'PV', 'OCC']} />
+      <TermsOnPage ids={['npv', 'pv', 'smm', 'cpr', 'psa', 'upb', 'wal', 'bp', 'discount', 'burnout', 'recapture', 'occ']} />
       <p className="notice warn">
-        <strong>Excluded cash flows.</strong> Illustrative servicing NPV leaves out escrow and remittance float, ancillary and late fees, servicing advances, default and foreclosure costs, taxes, hedges and any terminal value or multiple. It is not market value or accounting fair value.
+        <strong>Excluded cash flows.</strong> Illustrative servicing net present value (NPV), future fees less costs in today’s dollars, leaves out escrow and remittance float, ancillary and late fees, servicing advances, default and foreclosure costs, taxes, hedges and any terminal value or multiple. It is not market value or accounting fair value.
       </p>
       <p>
         Model {MODEL_VERSION}; behavioral coefficients {C.version}; scenario schema {SCHEMA_VERSION}; synthetic generator {GENERATOR_VERSION}. All formulas are educational conventions, not calibrated forecasts, and none is a FICO parameter. The full write-up is in docs/METHODOLOGY.md in the repository.
@@ -26,6 +26,7 @@ The surviving borrower's contractual balance becomes R; payments are never recas
       </section>
       <section className="card">
         <h2>Speeds</h2>
+        <p>Single monthly mortality (SMM) is the share of the balance left after scheduled principal that pays off early in a month. The conditional prepayment rate (CPR) is the same speed as a yearly rate. The Public Securities Association (PSA) benchmark is a standard curve that sets speed by loan age. Unpaid principal balance (UPB) is what borrowers still owe.</p>
         <div className="formula">{`SMM = prepaid / (beginning UPB − scheduled);  CPR = 1 − (1 − SMM)^12
 Portfolio speeds sum dollars first; they never average loan CPRs.
 k-month CPR = 1 − [∏(1 − SMM_t)]^(12/k) (geometric annualization). Zero denominator = not applicable.
@@ -46,10 +47,11 @@ q = 1 − exp(−h_move − h_refi);  q_refi = q × h_refi / (h_move + h_refi); 
         <div className="formula">{`gross fee_t = expected beginning UPB × annual fee / 12 (accrued at the start, received at month end)
 cost_t = expected beginning active loans × annual cost per loan / 12
 net_t = gross fee_t − cost_t (negative allowed)
-NPV = Σ net_t / (1 + d)^(t/12) over every remaining contractual month; value in bps = NPV / UPB × 10,000`}</div>
+NPV = Σ net_t / (1 + d)^(t/12) over every remaining contractual month; value in basis points = NPV / UPB × 10,000`}</div>
       </section>
       <section className="card">
         <h2>Loan owner lens and recapture</h2>
+        <p>Weighted-average life (WAL) is the average time, in years, until the loan owner gets each dollar of principal back. Recapture present value (PV) is the discounted origination contribution from refinancing borrowers who stay with you.</p>
         <div className="formula">{`WAL = Σ (t/12) × (scheduled_t + prepaid_t) / current UPB, over full maturity
 recaptured_t = Σ w × q_refi × share (behavioral mode only)
 recapture PV = Σ recaptured_t × contribution / (1 + d)^(t/12) − campaign cost (deducted once)`}</div>

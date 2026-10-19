@@ -5,7 +5,7 @@ import { pct, pp, usd } from '../../domain/format';
 import type { ValidationResult } from '../../domain/validation';
 import { LineChart } from '../../ui/LineChart';
 import { Notice } from '../../ui/misc';
-import { TermKey } from '../../ui/TermKey';
+import { TermsOnPage } from '../../ui/TermHelp';
 
 export function useValidation() {
   const { client } = useStore();
@@ -29,21 +29,23 @@ export function ValidationPage() {
   return (
     <div className="stack">
       <h1>Validation lab</h1>
-      <TermKey terms={['CPR', 'PSA', 'bps', 'pp']} />
+      <TermsOnPage ids={['cpr', 'psa', 'ppt', 'bp']} />
       <Notice kind="warn"><strong>Synthetic history.</strong> {v.disclosure}</Notice>
       <p>
         A forecast was frozen at {formatMonth(v.origin)} assuming the offer rate stayed at 6.75%. Below are the 24 months that followed. Compare the frozen forecast with what happened, then with the same model re-run on the rates that actually occurred, to separate a <em>rate-path miss</em> from a <em>behavior miss</em>.
       </p>
       <LineChart
         testId="chart-validation"
-        title="Monthly CPR: forecasts versus synthetic actual"
+        title="Monthly conditional prepayment rate (CPR): forecasts versus synthetic actual"
+        term="cpr"
+        axes="Up the side: yearly prepayment rate, in percent. Along the bottom: month."
         summary={`Average actual CPR ${pct(v.months.reduce((a, m) => a + (m.actualCpr ?? 0), 0) / v.months.length)} versus ${pct(v.months.reduce((a, m) => a + (m.frozenCpr ?? 0), 0) / v.months.length)} for the frozen forecast.`}
         series={[
           { id: 'actual', label: 'Synthetic actual', color: 'var(--text)', values: v.months.map((m) => m.actualCpr) },
           { id: 'frozen', label: 'Frozen forecast', color: 'var(--s1)', values: v.months.map((m) => m.frozenCpr) },
           { id: 'ar', label: 'Re-run with actual rates', color: 'var(--s2)', values: v.months.map((m) => m.actualRatesCpr), dashed: true },
-          { id: 'psa', label: '100% PSA', color: 'var(--s0)', values: v.months.map((m) => m.psaCpr), dashed: true },
-          { id: 'fixed', label: 'Fixed 8% CPR', color: 'var(--s3)', values: v.months.map((m) => m.fixedCpr), dashed: true },
+          { id: 'psa', label: '100% PSA benchmark (Public Securities Association)', color: 'var(--s0)', values: v.months.map((m) => m.psaCpr), dashed: true },
+          { id: 'fixed', label: 'Fixed 8% prepayment rate', color: 'var(--s3)', values: v.months.map((m) => m.fixedCpr), dashed: true },
         ]}
         xLabels={labels}
         yFormat={(x) => pct(x, 1)}
@@ -56,7 +58,7 @@ export function ValidationPage() {
         <div className="table-wrap">
           <table data-testid="validation-scores">
             <caption className="sr-only">Forecast error</caption>
-            <thead><tr><th scope="col">Forecast</th><th scope="col">Mean CPR error (bias)</th><th scope="col">Mean absolute CPR error</th><th scope="col">24-month prepaid dollars, forecast minus actual</th></tr></thead>
+            <thead><tr><th scope="col">Forecast</th><th scope="col">Average error (bias), percentage points of CPR</th><th scope="col">Average size of error, percentage points of CPR</th><th scope="col">24-month prepaid dollars, forecast minus actual</th></tr></thead>
             <tbody>
               {v.scores.map((s) => (
                 <tr key={s.id}><th scope="row">{s.label}</th><td>{pp(s.meanError)}</td><td>{pp(s.meanAbsError).replace('+', '')}</td><td>{usd(s.prepaidError, { compact: true, signed: true })}</td></tr>

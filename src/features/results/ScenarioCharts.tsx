@@ -4,6 +4,7 @@ import { formatMonth } from '../../domain/calendar';
 import { pct, usd } from '../../domain/format';
 import type { RunOutput } from '../../domain/types';
 import { LineChart, type Series } from '../../ui/LineChart';
+import { TermHelp } from '../../ui/TermHelp';
 
 export interface ChartEntry {
   label: string;
@@ -53,7 +54,7 @@ export function ScenarioCharts({ entries, focus }: { entries: ChartEntry[]; focu
   const horizon = state.slots.find((s) => s.draft.scenarioId === state.activeId)?.draft.chartHorizon ?? 36;
   const ledger = focus.output.ledger.slice(0, horizon);
   const labels = ledger.map((m) => formatMonth(m.month));
-  if (ledger.length === 0) return <p className="muted">No months to chart for this population.</p>;
+  if (ledger.length === 0) return <p className="muted">No months to chart: no loans in this population have payments left.</p>;
   const sel = state.selectedMonth;
   const onSelect = (i: number) => dispatch({ type: 'selectMonth', index: i });
   let cs = 0, cp = 0;
@@ -65,8 +66,10 @@ export function ScenarioCharts({ entries, focus }: { entries: ChartEntry[]; focu
     <div className="charts-grid">
       <LineChart
         testId="chart-cpr"
-        title="Monthly prepayment speed, annualized (CPR)"
-        summary={`Annualized share of eligible balance prepaid each month. ${entries.map((e) => `${e.label}: ${pct(first(e)?.cpr)} in month 1, ${pct(last(e)?.cpr)} in month ${Math.min(horizon, e.output.ledger.length)}`).join('. ')}.`}
+        title="Monthly prepayment speed: conditional prepayment rate (CPR)"
+        term="cpr"
+        axes="Up the side: yearly prepayment rate, in percent. Along the bottom: month."
+        summary={`Yearly pace of early payoffs, measured each month. ${entries.map((e) => `${e.label}: ${pct(first(e)?.cpr)} in month 1, ${pct(last(e)?.cpr)} in month ${Math.min(horizon, e.output.ledger.length)}`).join('. ')}.`}
         series={seriesOf(entries, horizon, (m) => m.cpr)}
         xLabels={labels}
         yFormat={(v) => pct(v, 1)}
@@ -77,6 +80,8 @@ export function ScenarioCharts({ entries, focus }: { entries: ChartEntry[]; focu
       <LineChart
         testId="chart-upb"
         title="Remaining unpaid principal balance (UPB)"
+        term="upb"
+        axes="Up the side: dollars still owed at month end. Along the bottom: month."
         summary={`Expected balance still outstanding at month end. ${entries.map((e) => `${e.label}: ${usd(last(e)?.endingUpb, { compact: true })} after ${Math.min(horizon, e.output.ledger.length)} months`).join('. ')}.`}
         series={seriesOf(entries, horizon, (m) => m.endingUpb)}
         xLabels={labels}
@@ -89,6 +94,7 @@ export function ScenarioCharts({ entries, focus }: { entries: ChartEntry[]; focu
         testId="chart-principal"
         stacked
         title={`Cumulative principal returned to the loan owner: ${focus.label}`}
+        axes="Up the side: running total of principal repaid, in dollars. Along the bottom: month."
         summary={`Over the chart window, ${usd(cumSched[cumSched.length - 1], { compact: true })} comes back as scheduled principal and ${usd(cumPrep[cumPrep.length - 1], { compact: true })} as prepaid principal. This principal belongs to the loan owner, not the servicer.`}
         series={[
           { id: 'sched', label: 'Scheduled principal', color: 'var(--sched)', values: cumSched },
@@ -102,6 +108,8 @@ export function ScenarioCharts({ entries, focus }: { entries: ChartEntry[]; focu
       <LineChart
         testId="chart-net"
         title="Net servicing cash flow per month"
+        term="netServicing"
+        axes="Up the side: fees minus costs that month, in dollars. Along the bottom: month."
         summary={`Servicing fee on surviving balances minus cost per surviving loan. ${entries.map((e) => `${e.label}: ${usd(first(e)?.netServicing)} in month 1`).join('. ')}.`}
         series={seriesOf(entries, horizon, (m) => m.netServicing)}
         xLabels={labels}
@@ -119,18 +127,19 @@ export function NpvComparison({ entries }: { entries: ChartEntry[] }) {
   const max = Math.max(1, ...entries.map((e) => Math.abs(e.output.summary.servicingNpv)));
   return (
     <figure className="card chart-card" style={{ margin: 0 }} data-testid="chart-npv">
-      <h3>Illustrative lifetime servicing NPV</h3>
+      <h3 style={{ display: 'inline' }}>Illustrative lifetime servicing net present value (NPV)</h3>
+      <TermHelp id="npv" />
       <figcaption className="muted" style={{ fontSize: '0.85rem' }}>
         Discounted net servicing cash flow over every remaining month. Not a market value or fair value. Bars start at zero; negative values extend left.
       </figcaption>
       <table>
-        <caption className="sr-only">Lifetime servicing NPV by scenario</caption>
+        <caption className="sr-only">Lifetime servicing net present value by scenario</caption>
         <thead>
           <tr>
             <th scope="col">Scenario</th>
             <th scope="col" style={{ width: '45%' }}><span className="sr-only">Bar</span></th>
-            <th scope="col">NPV</th>
-            <th scope="col">bps of UPB</th>
+            <th scope="col">Value</th>
+            <th scope="col">Basis points of balance</th>
           </tr>
         </thead>
         <tbody>

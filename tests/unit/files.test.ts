@@ -45,7 +45,7 @@ describe('scenario files', () => {
     expectImportError(JSON.stringify(f), /will not reinterpret/);
   });
   it('rejects malformed JSON, unexpected fields and out-of-bounds numbers', () => {
-    expectImportError('{not json', /not valid JSON/);
+    expectImportError('{not json', /not valid JavaScript Object Notation/);
     const extra = JSON.parse(fileText());
     extra.scenarios[0].fetchUrl = 'https://example.com';
     expectImportError(JSON.stringify(extra), /Unrecognized key|fetchUrl/);

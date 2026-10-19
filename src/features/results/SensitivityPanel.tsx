@@ -64,7 +64,7 @@ export function SensitivityPanel({ input }: { input: ScenarioInput }) {
       {rows && (
         <>
           <DeltaBars
-            caption="Change in illustrative servicing NPV"
+            caption="Change in illustrative servicing net present value (NPV)"
             format={(v) => usd(v, { compact: true, signed: true })}
             rows={rows.map((r) => ({ label: `${r.label} (${r.change})`, value: r.npvDelta, note: r.skippedReason ?? undefined }))}
           />
@@ -72,7 +72,7 @@ export function SensitivityPanel({ input }: { input: ScenarioInput }) {
             <table>
               <caption>Details</caption>
               <thead>
-                <tr><th scope="col">Change</th><th scope="col">Servicing NPV</th><th scope="col">12-month prepaid</th><th scope="col">Month-1 CPR</th></tr>
+                <tr><th scope="col">Change</th><th scope="col">Servicing NPV</th><th scope="col">12-month prepaid</th><th scope="col">Next-month CPR, percentage points</th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => (

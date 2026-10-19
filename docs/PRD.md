@@ -6,7 +6,7 @@ Version 1.0 | October 18, 2026 | Product owner: Chris Lekkas
 
 Build an interactive educational application that helps a mortgage general manager, director, or analyst understand how borrower prepayments change the performance of a servicing portfolio. The user changes assumptions, predicts a result, runs the simulation, and sees the cash flows and business consequences explained in plain English.
 
-The primary experience is managing mortgage servicing rights (MSRs). A separate loan-investor lens explains principal return and reinvestment risk. The application must never imply that the servicer owns the underlying loan principal merely because it services the loan.
+The primary experience is managing mortgage servicing rights (MSRs), the rights to service loans and earn a fee for doing so. A separate loan-investor lens explains principal return and reinvestment risk. The application must never imply that the servicer owns the underlying loan principal merely because it services the loan.
 
 Proposed repository: jclekkas/mortgage-prepayment-lab. The account spelling follows prior project context; verify the authenticated GitHub owner and destination before creating or pushing a repository. The repository name is a proposal, not an existing or verified repository. This document specifies a production-deployable educational application; it does not represent FICO approval, a proprietary FICO model, or a validated investment valuation system.
 
@@ -20,7 +20,7 @@ The core learning loop is: select a portfolio, predict what will happen, change 
 
 ### Success measures
 
-- In a pilot with at least five representative users, four can explain CPR versus SMM and identify who receives prepaid principal after completing the introduction.
+- In a pilot with at least five representative users, four can explain conditional prepayment rate (CPR), the annualized share of the remaining balance that prepays, versus single monthly mortality (SMM), the share of eligible balance that prepays in a single month, and identify who receives prepaid principal after completing the introduction.
 - Four can correctly diagnose the more refinance-sensitive cohort without assistance.
 - Every displayed financial metric has a definition, units, period, and inspectable calculation.
 - Identical portfolio, assumptions, seed, and model version produce identical results.
@@ -32,25 +32,25 @@ The core learning loop is: select a portfolio, predict what will happen, change 
 | --- | --- | --- | --- |
 | General manager | What is at risk, and which trade-off matters most? | Five headline measures, scenario comparisons, decision narrative | One-page scenario brief |
 | Director | Which segments explain the change, and what can we influence? | Cohort comparison, cost and recapture controls, sensitivity heatmap | Segment-level action hypotheses |
-| Analyst | Do the balances reconcile, and is the model credible? | Monthly ledger, model settings, formula drawer, validation lab | Reproducible JSON and cash-flow CSV |
+| Analyst | Do the balances reconcile, and is the model credible? | Monthly ledger, model settings, formula drawer, validation lab | Reproducible JavaScript Object Notation (JSON) and cash-flow comma-separated values (CSV) |
 
-Role selection changes information density, not formulas or permissions. A GM may open any analyst explanation. Avoid portraying FICO as necessarily owning the simulated servicing assets; the user can be learning the economics of lender and servicer customers.
+Role selection changes information density, not formulas or permissions. A general manager (GM) may open any analyst explanation. Avoid portraying FICO as necessarily owning the simulated servicing assets; the user can be learning the economics of lender and servicer customers.
 
 ## 3. Release scope
 
-### P0 production educational release
+### Priority 0 (P0) production educational release
 
-Deliver synthetic portfolios; fixed CPR, PSA, and transparent behavioral modes; monthly amortization and full-payoff simulation; baseline plus three comparisons; segment drill-down; servicing economics; a separate loan-investor cash-flow view; a recapture contribution overlay; six guided exercises; synthetic actual-versus-forecast analysis; local save/import/export; accessible desktop and tablet layouts; automated numerical and end-to-end verification; reproducible deployment.
+Deliver synthetic portfolios; fixed CPR, Public Securities Association (PSA) benchmark (a standard prepayment curve that rises with loan age), and transparent behavioral modes; monthly amortization and full-payoff simulation; baseline plus three comparisons; segment drill-down; servicing economics; a separate loan-investor cash-flow view; a recapture contribution overlay; six guided exercises; synthetic actual-versus-forecast analysis; local save/import/export; accessible desktop and tablet layouts; automated numerical and end-to-end verification; reproducible deployment.
 
 Model scope: performing, fixed-rate, fully amortizing, first-lien residential loans with monthly payments. No negative amortization, adjustable rates, interest-only periods, balloon loans, modifications, scheduled-payment delinquency, or partial curtailments in P0. Explicitly reject unsupported imported synthetic records.
 
-### P1 realism expansion
+### Priority 1 (P1) realism expansion
 
 After P0 passes numerical and usability gates: licensed historical-data adapters, calibration and out-of-time backtests, partial curtailments, delinquency/cure/liquidation states, servicing advances, escrow and remittance float, a separate replacement-loan book, and authenticated shared scenarios. Each extension requires its own accounting convention and tests before exposure in the interface.
 
 ### Outside this release
 
-No production customer loan uploads, borrower recommendations, credit decisions, trading, hedge execution, live accounting marks, GSE eligibility determination, proprietary credit-score replication, or claims of fair value. No LLM dependency in the numerical engine. An approved corporate deployment and validated financial model are separate milestones from shipping educational software.
+No production customer loan uploads, borrower recommendations, credit decisions, trading, hedge execution, live accounting marks, government-sponsored enterprise (GSE) eligibility determination, proprietary credit-score replication, or claims of fair value. No large language model (LLM) dependency in the numerical engine. An approved corporate deployment and validated financial model are separate milestones from shipping educational software.
 
 ## 4. Screen and interaction specification
 
@@ -60,7 +60,7 @@ Open with "What would you like to understand?" and three choices: protect servic
 
 The persistent header shows portfolio name, synthetic-data badge, as-of date, model mode/version, and baseline/scenario selector. Do not describe synthetic assumptions as today's market rates.
 
-Display five primary cards: current unpaid principal balance (UPB), next-month annualized prepayment speed (CPR), projected 12-month prepaid principal, projected 12-month net servicing cash flow, and illustrative lifetime servicing NPV. A secondary card shows loan principal weighted-average life. It must not be labeled servicing duration.
+Display five primary cards: current unpaid principal balance (UPB), meaning the loan principal borrowers still owe; next-month annualized prepayment speed (CPR); projected 12-month prepaid principal; projected 12-month net servicing cash flow; and illustrative lifetime servicing net present value (NPV), meaning projected future net servicing cash flows discounted back to today. A secondary card shows loan principal weighted-average life, the average time until principal is repaid. It must not be labeled servicing duration.
 
 Each card includes its period, baseline difference in dollars or percentage points as appropriate, and a "Why did this change?" button. A larger CPR is neither automatically good nor bad: explain the user's economic lens before assigning evaluative color.
 
@@ -74,7 +74,7 @@ Group controls under "Market conditions," "Borrower behavior," and "Business dec
 | --- | --- | --- |
 | Model mode | Behavioral default; fixed CPR; PSA | Only the selected mode drives prepayment |
 | Mortgage offer rate | 1-15%; 6.25% synthetic default | Enter level or shock; supports immediate, 12-month ramp, or custom monthly path |
-| Rate shock | -300 to +300 basis points; 0 | Applied to mortgage offer path; reject resulting rates outside supported bounds |
+| Rate shock | -300 to +300 basis points (1 basis point = 0.01 percentage point); 0 | Applied to mortgage offer path; reject resulting rates outside supported bounds |
 | Fixed annual CPR | 0-60%; 8% | Only enabled in fixed mode |
 | PSA multiplier | 0-500%; 100% | Applied to each loan's age, not portfolio average age |
 | Turnover multiplier | 0-2; 1 | Changes background full-payoff hazard |
@@ -139,7 +139,7 @@ Portfolio beginning balance equals scheduled principal plus voluntary principal 
 
 SMM is the monthly fraction of eligible principal prepaid: SMM = prepaid principal / (beginning UPB - scheduled principal). CPR = 1 - (1 - SMM)^12. Conversely SMM = 1 - (1 - CPR)^(1/12). CPR is an annualized conditional speed, not the actual percentage of today's book that must prepay over the next calendar year.
 
-For a portfolio, aggregate the dollar numerator and denominator first; do not average individual CPRs. For a trailing k-month measure, use 1 - [product(1-SMM_t)]^(12/k), explicitly labeled geometric annualization. A zero denominator produces "Not applicable," not 0% or NaN. Twelve-month prepaid dollars must come from the monthly ledger, not CPR x initial UPB.
+For a portfolio, aggregate the dollar numerator and denominator first; do not average individual CPRs. For a trailing k-month measure, use 1 - [product(1-SMM_t)]^(12/k), explicitly labeled geometric annualization. A zero denominator produces "Not applicable," not 0% or not-a-number (NaN). Twelve-month prepaid dollars must come from the monthly ledger, not CPR x initial UPB.
 
 ### PSA mode
 
@@ -162,19 +162,19 @@ This specification teaches nonlinear refinance incentives, age effects, turnover
 
 P0 uses beginning-of-month accrual and end-of-month cash receipt. Monthly gross servicing revenue = expected beginning UPB x annual servicing fee / 12. Monthly operating cost = expected beginning active loan count x annual cost per active loan / 12. Net servicing cash flow = gross fee - operating cost. Negative results are allowed.
 
-Lifetime servicing NPV = sum over remaining contractual months of net servicing cash flow_t / (1+d)^(t/12), where d is annual effective discount rate. No terminal multiple or hidden residual value. P0 excludes float, ancillary fees, advances, default costs, taxes, and hedges. Label the number "Illustrative servicing NPV," never market value or accounting fair value. Present a conspicuous explanation of excluded cash flows next to the methodology drawer. Discounting projected servicing income and testing prepayment/cost assumptions follows the broad economic framing described by OCC. [S1]
+Lifetime servicing NPV = sum over remaining contractual months of net servicing cash flow_t / (1+d)^(t/12), where d is annual effective discount rate. No terminal multiple or hidden residual value. P0 excludes float, ancillary fees, advances, default costs, taxes, and hedges. Label the number "Illustrative servicing NPV," never market value or accounting fair value. Present a conspicuous explanation of excluded cash flows next to the methodology drawer. Discounting projected servicing income and testing prepayment/cost assumptions follows the broad economic framing described by the Office of the Comptroller of the Currency (OCC). [S1]
 
-Servicing value in bps = NPV / current UPB x 10,000; undefined when current UPB is zero. Do not clamp negative NPV to zero. An impaired or negative-margin book can violate the usual teaching heuristic that slower prepayments improve value.
+Servicing value in basis points = NPV / current UPB x 10,000; undefined when current UPB is zero. Do not clamp negative NPV to zero. An impaired or negative-margin book can violate the usual teaching heuristic that slower prepayments improve value.
 
 ### Loan investor lens
 
-Show principal and note-interest cash flows separately from servicing fees. For P0, label this a simplified loan-owner view before credit losses, funding costs, guaranty fees, remittance delays, and any security structure; do not call it a fully priced agency MBS.
+Show principal and note-interest cash flows separately from servicing fees. For P0, label this a simplified loan-owner view before credit losses, funding costs, guaranty fees, remittance delays, and any security structure; do not call it a fully priced agency mortgage-backed security (MBS).
 
 Principal weighted-average life = sum[(t/12) x (scheduledPrincipal_t + prepaidPrincipal_t)] / initial UPB. Use the full remaining maturity, not the chart window. Faster payoff accelerates principal return; it is not an equal-dollar loss to the owner. A P1 price/yield module must specify purchase price, net coupon, settlement, and discounting before making premium/discount return claims.
 
 ### Recapture economics
 
-Expected recaptured loans_t = sum(w_i x q_refi_i) x recaptureShare, excluding maturity months. Recapture contribution PV = sum(recapturedLoans_t x netContributionPerLoan / (1+d)^(t/12)) - campaignCost. Use the same discount rate as a disclosed P0 simplification.
+Expected recaptured loans_t = sum(w_i x q_refi_i) x recaptureShare, excluding maturity months. Recapture contribution present value (PV) = sum(recapturedLoans_t x netContributionPerLoan / (1+d)^(t/12)) - campaignCost. Use the same discount rate as a disclosed P0 simplification.
 
 Display original-book servicing NPV and recapture contribution PV separately. Their sum is an illustrative combined contribution measure, not MSR fair value. Recapture does not keep the original loan alive. No replacement MSR value is included in P0, and contribution per loan must exclude it. Do not subtract campaign costs twice or imply assumed recapture uplift is causally proven.
 
@@ -182,7 +182,7 @@ Display original-book servicing NPV and recapture contribution PV separately. Th
 
 Ship a deterministic generator with seed 42 and 1,000 loans by default. Build three equally sized configurable cohorts: low coupon/seasoned, middle coupon/mid-life, and high coupon/recent. Use original 360-month amortization, generate original balances and ages, then derive current UPB and remaining term from the contractual schedule. Avoid independently generating mutually inconsistent balances and payments.
 
-Required loan fields: synthetic loan ID, as-of month, original balance, current balance, annual note rate, original term, age months, remaining term, contractual payment, annual servicing-fee bps, annual cost, state, and synthetic refinance propensity. Required portfolio metadata: schema version, generator version, seed, synthetic flag, creation date, and hash. No names, addresses, SSNs, or real account identifiers.
+Required loan fields: synthetic loan identifier (ID), as-of month, original balance, current balance, annual note rate, original term, age months, remaining term, contractual payment, annual servicing fee in basis points, annual cost, state, and synthetic refinance propensity. Required portfolio metadata: schema version, generator version, seed, synthetic flag, creation date, and hash. No names, addresses, Social Security numbers (SSNs), or real account identifiers.
 
 Scenario input contains schemaVersion, modelVersion, portfolioHash, baselineId, scenarioId, name, valuationMonth, mode, ratePath, behavioralParameters, servicingParameters, recaptureParameters, seed, and chartHorizon. Canonical key ordering and number serialization determine the input hash. Run output includes inputHash, monthly portfolio ledger, cohort results, per-loan drill-down on demand, summary metrics, warnings, and calculation duration.
 
@@ -194,7 +194,7 @@ Saved files include complete assumptions and model version. Import validates sch
 | --- | --- | --- |
 | Follow one dollar | Inspect a one-loan monthly ledger | Scheduled and prepaid principal go to the loan owner; servicing receives its fee |
 | Read the speedometer | Set 6% CPR and inspect SMM | SMM is approximately 0.5143%, not 0.5% exactly |
-| Rates fall | Apply -100 bps in behavioral mode | Refinance incentive rises; identify the cohort with the largest calculated change |
+| Rates fall | Apply -100 basis points in behavioral mode | Refinance incentive rises; identify the cohort with the largest calculated change |
 | Same speed, different cost | Compare otherwise equal books with different loan balances | Per-loan costs create different economics per dollar of UPB |
 | Keep the customer | Raise recapture share | Original loan still pays off; incremental origination contribution is separate |
 | Challenge the forecast | Compare a frozen forecast with synthetic subsequent observations | Identify bias and propose a hypothesis without claiming proof |
@@ -203,23 +203,23 @@ Each exercise asks for a prediction before revealing results, offers one concise
 
 ## 8. Engineering and repository requirements
 
-Use TypeScript and React with Vite for a static, client-side P0 application; use a Web Worker for calculations, a typed schema validator for imports, and an accessible chart library with table fallbacks. These are proposed architecture choices; the coding agent must verify current compatible stable versions in official documentation when implementing and commit a lockfile. Do not introduce a database, API key, server, or paid data dependency for the educational release.
+Use TypeScript and React with Vite for a static, client-side P0 application; use a Web Worker for calculations, a typed schema validator for imports, and an accessible chart library with table fallbacks. These are proposed architecture choices; the coding agent must verify current compatible stable versions in official documentation when implementing and commit a lockfile. Do not introduce a database, application programming interface (API) key, server, or paid data dependency for the educational release.
 
-Suggested source layout: src/domain for pure numerical functions; src/worker for orchestration; src/features/portfolio, scenarios, results, learn, and validation for UI; src/data for synthetic generation; src/storage for local persistence; tests/fixtures for independently verified cases; docs for this PRD, methodology, data dictionary, and deployment runbook.
+Suggested source layout: src/domain for pure numerical functions; src/worker for orchestration; src/features/portfolio, scenarios, results, learn, and validation for the user interface (UI); src/data for synthetic generation; src/storage for local persistence; tests/fixtures for independently verified cases; docs for this product requirements document (PRD), methodology, data dictionary, and deployment runbook.
 
 The UI consumes typed engine outputs; components never calculate a second version of financial metrics. Narrative templates consume the same output. A single engine runs in tests and in the worker. Use structured cloning or transferable buffers where appropriate; cancel stale jobs via run IDs.
 
-Required package scripts: dev, build, preview, typecheck, lint, test, test:e2e, and test:numerics. CI runs install from lockfile, static checks, numerical tests, end-to-end tests, and production build. Dependencies and licenses must be recorded. Support configurable deployment base path; avoid broken refreshes on deep links through hash routing or an explicit host fallback.
+Required package scripts: dev, build, preview, typecheck, lint, test, test:e2e, and test:numerics. Continuous integration (CI) runs install from lockfile, static checks, numerical tests, end-to-end tests, and production build. Dependencies and licenses must be recorded. Support configurable deployment base path; avoid broken refreshes on deep links through hash routing or an explicit host fallback.
 
-P0 has no sensitive data by design. Default to no external analytics; imported files remain local. Limit imports to 10 MB and 10,000 synthetic loans, reject unexpected fields where practical, validate synthetic provenance, and sanitize all text rendered or exported. Neutralize spreadsheet-formula injection in CSV text fields. Do not fetch arbitrary URLs found inside imported scenarios.
+P0 has no sensitive data by design. Default to no external analytics; imported files remain local. Limit imports to 10 megabytes (MB) and 10,000 synthetic loans, reject unexpected fields where practical, validate synthetic provenance, and sanitize all text rendered or exported. Neutralize spreadsheet-formula injection in CSV text fields. Do not fetch arbitrary uniform resource locators (URLs) found inside imported scenarios.
 
 An internally deployed FICO version requires the organization's approved host, authentication, security review, and data policy before business data is enabled. A role selector is never authorization. Keep a public synthetic demonstration and any future authenticated corporate deployment as distinct deployment configurations.
 
 ## 9. Performance and accessibility
 
-For a documented modern laptop reference environment, target first useful display within 2.5 seconds on a typical broadband connection, and 1,000 loans x 360 months within 1 second at p95 after initial load. For 10,000 loans, target under 5 seconds with progress and cancellation. Measure these targets; do not assert them without a benchmark. Keep the main thread responsive and cache results by canonical input hash.
+For a documented modern laptop reference environment, target first useful display within 2.5 seconds on a typical broadband connection, and 1,000 loans x 360 months within 1 second at the 95th percentile (p95) after initial load. For 10,000 loans, target under 5 seconds with progress and cancellation. Measure these targets; do not assert them without a benchmark. Keep the main thread responsive and cache results by canonical input hash.
 
-Support 1280-pixel desktop and 768-pixel tablet layouts; at 390 pixels, all controls and tables remain accessible without page-wide horizontal overflow. Target WCAG 2.2 AA. Use keyboard navigation, visible focus, labeled controls, sufficient contrast, reduced-motion support, chart summaries, table equivalents, and no red/green-only meaning. Preserve focus after recalculation; announce completion without reading the whole table aloud.
+Support 1280-pixel desktop and 768-pixel tablet layouts; at 390 pixels, all controls and tables remain accessible without page-wide horizontal overflow. Target Web Content Accessibility Guidelines (WCAG) 2.2 Level AA. Use keyboard navigation, visible focus, labeled controls, sufficient contrast, reduced-motion support, chart summaries, table equivalents, and no red/green-only meaning. Preserve focus after recalculation; announce completion without reading the whole table aloud.
 
 Provide explicit states for empty portfolio, invalid import, zero balances, no filtered results, calculation cancellation, storage failure, incompatible scenario, and engine error. Preserve the last good run after failure and identify it as such. Never replace missing information with a plausible fabricated value.
 
@@ -235,7 +235,7 @@ Ship independent fixtures with calculation provenance, not snapshots copied from
 | N04 | Every loan-month and portfolio-month conserves principal to max($0.01, beginning UPB x 1e-10); end balances never negative |
 | N05 | At 0% CPR, all principal is scheduled and total principal returned equals initial UPB; maturity is not counted as voluntary payoff |
 | N06 | Zero-rate amortization and zero discount rate work without division errors; a one-month loan closes completely |
-| N07 | On $100 million beginning UPB, 25 annual bps produces $20,833.3333 monthly gross fee; 1,000 active loans at $100 annual cost produces $8,333.3333 monthly cost |
+| N07 | On $100 million beginning UPB, 25 annual basis points produces $20,833.3333 monthly gross fee; 1,000 active loans at $100 annual cost produces $8,333.3333 monthly cost |
 | N08 | Aggregated SMM uses summed eligible balances; heterogeneous-cohort CPR is not an arithmetic average |
 | N09 | In behavioral mode with other inputs fixed, a lower offer rate cannot reduce first-month refinance hazard; hazards remain valid at bounds |
 | N10 | Refinance and turnover probabilities sum to total payoff probability; expected survival counts and balances remain consistent |
@@ -248,17 +248,17 @@ Ship independent fixtures with calculation provenance, not snapshots copied from
 
 End-to-end acceptance: load preset, freeze baseline, shock rates, run, inspect a month, filter a cohort, compare scenarios, finish an exercise, export/import JSON, and reproduce results. Also test worker cancellation, stale-run races, malformed imports, unavailable storage, keyboard-only use, and production deep-link refresh.
 
-Business acceptance: a reviewer can trace every KPI to its ledger; explanations match calculated direction and units; source labels distinguish synthetic assumptions from conventions; and original MSR value is never conflated with investor principal or recapture contribution.
+Business acceptance: a reviewer can trace every key performance indicator (KPI) to its ledger; explanations match calculated direction and units; source labels distinguish synthetic assumptions from conventions; and original MSR value is never conflated with investor principal or recapture contribution.
 
 ## 11. Delivery sequence and release gates
 
-1. Establish domain conventions and fixtures. Deliver pure engine, data generator, methodology, and tests N01-N16 before styling the dashboard. Gate: independently reconciled one-loan and multi-cohort cases.
+1. Establish domain conventions and fixtures. Deliver pure engine, data generator, methodology, and numerical verification tests N01-N16 (section 10) before styling the dashboard. Gate: independently reconciled one-loan and multi-cohort cases.
 2. Build the core learning loop. Deliver overview, scenario controls, worker integration, charts, month ledger, baseline compare, and formula drawers. Gate: complete usable rate-shock walkthrough with no placeholder calculations.
 3. Add cohort analysis, recapture overlay, decision brief, six lessons, validation lab, and persistence. Gate: exports reproduce results and economic lenses remain separate.
 4. Harden and deploy preview. Deliver accessibility review, measured performance, CI, threat-focused input tests, runbook, and rollback instructions. Gate: preview smoke test and documented known limitations.
 5. Release educational production build. Merge through the repository's review policy and deploy the tested commit. Gate: numerical review, product-owner acceptance, all required checks green, and correct destination confirmed. Preserve prior artifact for rollback.
 
-Production hosting may use a static host such as Vercel or GitHub Pages. Select according to repository conventions and account access during implementation; do not assume a connected provider. A failed provider integration must not be reported as a successful deployment. Record commit SHA, model version, build date, deployed URL, smoke-test evidence, and rollback command in the release notes.
+Production hosting may use a static host such as Vercel or GitHub Pages. Select according to repository conventions and account access during implementation; do not assume a connected provider. A failed provider integration must not be reported as a successful deployment. Record commit Secure Hash Algorithm (SHA) identifier, model version, build date, deployed URL, smoke-test evidence, and rollback command in the release notes.
 
 ## 12. Copy-ready coding agent brief
 
@@ -272,7 +272,7 @@ Provide source code, lockfile, tests, README, methodology, data dictionary, this
 
 ## 13. Source notes and model boundaries
 
-Sources checked October 18, 2026. The interface design, synthetic defaults, behavioral coefficients, acceptance criteria, and architecture are proposed product specifications. They are not claims that the sources supply a calibrated model.
+Sources checked October 18, 2026. The interface design, synthetic defaults, behavioral coefficients, acceptance criteria, and architecture are proposed product specifications. They are not claims that the sources supply a calibrated model. Bracketed labels [S1] to [S3] elsewhere in this document refer to the sources listed below.
 
 - S1: OCC, Mortgage Banking, Comptroller's Handbook, servicing-asset and valuation sections, especially printed pages 67-72. Supports separating servicing rights from the loan and evaluating projected servicing cash flows with explicit prepayment, cost, and discount assumptions. The handbook is contextual guidance, not certification of this simulator: https://www.occ.treas.gov/publications-and-resources/publications/comptrollers-handbook/files/mortgage-banking/pub-ch-mortgage-banking.pdf
 - S2: Oracle Financial Services, PSA Method. Documents the 0.2-percentage-point monthly CPR ramp to 6% at month 30 and scaling by PSA multiplier: https://docs.oracle.com/en/industries/financial-services/ofs-analytical-applications/analytical-applications-infrastructure/812/almug/psa-method.html

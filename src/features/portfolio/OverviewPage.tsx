@@ -7,7 +7,7 @@ import { KpiCards } from '../results/KpiCards';
 import { PopulationBadge, RunStatus } from '../results/RunStatus';
 import { entriesFor, ExcludedNotice, NpvComparison } from '../results/ScenarioCharts';
 import { useComparison } from '../results/useComparison';
-import { TermKey } from '../../ui/TermKey';
+import { TermsOnPage } from '../../ui/TermHelp';
 
 export function OverviewPage() {
   const { state, active, applyAndRun, dispatch } = useStore();
@@ -37,16 +37,16 @@ export function OverviewPage() {
         <p className="muted">
           {state.portfolio.meta.description} Synthetic as of {formatMonth(state.portfolio.meta.asOfMonth)}. The synthetic offer rate is an assumption, not today’s market rate.
         </p>
-        <TermKey terms={['CPR', 'bps', 'pp', 'UPB', 'NPV', 'WAL']} />
+        <TermsOnPage ids={['cpr', 'bp', 'ppt', 'upb', 'npv', 'wal', 'netServicing']} />
         <PopulationBadge />
       </div>
       <RunStatus />
       <section className="card" aria-labelledby="try-h">
         <h2 id="try-h">Predict, then run</h2>
-        <p>Before you press a button, decide: will next-month prepayment speed (conditional prepayment rate, CPR) go up or down, and which coupon band will move most? Each button changes one assumption on {target?.draft.name ?? 'a scenario'} and runs it against the frozen baseline. Rate moves are in basis points (bps): 100 bps is 1 percentage point.</p>
+        <p>Before you press a button, decide: will next month’s conditional prepayment rate (CPR), the yearly pace of early payoffs, go up or down, and which note-rate band will move most? Each button changes one assumption on {target?.draft.name ?? 'a scenario'} and runs it against the frozen baseline. Rate moves are in basis points: 100 basis points equal 1 percentage point.</p>
         <div className="row">
-          {quick('Rates fall 100 bps', (n) => { n.mode = 'behavioral'; n.ratePath.shockBps = -100; })}
-          {quick('Rates rise 100 bps', (n) => { n.mode = 'behavioral'; n.ratePath.shockBps = 100; })}
+          {quick('Rates fall 100 basis points', (n) => { n.mode = 'behavioral'; n.ratePath.shockBps = -100; })}
+          {quick('Rates rise 100 basis points', (n) => { n.mode = 'behavioral'; n.ratePath.shockBps = 100; })}
           {quick('Recapture share 40%', (n) => { n.mode = 'behavioral'; n.recaptureParameters.share = 0.4; })}
           {quick('Cost per loan $150', (n) => { n.servicingParameters.costPerLoan = 150; })}
           <a className="button" href={href('lab')}>Open the scenario lab</a>
@@ -64,7 +64,7 @@ export function OverviewPage() {
               <div className="table-wrap">
                 <table>
                   <caption className="sr-only">Baseline cohorts by note rate</caption>
-                  <thead><tr><th scope="col">Note rate</th><th scope="col">Loans</th><th scope="col">UPB</th><th scope="col">Month-1 CPR</th><th scope="col">Servicing NPV, bps</th></tr></thead>
+                  <thead><tr><th scope="col">Note rate</th><th scope="col">Loans</th><th scope="col">Balance</th><th scope="col">Next-month CPR</th><th scope="col">Servicing NPV, basis points of balance</th></tr></thead>
                   <tbody>
                     {coupon.map((c) => (
                       <tr key={c.key}><th scope="row">{c.label}</th><td>{c.loanCount}</td><td>{usd(c.beginningUpb, { compact: true })}</td><td>{pct(c.nextMonthCpr)}</td><td>{c.servicingValueBps === null ? 'Not applicable' : c.servicingValueBps.toFixed(1)}</td></tr>

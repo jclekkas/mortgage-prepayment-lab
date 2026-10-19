@@ -1,4 +1,6 @@
 import { useId, useMemo, useState, type KeyboardEvent } from 'react';
+import { TermHelp } from './TermHelp';
+import type { TermId } from './terms';
 
 export interface Series {
   id: string;
@@ -10,6 +12,10 @@ export interface Series {
 
 export interface LineChartProps {
   title: string;
+  /** Plain-English axis description, shown under the caption. */
+  axes?: string;
+  /** Adds a "What is this?" button after the title. */
+  term?: TermId;
   /** Plain-language summary for screen readers and as the visible caption. */
   summary: string;
   series: Series[];
@@ -96,12 +102,16 @@ export function LineChart(p: LineChartProps) {
   return (
     <figure className="chart card chart-card" data-testid={p.testId} style={{ margin: 0 }}>
       <div className="chart-head">
-        <h3 id={`${id}-t`}>{p.title}</h3>
+        <div>
+          <h3 id={`${id}-t`} style={{ display: 'inline' }}>{p.title}</h3>
+          {p.term && <TermHelp id={p.term} />}
+        </div>
         <button type="button" className="link" aria-pressed={showTable} onClick={() => setShowTable((v) => !v)}>
           {showTable ? 'Show chart' : 'Show table'}
         </button>
       </div>
       <figcaption className="muted" style={{ fontSize: '0.85rem' }}>{p.summary}</figcaption>
+      {p.axes && <p className="chart-axes">{p.axes}</p>}
       <div className="legend" aria-hidden="true">
         {p.series.map((s) => (
           <span key={s.id} style={{ color: s.color }}>

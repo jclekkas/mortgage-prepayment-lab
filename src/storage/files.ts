@@ -74,7 +74,7 @@ export class ImportError extends Error {
 /** Contract checks a schema cannot express: P0 supports performing, fully amortizing fixed-rate loans only. */
 export function loanProblems(l: Loan): string[] {
   const p: string[] = [];
-  if (l.ageMonths + l.remainingTerm !== l.originalTerm) p.push(`${l.id}: age plus remaining term must equal original term (no modifications or term changes in P0).`);
+  if (l.ageMonths + l.remainingTerm !== l.originalTerm) p.push(`${l.id}: age plus remaining term must equal original term (no modifications or term changes in this release).`);
   if (l.currentBalance > l.originalBalance + 0.01) p.push(`${l.id}: current balance exceeds original balance (negative amortization is not supported).`);
   const expected = levelPayment(l.originalBalance, l.noteRate, l.originalTerm);
   if (Math.abs(expected - l.contractualPayment) > Math.max(0.01, expected * 1e-6)) {
@@ -84,7 +84,7 @@ export function loanProblems(l: Loan): string[] {
   // The scheduled payment must amortize the current balance over the remaining term.
   const needed = levelPayment(l.currentBalance, l.noteRate, l.remainingTerm);
   if (Math.abs(needed - l.contractualPayment) > Math.max(1, l.contractualPayment * 0.005)) {
-    p.push(`${l.id}: current balance is inconsistent with the contractual schedule (partial curtailments and delinquency are not supported in P0).`);
+    p.push(`${l.id}: current balance is inconsistent with the contractual schedule (partial curtailments and delinquency are not supported in this release).`);
   }
   if (l.currentBalance * r > l.contractualPayment) p.push(`${l.id}: payment does not cover interest.`);
   return p;
@@ -96,17 +96,17 @@ export interface ImportResult {
 }
 
 export async function readFileText(file: File): Promise<string> {
-  if (file.size > IMPORT_LIMITS.maxBytes) throw new ImportError(`The file is ${(file.size / 1048576).toFixed(1)} MB; the limit is 10 MB.`);
+  if (file.size > IMPORT_LIMITS.maxBytes) throw new ImportError(`The file is ${(file.size / 1048576).toFixed(1)} megabytes; the limit is 10 megabytes.`);
   return file.text();
 }
 
 export function parseScenarioFile(text: string): ImportResult {
-  if (text.length > IMPORT_LIMITS.maxBytes) throw new ImportError('The file is larger than the 10 MB limit.');
+  if (text.length > IMPORT_LIMITS.maxBytes) throw new ImportError('The file is larger than the 10 megabyte limit.');
   let raw: unknown;
   try {
     raw = JSON.parse(text);
   } catch {
-    throw new ImportError('The file is not valid JSON.');
+    throw new ImportError('The file is not valid JavaScript Object Notation (JSON), so it is not a scenario file from this app.');
   }
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new ImportError('The file is not a scenario file.');
   const obj = raw as Record<string, unknown>;
@@ -140,7 +140,7 @@ export function parseScenarioFile(text: string): ImportResult {
     const problems = loans.flatMap(loanProblems);
     if (problems.length) throw new ImportError(`${problems.length} loan record(s) use features this release does not support.`, problems.slice(0, 12));
     const ids = new Set(loans.map((l) => l.id));
-    if (ids.size !== loans.length) throw new ImportError('Loan IDs must be unique.');
+    if (ids.size !== loans.length) throw new ImportError('Loan identifiers must be unique.');
     if (loans.some((l) => l.asOfMonth !== embedded.meta.asOfMonth)) {
       throw new ImportError('Every loan must have the portfolio as-of month.');
     }
@@ -152,7 +152,7 @@ export function parseScenarioFile(text: string): ImportResult {
 
   const scenarios = f.scenarios.map((s) => ({ ...s, name: cleanText(s.name, 120) })) as ScenarioInput[];
   const ids = new Set(scenarios.map((s) => s.scenarioId));
-  if (ids.size !== scenarios.length) throw new ImportError('Scenario IDs must be unique.');
+  if (ids.size !== scenarios.length) throw new ImportError('Scenario identifiers must be unique.');
   if (!ids.has(f.baselineId)) throw new ImportError('The baseline scenario is missing from the file.');
   for (const s of scenarios) {
     if (s.modelVersion !== MODEL_VERSION) throw new ImportError(`Scenario "${s.name}" uses model version ${s.modelVersion}.`);

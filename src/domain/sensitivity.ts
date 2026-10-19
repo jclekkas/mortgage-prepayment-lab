@@ -44,7 +44,7 @@ function factorsFor(mode: ModelMode): SensitivityFactor[] {
       {
         id: 'rate',
         label: 'Mortgage offer rate',
-        change: '-100 bps shock',
+        change: '−100 basis points (rates 1 point lower)',
         apply: (s) => {
           const v = s.ratePath.shockBps - 100;
           if (!within(v, BOUNDS.shockBps)) return null;
@@ -80,7 +80,7 @@ function factorsFor(mode: ModelMode): SensitivityFactor[] {
       {
         id: 'friction',
         label: 'Refinance friction',
-        change: '-25 bps',
+        change: '−25 basis points',
         apply: (s) => {
           const v = s.behavioralParameters.frictionBps - 25;
           if (!within(v, BOUNDS.frictionBps)) return null;
@@ -113,7 +113,7 @@ function factorsFor(mode: ModelMode): SensitivityFactor[] {
     {
       id: 'psa',
       label: 'PSA multiplier',
-      change: '+50% PSA',
+      change: '+50% of the PSA benchmark',
       apply: (s) => {
         const v = s.prepaymentParameters.psaPercent + 50;
         if (!within(v, BOUNDS.psaPercent)) return null;

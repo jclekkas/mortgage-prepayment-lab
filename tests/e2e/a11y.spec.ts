@@ -69,3 +69,31 @@ for (const width of [390, 768, 1280]) {
     }
   });
 }
+
+test('term help works by keyboard and touch, without hover, and passes axe when open', async ({ page }) => {
+  await startFresh(page);
+  await page.goto('/#/overview');
+  const help = page.getByRole('button', { name: 'What is Conditional prepayment rate (CPR)?' }).first();
+  await expect(help).toHaveAttribute('aria-expanded', 'false');
+  const panel = page.locator(`[id="${await help.getAttribute('aria-controls')}"]`);
+  await expect(panel).toBeHidden();
+  // Keyboard: focus and press Enter, then Escape closes it again.
+  await help.focus();
+  await page.keyboard.press('Enter');
+  await expect(help).toHaveAttribute('aria-expanded', 'true');
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText('How fast loans are paying off early');
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  // Pointer or touch: a plain click toggles it.
+  await help.click();
+  await expect(panel).toBeVisible();
+  // The reference list is collapsed by default and opens on demand.
+  const terms = page.getByTestId('terms-on-page');
+  await expect(terms).not.toHaveAttribute('open', '');
+  await terms.locator('summary').click();
+  await expect(terms.locator('dl')).toBeVisible();
+  await expect(terms).toContainText('One hundredth of a percentage point');
+  const res = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+  expect(res.violations.map((v) => `${v.id}: ${v.nodes[0]?.target.join(' ')}`)).toEqual([]);
+});

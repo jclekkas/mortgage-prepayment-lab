@@ -506,7 +506,7 @@ function buildWarnings(acc: Accumulator, summary: SummaryMetrics): RunWarning[] 
   if (s.servicingParameters.feeOverrideBps !== null) {
     w.push({
       code: 'fee-override',
-      message: `Contract change assumption: every loan's servicing fee is replaced by a hypothetical ${s.servicingParameters.feeOverrideBps} bps, as if the book were acquired on new terms.`,
+      message: `Contract change assumption: every loan's servicing fee is replaced by a hypothetical ${s.servicingParameters.feeOverrideBps} basis points a year, as if the book were acquired on new terms.`,
     });
   }
   if (s.servicingParameters.costPerLoan !== null) {

@@ -8,7 +8,9 @@ import { explainComparison } from '../../domain/narrative';
 import { describeFilter } from '../../domain/segments';
 import { MODE_LABELS } from '../../domain/scenario';
 import { MODEL_VERSION } from '../../domain/version';
-import { TermKey } from '../../ui/TermKey';
+import { fullName, TERMS, type TermId } from '../../ui/terms';
+
+const BRIEF_TERMS: TermId[] = ['cpr', 'npv', 'wal', 'bp', 'upb', 'recapture', 'discount'];
 
 /** One-page printable scenario brief. */
 export function BriefPage() {
@@ -23,11 +25,10 @@ export function BriefPage() {
     <article className="stack" style={{ maxWidth: 900 }} data-testid="brief">
       <div className="row no-print">
         <a href={href('decision')}>← Back to decision room</a>
-        <button type="button" className="primary" onClick={() => window.print()} disabled={!ready}>Print or save as PDF (Portable Document Format)</button>
+        <button type="button" className="primary" onClick={() => window.print()} disabled={!ready}>Print or save this brief</button>
       </div>
       <header>
         <h1>Scenario brief: {p.name}</h1>
-        <TermKey terms={['CPR', 'UPB', 'NPV', 'PV', 'bps', 'ARM']} />
         <p>
           Synthetic portfolio, as of {formatMonth(p.asOfMonth)} · {state.portfolio.loans.length.toLocaleString()} loans · population: {describeFilter(state.filter)} · model {MODEL_VERSION} · prepared {new Date().toLocaleDateString()}
         </p>
@@ -50,13 +51,13 @@ export function BriefPage() {
               <tbody>
                 {([
                   ['Model mode', (x) => MODE_LABELS[x.run.outputInput!.mode]],
-                  ['Month-1 CPR', (x) => pct(x.run.output!.summary.nextMonthCpr)],
+                  ['Next-month conditional prepayment rate (CPR)', (x) => pct(x.run.output!.summary.nextMonthCpr)],
                   ['12-month prepaid principal', (x) => usd(x.run.output!.summary.prepaid12, { compact: true })],
                   ['12-month net servicing cash flow', (x) => usd(x.run.output!.summary.netServicing12, { compact: true })],
-                  ['Illustrative servicing NPV', (x) => usd(x.run.output!.summary.servicingNpv, { compact: true })],
-                  ['NPV, bps of UPB', (x) => x.run.output!.summary.servicingValueBps?.toFixed(1) ?? 'Not applicable'],
-                  ['Recapture contribution PV', (x) => usd(x.run.output!.summary.recapturePv, { compact: true })],
-                  ['Principal weighted-average life', (x) => years(x.run.output!.summary.wal)],
+                  ['Illustrative servicing net present value (NPV)', (x) => usd(x.run.output!.summary.servicingNpv, { compact: true })],
+                  ['NPV, basis points of balance', (x) => x.run.output!.summary.servicingValueBps?.toFixed(1) ?? 'Not applicable'],
+                  ['Recapture contribution, present value', (x) => usd(x.run.output!.summary.recapturePv, { compact: true })],
+                  ['Principal weighted-average life (WAL)', (x) => years(x.run.output!.summary.wal)],
                   ['Run key', (x) => x.run.output!.runKey.slice(0, 12) + '…'],
                 ] as [string, (x: (typeof slots)[number]) => string][]).map(([label, f]) => (
                   <tr key={label}><th scope="row">{label}</th>{slots.map((s) => <td key={s.draft.scenarioId}>{f(s)}</td>)}</tr>
@@ -92,6 +93,17 @@ export function BriefPage() {
               <li>Recapture contribution is separate from the original book and excludes replacement servicing value. Assumed uplift is not proven causality.</li>
               <li>The loan-owner view is before credit losses, funding costs, guaranty fees, remittance delays and any security structure.</li>
             </ul>
+          </section>
+          <section className="card" data-testid="brief-terms">
+            <h2>Terms used in this brief</h2>
+            <dl style={{ fontSize: '0.9rem', margin: 0 }}>
+              {BRIEF_TERMS.map((id) => (
+                <div key={id} style={{ marginBottom: '0.4rem' }}>
+                  <dt style={{ fontWeight: 600 }}>{fullName(id)}</dt>
+                  <dd style={{ margin: 0 }}>{TERMS[id].plain}</dd>
+                </div>
+              ))}
+            </dl>
           </section>
         </>
       )}

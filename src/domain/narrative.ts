@@ -80,7 +80,7 @@ export function explainComparison(
     headline = `Prepayment is essentially unchanged; the difference comes from: ${listChanges(changes)}.`;
   }
 
-  if (dCpr !== null && Math.abs(dCpr) > 1e-6) points.push(`Next-month annualized speed (CPR) moves from ${pct(b.nextMonthCpr)} to ${pct(s.nextMonthCpr)} (${pp(dCpr)}).`);
+  if (dCpr !== null && Math.abs(dCpr) > 1e-6) points.push(`Next-month conditional prepayment rate (CPR) moves from ${pct(b.nextMonthCpr)} to ${pct(s.nextMonthCpr)} (${pp(dCpr)}).`);
 
   const cohort = largestCohortChange(base.cohorts.coupon, scen.cohorts.coupon);
   if (cohort && (faster || slower)) {
@@ -91,19 +91,19 @@ export function explainComparison(
     const servicingDrivers = changes.filter((c) => ['fee', 'cost', 'discount'].includes(c.id));
     if (Math.abs(dNpv) > EPS_USD) {
       if (faster && dNpv < 0) {
-        points.push(`Loans that pay off stop paying servicing fees, so illustrative servicing NPV changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of UPB versus ${bps(b.servicingValueBps)}).`);
+        points.push(`Loans that pay off stop paying servicing fees, so illustrative servicing net present value (NPV) changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of balance versus ${bps(b.servicingValueBps)}).`);
       } else if (faster && dNpv > 0) {
         const why = servicingDrivers.length
           ? `because ${listChanges(servicingDrivers)} outweighs the lost fees`
           : b.negativeMarginMonths > 0 || s.negativeMarginMonths > 0
             ? 'because some of the loans paying off cost more to service than they earn, so losing them helps'
             : 'because of the combination of changes listed below';
-          points.push(`Unusually, servicing NPV rises by ${usd(dNpv, { compact: true })} even though more loans pay off, ${why}.`);
+          points.push(`Unusually, servicing net present value (NPV) rises by ${usd(dNpv, { compact: true })} even though more loans pay off, ${why}.`);
       } else if (slower && dNpv < 0) {
         const why = servicingDrivers.length ? `because ${listChanges(servicingDrivers)}` : 'because the loans that stay longer cost more to service than they earn';
-        points.push(`Servicing NPV falls by ${usd(-dNpv, { compact: true })} even though fewer loans pay off, ${why}.`);
+        points.push(`Servicing net present value (NPV) falls by ${usd(-dNpv, { compact: true })} even though fewer loans pay off, ${why}.`);
       } else {
-        points.push(`Illustrative servicing NPV changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of UPB versus ${bps(b.servicingValueBps)}).${servicingDrivers.length ? ` Servicing-side inputs changed: ${listChanges(servicingDrivers)}.` : ''}`);
+        points.push(`Illustrative servicing net present value (NPV) changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of balance versus ${bps(b.servicingValueBps)}).${servicingDrivers.length ? ` Servicing-side inputs changed: ${listChanges(servicingDrivers)}.` : ''}`);
       }
     }
     if (s.recapturePv !== null && b.recapturePv !== null && Math.abs(s.recapturePv - b.recapturePv) > EPS_USD) {

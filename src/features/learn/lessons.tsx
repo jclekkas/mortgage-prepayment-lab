@@ -55,13 +55,13 @@ export const LESSONS: Lesson[] = [
         reveal: (
           <div className="table-wrap">
             <table>
-              <caption>Loan {loan.id}, month 1, at 6% CPR (expected values for one loan)</caption>
+              <caption>Loan {loan.id}, month 1, at a 6% yearly prepayment rate (expected values for one loan)</caption>
               <tbody>
                 <tr><th scope="row">Contractual payment</th><td>{usdExact(m.contractualPayment)}</td></tr>
                 <tr><th scope="row">Interest (note rate {pct(loan.noteRate, 3)})</th><td>{usdExact(m.interest)}</td></tr>
                 <tr><th scope="row">Scheduled principal → loan owner</th><td>{usdExact(m.scheduledPrincipal)}</td></tr>
                 <tr><th scope="row">Expected prepaid principal → loan owner</th><td>{usdExact(m.prepaidPrincipal)}</td></tr>
-                <tr><th scope="row">Servicing fee → servicer ({loan.servicingFeeBps} bps a year)</th><td>{usdExact(m.grossFee)}</td></tr>
+                <tr><th scope="row">Servicing fee → servicer ({loan.servicingFeeBps} basis points a year)</th><td>{usdExact(m.grossFee)}</td></tr>
                 <tr><th scope="row">Interest net of fee → loan owner</th><td>{usdExact(m.interest - m.grossFee)}</td></tr>
               </tbody>
             </table>
@@ -73,7 +73,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'speedometer',
     title: '2. Read the speedometer',
-    intro: 'CPR is an annualized speed. The model works monthly with SMM, the share of the balance that could prepay this month and does.',
+    intro: 'The conditional prepayment rate (CPR) is a yearly speed. The model works monthly with the single monthly mortality (SMM): the share of the balance that could pay off early this month and does.',
     question: 'At 6% CPR, what is the monthly SMM?',
     options: [
       { id: 'half', label: 'Exactly 0.50% (6% ÷ 12)' },
@@ -103,7 +103,7 @@ export const LESSONS: Lesson[] = [
     id: 'rates-fall',
     title: '3. Rates fall',
     intro: 'In behavioral mode, a borrower’s refinance incentive is their note rate minus the offer rate, less friction. Lower offer rates raise the incentive, most for loans already near or above it.',
-    question: 'With a −100 bps shock, which note-rate band will show the largest increase in 12-month prepaid principal?',
+    question: 'If rates fall 100 basis points (1 percentage point), which note-rate band will show the largest increase in 12-month prepaid principal?',
     options: (ctx) => {
       const present = new Set(ctx.portfolio.loans.map((l) => segmentKey(l, 'coupon')));
       return segmentOptions('coupon', ctx.portfolio.loans).filter((o) => present.has(o.key)).map((o) => ({ id: o.key, label: o.label }));
@@ -115,11 +115,11 @@ export const LESSONS: Lesson[] = [
       const best = deltas.reduce((a, x) => (x.d > a.d ? x : a), deltas[0]);
       return {
         correctId: best.key,
-        ifWrong: 'The sigmoid incentive curve is steepest around zero effective incentive. Loans far below the offer rate stay out of the money even after a 100 bps drop, while loans near or above it cross into strong incentive. Dollar change also depends on how much balance sits in each band.',
+        ifWrong: 'The sigmoid incentive curve is steepest around zero effective incentive. Loans far below the offer rate stay out of the money even after a 100 basis point drop, while loans near or above it cross into strong incentive. Dollar change also depends on how much balance sits in each band.',
         reveal: (
           <div className="table-wrap">
             <table>
-              <caption>12-month prepaid principal change, −100 bps versus default assumptions</caption>
+              <caption>12-month prepaid principal change, rates 100 basis points lower versus default assumptions</caption>
               <thead><tr><th scope="col">Note rate</th><th scope="col">Change</th></tr></thead>
               <tbody>{deltas.map((x) => <tr key={x.key}><th scope="row">{x.label}</th><td>{usd(x.d, { compact: true, signed: true })}</td></tr>)}</tbody>
             </table>
@@ -131,8 +131,8 @@ export const LESSONS: Lesson[] = [
   {
     id: 'same-speed',
     title: '4. Same speed, different cost',
-    intro: 'Two books have the same loan ages, rates and prepayment speed (8% CPR) and the same $100 annual cost per loan. One has $150k loans, the other $600k loans.',
-    question: 'Which book has the higher servicing value per dollar of UPB (bps)?',
+    intro: 'Two books have the same loan ages, rates and prepayment speed (an 8% conditional prepayment rate, CPR) and the same $100 annual cost per loan. One has $150,000 loans, the other $600,000 loans.',
+    question: 'Which book has the higher servicing value per dollar of unpaid principal balance (UPB)?',
     options: [
       { id: 'small', label: 'The small-loan book' },
       { id: 'large', label: 'The large-loan book' },
@@ -145,12 +145,12 @@ export const LESSONS: Lesson[] = [
       const vs = os.summary.servicingValueBps!, vl = ol.summary.servicingValueBps!;
       return {
         correctId: Math.abs(vs - vl) < 0.05 ? 'same' : vl > vs ? 'large' : 'small',
-        ifWrong: 'Fee income scales with balance but cost scales with the number of loans. A $150k loan earns $375 a year at 25 bps and costs $100; a $600k loan earns $1,500 for the same $100. Per dollar of UPB, small loans keep much less margin.',
+        ifWrong: 'Fee income scales with balance but cost scales with the number of loans. A $150,000 loan earns $375 a year at 25 basis points and costs $100; a $600,000 loan earns $1,500 for the same $100. Per dollar of balance, small loans keep much less margin.',
         reveal: (
           <div className="table-wrap">
             <table>
-              <caption>Both books at 8% CPR, 25 bps fee, $100 per loan</caption>
-              <thead><tr><th scope="col">Book</th><th scope="col">UPB</th><th scope="col">Servicing NPV</th><th scope="col">bps of UPB</th></tr></thead>
+              <caption>Both books at 8% CPR, a 25 basis point fee and $100 per loan</caption>
+              <thead><tr><th scope="col">Book</th><th scope="col">Balance</th><th scope="col">Servicing net present value (NPV)</th><th scope="col">Basis points of balance</th></tr></thead>
               <tbody>
                 <tr><th scope="row">Small loans</th><td>{usd(os.summary.currentUpb, { compact: true })}</td><td>{usd(os.summary.servicingNpv, { compact: true })}</td><td>{vs.toFixed(1)}</td></tr>
                 <tr><th scope="row">Large loans</th><td>{usd(ol.summary.currentUpb, { compact: true })}</td><td>{usd(ol.summary.servicingNpv, { compact: true })}</td><td>{vl.toFixed(1)}</td></tr>
@@ -165,7 +165,7 @@ export const LESSONS: Lesson[] = [
     id: 'keep-customer',
     title: '5. Keep the customer',
     intro: 'Recapture means a refinancing borrower takes the new loan from you. The new loan earns an origination contribution.',
-    question: 'If the recapture share triples from 20% to 60%, what happens to the original book’s servicing NPV?',
+    question: 'If the recapture share triples from 20% to 60%, what happens to the original book’s servicing net present value (NPV), its future fees less costs in today’s dollars?',
     options: [
       { id: 'up', label: 'It rises, because fewer loans are lost' },
       { id: 'same', label: 'It does not change' },
@@ -185,7 +185,7 @@ export const LESSONS: Lesson[] = [
               <thead><tr><th scope="col">Measure</th><th scope="col">20%</th><th scope="col">60%</th></tr></thead>
               <tbody>
                 <tr><th scope="row">Original-book servicing NPV</th><td>{usd(o20.summary.servicingNpv, { compact: true })}</td><td>{usd(o60.summary.servicingNpv, { compact: true })}</td></tr>
-                <tr><th scope="row">Recapture contribution PV</th><td>{usd(o20.summary.recapturePv, { compact: true })}</td><td>{usd(o60.summary.recapturePv, { compact: true })}</td></tr>
+                <tr><th scope="row">Recapture contribution in today’s dollars</th><td>{usd(o20.summary.recapturePv, { compact: true })}</td><td>{usd(o60.summary.recapturePv, { compact: true })}</td></tr>
                 <tr><th scope="row">12-month prepaid principal</th><td>{usd(o20.summary.prepaid12, { compact: true })}</td><td>{usd(o60.summary.prepaid12, { compact: true })}</td></tr>
               </tbody>
             </table>

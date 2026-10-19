@@ -3,6 +3,7 @@ import { formatMonth } from '../../domain/calendar';
 import { usd, years } from '../../domain/format';
 import type { RunOutput } from '../../domain/types';
 import { LineChart } from '../../ui/LineChart';
+import { LabelWithHelp } from '../../ui/TermHelp';
 
 /** Separate loan-owner lens: principal and note interest, kept apart from servicing fees. */
 export function InvestorPanel({ out, baseOut, name }: { out: RunOutput; baseOut: RunOutput | null; name: string }) {
@@ -16,7 +17,7 @@ export function InvestorPanel({ out, baseOut, name }: { out: RunOutput; baseOut:
       <div className="card">
         <h3 id="inv-h">Loan owner view: {name}</h3>
         <p className="notice info" style={{ fontSize: '0.88rem' }}>
-          Simplified loan-owner view before credit losses, funding costs, guaranty fees, remittance delays and any security structure. It is not a priced agency MBS.
+          Simplified loan-owner view before credit losses, funding costs, guaranty fees, remittance delays and any security structure. It is not a priced agency mortgage-backed security.
           The servicer does not own this principal; it collects it and passes it on.
         </p>
         <div className="table-wrap">
@@ -27,17 +28,18 @@ export function InvestorPanel({ out, baseOut, name }: { out: RunOutput; baseOut:
               <tr><th scope="row">Prepaid principal, first {led.length} months</th><td>{usd(sum((m) => m.prepaidPrincipal), { compact: true })}</td></tr>
               <tr><th scope="row">Note interest net of servicing fee, first {led.length} months</th><td>{usd(sum((m) => m.ownerNetInterest), { compact: true })}</td></tr>
               <tr><th scope="row">Servicing fee retained by servicer (not owner cash)</th><td>{usd(sum((m) => m.grossFee), { compact: true })}</td></tr>
-              <tr><th scope="row">Principal weighted-average life (full maturity)</th><td>{years(s.wal)}{baseOut && baseOut !== out ? ` (baseline ${years(baseOut.summary.wal)})` : ''}</td></tr>
+              <tr><th scope="row"><LabelWithHelp label="Principal weighted-average life (WAL), full maturity" term="wal" /></th><td>{years(s.wal)}{baseOut && baseOut !== out ? ` (baseline ${years(baseOut.summary.wal)})` : ''}</td></tr>
             </tbody>
           </table>
         </div>
         <p className="muted" style={{ fontSize: '0.85rem' }}>
-          Faster payoff returns principal sooner. That is a timing and reinvestment question for the owner, not an equal-dollar loss. Premium or discount return claims need a purchase price and a yield model (P1).
+          Faster payoff returns principal sooner. That is a timing and reinvestment question for the owner, not an equal-dollar loss. Premium or discount return claims need a purchase price and a yield model, planned for a later release.
         </p>
       </div>
       <LineChart
         testId="chart-owner"
         title="Monthly cash to the loan owner"
+        axes="Up the side: dollars received that month. Along the bottom: month."
         summary={`Scheduled principal, prepaid principal and note interest net of the servicing fee for ${name}.`}
         series={[
           { id: 'sched', label: 'Scheduled principal', color: 'var(--sched)', values: led.map((m) => m.scheduledPrincipal) },

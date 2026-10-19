@@ -30,12 +30,13 @@ export function pct(v: number | null | undefined, digits = 2): string {
 export function pp(v: number | null | undefined, digits = 2): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return NA;
   const sign = v > 0 ? '+' : v < 0 ? '−' : '';
-  return `${sign}${Math.abs(v * 100).toFixed(digits)} pp`;
+  return `${sign}${Math.abs(v * 100).toFixed(digits)} percentage points`;
 }
 
+/** A value already in basis points, in words. */
 export function bps(v: number | null | undefined, digits = 1): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return NA;
-  return `${v < 0 ? '−' : ''}${Math.abs(v).toFixed(digits)} bps`;
+  return `${v < 0 ? '−' : ''}${Math.abs(v).toFixed(digits)} basis points`;
 }
 
 export function num(v: number | null | undefined, digits = 0): string {

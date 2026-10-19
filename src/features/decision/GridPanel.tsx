@@ -63,7 +63,7 @@ export function GridPanel() {
     <section className="card" aria-labelledby="grid-h" data-testid="grid-panel">
       <h2 id="grid-h">Two-way sensitivity grid: {input.name}</h2>
       <p className="muted" style={{ fontSize: '0.88rem' }}>
-        {input.mode === 'behavioral' ? 'Mortgage offer rate versus refinance response.' : input.mode === 'fixedCpr' ? 'Fixed CPR versus discount rate.' : 'PSA multiplier versus discount rate.'} Each cell is a full recalculation of illustrative servicing NPV. Select a cell to open it as a scenario you can inspect.
+        {input.mode === 'behavioral' ? 'Mortgage offer rate versus refinance response.' : input.mode === 'fixedCpr' ? 'Fixed conditional prepayment rate (CPR) versus discount rate.' : 'Public Securities Association (PSA) benchmark multiplier versus discount rate.'} Each cell is a full recalculation of illustrative servicing net present value (NPV), in today’s dollars. Select a cell to open it as a scenario you can inspect.
       </p>
       {!grid && progress === null && <button type="button" onClick={go} data-testid="grid-run">Calculate grid (25 scenarios)</button>}
       {progress !== null && (
@@ -98,7 +98,7 @@ export function GridPanel() {
                           <button type="button" onClick={() => pick(r, c)} style={{ background: `color-mix(in srgb, var(--s1) ${Math.round(shade(cell.servicingNpv) * 100)}%, var(--surface))` }}
                             aria-label={`${axisFmt(grid.rowAxis, rv)}, ${axisFmt(grid.colAxis, cv)}: NPV ${usd(cell.servicingNpv, { compact: true })}. Open as scenario.`}>
                             {cell.error ? 'Error' : usd(cell.servicingNpv, { compact: true })}
-                            <span className="sr-only">{cell.servicingValueBps?.toFixed(1)} bps</span>
+                            <span className="sr-only">{cell.servicingValueBps?.toFixed(1)} basis points of balance</span>
                           </button>
                         </td>
                       );

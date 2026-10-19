@@ -72,6 +72,23 @@ Items R1 to R3 are the findings of that review.
 - A hosted-preview smoke test (`tests/preview`, `playwright.preview.config.ts`) and the
   `gh-pages` publishing path (`scripts/build-preview.sh`).
 
+### Plain-English terms
+
+- Each screen spells out a term in full the first time it matters, followed by its
+  abbreviation, for example "conditional prepayment rate (CPR)".
+- Headline cards, chart titles, table headers and controls carry a "?" button that opens a
+  one-sentence plain-English explanation in place. It is a real button, so it works with
+  touch, keyboard (Enter to open, Escape to close) and screen readers, with no hover needed.
+- A collapsed "Terms on this page" section replaces the long abbreviation keys. The printed
+  brief ends with a "Terms used in this brief" list.
+- Everyday units: "basis points" and "percentage points" replace "bps" and "pp". The rate
+  shock control says that 100 basis points equal 1 percentage point.
+- Charts state what each axis shows. Export, import and error messages no longer use
+  file-format abbreviations. The spreadsheet export keeps its machine-readable column names
+  (for example `beginning_upb`), which `docs/DATA_DICTIONARY.md` spells out.
+- The product requirements document (PRD) now expands every acronym at first use; its
+  requirements are unchanged.
+
 ### Known limitations
 
 - Synthetic data and uncalibrated, illustrative behavioral coefficients. Not a forecast, a FICO model or a validated valuation.

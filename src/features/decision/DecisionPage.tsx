@@ -13,19 +13,20 @@ import { Notice } from '../../ui/misc';
 import { PopulationBadge } from '../results/RunStatus';
 import { entriesFor, ExcludedNotice, ScenarioCharts } from '../results/ScenarioCharts';
 import { GridPanel } from './GridPanel';
-import { TermKey } from '../../ui/TermKey';
+import { LabelWithHelp, TermsOnPage } from '../../ui/TermHelp';
+import type { TermId } from '../../ui/terms';
 
-const METRICS: [string, (s: SummaryMetrics) => string][] = [
-  ['Current UPB', (s) => usd(s.currentUpb, { compact: true })],
-  ['Month-1 CPR', (s) => pct(s.nextMonthCpr)],
-  ['12-month CPR (geometric)', (s) => pct(s.cpr12)],
+const METRICS: [string, (s: SummaryMetrics) => string, TermId?][] = [
+  ['Current unpaid principal balance (UPB)', (s) => usd(s.currentUpb, { compact: true }), 'upb'],
+  ['Next-month conditional prepayment rate (CPR)', (s) => pct(s.nextMonthCpr), 'cpr'],
+  ['12-month CPR (compounded)', (s) => pct(s.cpr12)],
   ['12-month prepaid principal', (s) => usd(s.prepaid12, { compact: true })],
-  ['12-month net servicing cash flow', (s) => usd(s.netServicing12, { compact: true })],
-  ['Illustrative servicing NPV', (s) => usd(s.servicingNpv, { compact: true })],
-  ['Servicing NPV, bps of UPB', (s) => (s.servicingValueBps === null ? 'Not applicable' : s.servicingValueBps.toFixed(1))],
-  ['Recapture contribution PV', (s) => usd(s.recapturePv, { compact: true })],
+  ['12-month net servicing cash flow', (s) => usd(s.netServicing12, { compact: true }), 'netServicing'],
+  ['Illustrative servicing net present value (NPV)', (s) => usd(s.servicingNpv, { compact: true }), 'npv'],
+  ['Servicing NPV, basis points of balance', (s) => (s.servicingValueBps === null ? 'Not applicable' : s.servicingValueBps.toFixed(1)), 'bp'],
+  ['Recapture contribution, present value (PV)', (s) => usd(s.recapturePv, { compact: true }), 'recapture'],
   ['Combined contribution (not fair value)', (s) => usd(s.combinedContribution, { compact: true })],
-  ['Principal weighted-average life', (s) => years(s.wal)],
+  ['Principal weighted-average life (WAL)', (s) => years(s.wal), 'wal'],
 ];
 
 function fmtMetric(v: MetricDifference['saved']): string {
@@ -102,7 +103,7 @@ export function DecisionPage() {
   return (
     <div className="stack">
       <h1>Decision room</h1>
-      <TermKey terms={['UPB', 'CPR', 'NPV', 'PV', 'bps', 'PSA', 'JSON', 'MB']} />
+      <TermsOnPage ids={['upb', 'cpr', 'npv', 'pv', 'wal', 'bp', 'psa', 'recapture', 'discount']} />
       <p className="muted">Up to four scenarios, including the frozen baseline, on the same valuation date ({formatMonth(state.portfolio.meta.asOfMonth)}) and the same population.</p>
       <PopulationBadge />
       {!assessment.comparable && (
@@ -127,9 +128,9 @@ export function DecisionPage() {
                 <th scope="row">Model mode</th>
                 {state.slots.map((s) => <td key={s.draft.scenarioId}>{MODE_LABELS[(s.run.outputInput ?? s.draft).mode]}</td>)}
               </tr>
-              {METRICS.map(([label, f]) => (
+              {METRICS.map(([label, f, term]) => (
                 <tr key={label}>
-                  <th scope="row">{label}</th>
+                  <th scope="row"><LabelWithHelp label={label} term={term} /></th>
                   {state.slots.map((s) => <td key={s.draft.scenarioId}>{cell(s.draft.scenarioId, f)}</td>)}
                 </tr>
               ))}
@@ -165,15 +166,15 @@ export function DecisionPage() {
         <h2 id="files-h">Brief, files and local data</h2>
         <div className="row">
           {settled ? <a className="button" href={href('brief')} data-testid="open-brief">Open one-page brief</a> : <button type="button" disabled data-testid="open-brief">Open one-page brief</button>}
-          <button type="button" onClick={exportJson} disabled={!settled} data-testid="export-json">Export scenarios (JSON)</button>
+          <button type="button" onClick={exportJson} disabled={!settled} data-testid="export-json">Export scenarios to a file</button>
           <label className="button" style={{ fontWeight: 400 }}>
-            Import scenarios (JSON)
+            Import scenarios from a file
             <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => { void onImport(e.target.files?.[0]); e.target.value = ''; }} data-testid="import-input" />
           </label>
           <button type="button" onClick={() => void clearSaved()}>Clear data saved on this device</button>
         </div>
         <p className="muted" style={{ fontSize: '0.85rem' }}>
-          Files stay on your computer. Imports are limited to 10 MB and 10,000 synthetic loans, are checked against a strict schema, and are never migrated or reinterpreted. Saved: {state.storage.savedAt ? new Date(state.storage.savedAt).toLocaleString() : 'not yet'}.
+          Files stay on your computer and are plain-text JavaScript Object Notation (JSON) files you can re-import. Imports are limited to 10 megabytes and 10,000 synthetic loans, are checked against a strict schema, and are never migrated or reinterpreted. Saved: {state.storage.savedAt ? new Date(state.storage.savedAt).toLocaleString() : 'not yet'}.
         </p>
         {state.storage.message && <Notice kind={state.storage.status === 'unavailable' ? 'err' : 'info'}>{state.storage.message}</Notice>}
         {importMsg && (
