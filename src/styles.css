@@ -99,6 +99,13 @@ label { font-weight: 500; }
 th .term-pop { min-width: 12rem; }
 .chart-axes { font-size: 0.8rem; color: var(--muted); margin: 0.15rem 0 0; }
 .nowrap { white-space: nowrap; }
+/* Change arrows: shape = direction, color = effect for the servicer, plus a word, so color is never the only cue. */
+.trend { display: inline-block; white-space: nowrap; font-size: 0.78rem; font-weight: 600; line-height: 1.3; padding: 0 0.35rem; border-radius: 999px; vertical-align: 0.05em; }
+.trend-good { background: var(--ok-bg); color: var(--ok-ink); }
+.trend-bad { background: var(--err-bg); color: var(--err-ink); }
+.trend-flat { background: var(--warn-bg); color: var(--warn-ink); }
+.trend-neutral { background: var(--surface-2); color: var(--muted); }
+.trend-key { font-size: 0.82rem; margin: 0.25rem 0 0.5rem; }
 .terms-on-page { font-size: 0.85rem; margin: 0.25rem 0 0; }
 .terms-on-page summary { cursor: pointer; color: var(--accent); width: fit-content; }
 .terms-on-page dl { margin: 0.4rem 0 0; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); display: grid; gap: 0.4rem; }

@@ -5,6 +5,8 @@ import type { SensitivityRow } from '../../domain/sensitivity';
 import type { ScenarioInput } from '../../domain/types';
 import { DeltaBars, Notice, Progress } from '../../ui/misc';
 import { JobCancelled } from '../../worker/client';
+import { trendOfDelta } from '../../domain/trend';
+import { TrendArrow } from '../../ui/TrendArrow';
 
 export function SensitivityPanel({ input }: { input: ScenarioInput }) {
   const { client, state } = useStore();
@@ -78,9 +80,9 @@ export function SensitivityPanel({ input }: { input: ScenarioInput }) {
                 {rows.map((r) => (
                   <tr key={r.id}>
                     <th scope="row">{r.label}: {r.change}</th>
-                    <td>{r.npvDelta === null ? r.skippedReason : usd(r.npvDelta, { compact: true, signed: true })}</td>
-                    <td>{r.prepaid12Delta === null ? 'Not applicable' : usd(r.prepaid12Delta, { compact: true, signed: true })}</td>
-                    <td>{pp(r.nextMonthCprDelta)}</td>
+                    <td>{r.npvDelta === null ? r.skippedReason : <>{usd(r.npvDelta, { compact: true, signed: true })} <TrendArrow trend={trendOfDelta('npv', r.npvDelta, null, state.goal)} /></>}</td>
+                    <td>{r.prepaid12Delta === null ? 'Not applicable' : <>{usd(r.prepaid12Delta, { compact: true, signed: true })} <TrendArrow trend={trendOfDelta('prepaid12', r.prepaid12Delta, null, state.goal)} /></>}</td>
+                    <td>{pp(r.nextMonthCprDelta)} <TrendArrow trend={trendOfDelta('cpr', r.nextMonthCprDelta, null, state.goal)} /></td>
                   </tr>
                 ))}
               </tbody>

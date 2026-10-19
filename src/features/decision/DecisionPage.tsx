@@ -15,18 +15,20 @@ import { entriesFor, ExcludedNotice, ScenarioCharts } from '../results/ScenarioC
 import { GridPanel } from './GridPanel';
 import { LabelWithHelp, TermsOnPage } from '../../ui/TermHelp';
 import type { TermId } from '../../ui/terms';
+import { trendOf, type TrendMetric } from '../../domain/trend';
+import { TrendArrow, TrendKey } from '../../ui/TrendArrow';
 
-const METRICS: [string, (s: SummaryMetrics) => string, TermId?][] = [
-  ['Current unpaid principal balance (UPB)', (s) => usd(s.currentUpb, { compact: true }), 'upb'],
-  ['Next-month conditional prepayment rate (CPR)', (s) => pct(s.nextMonthCpr), 'cpr'],
-  ['12-month CPR (compounded)', (s) => pct(s.cpr12)],
-  ['12-month prepaid principal', (s) => usd(s.prepaid12, { compact: true })],
-  ['12-month net servicing cash flow', (s) => usd(s.netServicing12, { compact: true }), 'netServicing'],
-  ['Illustrative servicing net present value (NPV)', (s) => usd(s.servicingNpv, { compact: true }), 'npv'],
-  ['Servicing NPV, basis points of balance', (s) => (s.servicingValueBps === null ? 'Not applicable' : s.servicingValueBps.toFixed(1)), 'bp'],
-  ['Recapture contribution, present value (PV)', (s) => usd(s.recapturePv, { compact: true }), 'recapture'],
-  ['Combined contribution (not fair value)', (s) => usd(s.combinedContribution, { compact: true })],
-  ['Principal weighted-average life (WAL)', (s) => years(s.wal), 'wal'],
+const METRICS: [string, (s: SummaryMetrics) => string, TermId | undefined, [TrendMetric, (s: SummaryMetrics) => number | null] | undefined][] = [
+  ['Current unpaid principal balance (UPB)', (s) => usd(s.currentUpb, { compact: true }), 'upb', ['upb', (s) => s.currentUpb]],
+  ['Next-month conditional prepayment rate (CPR)', (s) => pct(s.nextMonthCpr), 'cpr', ['cpr', (s) => s.nextMonthCpr]],
+  ['12-month CPR (compounded)', (s) => pct(s.cpr12), undefined, ['cpr12', (s) => s.cpr12]],
+  ['12-month prepaid principal', (s) => usd(s.prepaid12, { compact: true }), undefined, ['prepaid12', (s) => s.prepaid12]],
+  ['12-month net servicing cash flow', (s) => usd(s.netServicing12, { compact: true }), 'netServicing', ['net12', (s) => s.netServicing12]],
+  ['Illustrative servicing net present value (NPV)', (s) => usd(s.servicingNpv, { compact: true }), 'npv', ['npv', (s) => s.servicingNpv]],
+  ['Servicing NPV, basis points of balance', (s) => (s.servicingValueBps === null ? 'Not applicable' : s.servicingValueBps.toFixed(1)), 'bp', ['npvBps', (s) => s.servicingValueBps]],
+  ['Recapture contribution, present value (PV)', (s) => usd(s.recapturePv, { compact: true }), 'recapture', ['recapturePv', (s) => s.recapturePv]],
+  ['Combined contribution (not fair value)', (s) => usd(s.combinedContribution, { compact: true }), undefined, ['combined', (s) => s.combinedContribution]],
+  ['Principal weighted-average life (WAL)', (s) => years(s.wal), 'wal', ['wal', (s) => s.wal]],
 ];
 
 function fmtMetric(v: MetricDifference['saved']): string {
@@ -93,9 +95,15 @@ export function DecisionPage() {
     dispatch({ type: 'setNote', id, note: { ...cur, [field]: text.slice(0, 4000) } });
   };
   const focus = entries.find((e) => !e.isBaseline) ?? entries[0];
-  const cell = (id: string, f: (s: SummaryMetrics) => string) => {
+  const baseItem = assessment.items.find((x) => x.id === state.baselineId);
+  const baseSummary = baseItem?.current && baseItem.output ? baseItem.output.summary : null;
+  const cell = (id: string, f: (s: SummaryMetrics) => string, trend?: [TrendMetric, (s: SummaryMetrics) => number | null]) => {
     const item = assessment.items.find((x) => x.id === id)!;
-    if (item.current && item.output) return f(item.output.summary);
+    if (item.current && item.output) {
+      const s = item.output.summary;
+      if (!trend || !baseSummary || id === state.baselineId) return f(s);
+      return <>{f(s)} <TrendArrow trend={trendOf(trend[0], trend[1](baseSummary), trend[1](s), state.goal)} /></>;
+    }
     if (item.phase === 'running') return 'Calculating…';
     if (!item.output) return 'Not run';
     return 'Not compared: different population';
@@ -114,6 +122,7 @@ export function DecisionPage() {
       )}
       <section className="card" aria-labelledby="cmp-h">
         <h2 id="cmp-h">Scenario comparison</h2>
+        {state.slots.length > 1 && <TrendKey investor={state.goal === 'investor'} />}
         <div className="table-wrap">
           <table data-testid="compare-table">
             <caption className="sr-only">Scenario comparison</caption>
@@ -128,10 +137,10 @@ export function DecisionPage() {
                 <th scope="row">Model mode</th>
                 {state.slots.map((s) => <td key={s.draft.scenarioId}>{MODE_LABELS[(s.run.outputInput ?? s.draft).mode]}</td>)}
               </tr>
-              {METRICS.map(([label, f, term]) => (
+              {METRICS.map(([label, f, term, trend]) => (
                 <tr key={label}>
                   <th scope="row"><LabelWithHelp label={label} term={term} /></th>
-                  {state.slots.map((s) => <td key={s.draft.scenarioId}>{cell(s.draft.scenarioId, f)}</td>)}
+                  {state.slots.map((s) => <td key={s.draft.scenarioId}>{cell(s.draft.scenarioId, f, trend)}</td>)}
                 </tr>
               ))}
             </tbody>

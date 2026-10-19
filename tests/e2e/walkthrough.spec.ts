@@ -16,6 +16,13 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   await expect(page.getByTestId('explanation-headline')).toContainText('lower-rate assumption');
   const shockNpv = await page.getByTestId('kpi-npv-value').textContent();
   expect(shockNpv).not.toBe(baseNpv);
+  // Arrows: faster prepayment is up but worse for the servicer; lower value is down and worse.
+  const cprTrend = page.getByTestId('kpi-cpr').getByTestId('trend');
+  await expect(cprTrend).toHaveAttribute('data-direction', 'up');
+  await expect(cprTrend).toHaveAttribute('data-tone', 'bad');
+  await expect(cprTrend).toContainText('Up, worse for the servicer.');
+  await expect(page.getByTestId('kpi-npv').getByTestId('trend')).toHaveAttribute('data-direction', 'down');
+  await expect(page.getByTestId('kpi-upb').getByTestId('trend')).toHaveAttribute('data-tone', 'flat');
 
   // Inspect a month via the ledger; reconciliation must pass.
   await page.getByRole('button', { name: 'Next month' }).click();

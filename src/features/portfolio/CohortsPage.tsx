@@ -7,6 +7,8 @@ import { PopulationBadge, RunStatus } from '../results/RunStatus';
 import { useComparison } from '../results/useComparison';
 import { BlockedNotice } from '../results/BlockedNotice';
 import { LabelWithHelp, TermsOnPage } from '../../ui/TermHelp';
+import { trendOf } from '../../domain/trend';
+import { TrendArrow, TrendKey } from '../../ui/TrendArrow';
 
 export function CohortsPage() {
   const { state, dispatch } = useStore();
@@ -70,6 +72,7 @@ export function CohortsPage() {
             </select>
           </label>
         </div>
+        {!isBaseline && <TrendKey investor={state.goal === 'investor'} />}
         <div className="table-wrap">
           <table data-testid="cohort-table">
             <caption>{DIMENSION_LABELS[dim]}: {actSlot.draft.name}{!isBaseline ? ', with change versus baseline' : ''}</caption>
@@ -107,8 +110,8 @@ export function CohortsPage() {
                     <td>{usd(r.netServicing12, { compact: true })}</td>
                     <td>{usd(r.servicingNpv, { compact: true })}</td>
                     <td>{r.servicingValueBps === null ? 'Not applicable' : r.servicingValueBps.toFixed(1)}</td>
-                    {!isBaseline && <td>{b ? usd(r.prepaid12 - b.prepaid12, { compact: true, signed: true }) : 'Not applicable'}</td>}
-                    {!isBaseline && <td>{b ? usd(r.servicingNpv - b.servicingNpv, { compact: true, signed: true }) : 'Not applicable'}</td>}
+                    {!isBaseline && <td>{b ? <>{usd(r.prepaid12 - b.prepaid12, { compact: true, signed: true })} <TrendArrow trend={trendOf('prepaid12', b.prepaid12, r.prepaid12, state.goal)} /></> : 'Not applicable'}</td>}
+                    {!isBaseline && <td>{b ? <>{usd(r.servicingNpv - b.servicingNpv, { compact: true, signed: true })} <TrendArrow trend={trendOf('npv', b.servicingNpv, r.servicingNpv, state.goal)} /></> : 'Not applicable'}</td>}
                     <td><button type="button" className="link" onClick={() => only(dim, r.key)}>Filter to this<span className="sr-only"> segment: {r.label}</span></button></td>
                   </tr>
                 );

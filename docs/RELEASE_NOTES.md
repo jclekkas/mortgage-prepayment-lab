@@ -89,6 +89,21 @@ Items R1 to R3 are the findings of that review.
 - The product requirements document (PRD) now expands every acronym at first use; its
   requirements are unchanged.
 
+### Change arrows
+
+- Every change versus the baseline (headline cards, decision room comparison, cohort
+  change columns, sensitivity details) has a small arrow. Its shape shows direction
+  (▲ up, ▼ down, ► little or no change).
+- Its color shows the effect for the servicer: green better, red worse, yellow flat, grey
+  neither in itself. A short word ("better", "worse", "flat") and a screen-reader sentence
+  carry the same meaning, so color is never the only cue.
+- As the PRD requires, prepayment speed is not judged by direction: faster prepayment is red
+  for the servicer because payoffs end fee income, and grey in the loan owner view, where it
+  changes timing rather than value. Balance and weighted-average life are always grey.
+- "Flat" thresholds: 0.05 percentage points for speeds, half a basis point, 0.05 years, and
+  under $1 or 0.5% of the baseline for dollars (`src/domain/trend.ts`, tested in
+  `tests/unit/trend.test.ts`).
+
 ### Known limitations
 
 - Synthetic data and uncalibrated, illustrative behavioral coefficients. Not a forecast, a FICO model or a validated valuation.
