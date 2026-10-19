@@ -154,6 +154,49 @@ function costBump(p: Portfolio, s: ScenarioInput): ScenarioInput | null {
   return n;
 }
 
+export const SKIPPED_OUT_OF_RANGE = 'This change would leave the supported input range.';
+
+/** One planned sensitivity: the scenario to run, or null with the reason it is skipped. */
+export interface SensitivityPlanItem {
+  id: string;
+  label: string;
+  change: string;
+  scenario: ScenarioInput | null;
+  skippedReason: string | null;
+}
+
+/**
+ * The scenarios a one-factor analysis needs, without running them. Callers run each
+ * planned scenario however suits them (synchronously in tests, chunked and cancellable
+ * in the worker) and pass the summaries to assembleSensitivities.
+ */
+export function planSensitivities(portfolio: Portfolio, scenario: ScenarioInput): SensitivityPlanItem[] {
+  return factorsFor(scenario.mode).map((f) => {
+    const next = f.id === 'cost' ? costBump(portfolio, scenario) : f.apply(scenario);
+    return { id: f.id, label: f.label, change: f.change, scenario: next, skippedReason: next ? null : SKIPPED_OUT_OF_RANGE };
+  });
+}
+
+/** Turn run summaries (aligned with the plan; null for skipped items) into delta rows. */
+export function assembleSensitivities(plan: SensitivityPlanItem[], base: SummaryMetrics, results: (SummaryMetrics | null)[]): SensitivityRow[] {
+  return plan.map((item, i) => {
+    const r = results[i];
+    if (!item.scenario || !r) {
+      return { id: item.id, label: item.label, change: item.change, npvDelta: null, prepaid12Delta: null, nextMonthCprDelta: null, skippedReason: item.skippedReason ?? SKIPPED_OUT_OF_RANGE };
+    }
+    return {
+      id: item.id,
+      label: item.label,
+      change: item.change,
+      npvDelta: r.servicingNpv - base.servicingNpv,
+      prepaid12Delta: r.prepaid12 - base.prepaid12,
+      nextMonthCprDelta: r.nextMonthCpr !== null && base.nextMonthCpr !== null ? r.nextMonthCpr - base.nextMonthCpr : null,
+      skippedReason: null,
+    };
+  });
+}
+
+/** Synchronous convenience over plan + assemble. */
 export function oneFactorSensitivities(
   portfolio: Portfolio,
   scenario: ScenarioInput,
@@ -161,22 +204,8 @@ export function oneFactorSensitivities(
   baseSummary?: SummaryMetrics,
 ): SensitivityRow[] {
   const base = baseSummary ?? runScenario(portfolio, scenario, filter).summary;
-  return factorsFor(scenario.mode).map((f) => {
-    const next = f.id === 'cost' ? costBump(portfolio, scenario) : f.apply(scenario);
-    if (!next) {
-      return { id: f.id, label: f.label, change: f.change, npvDelta: null, prepaid12Delta: null, nextMonthCprDelta: null, skippedReason: 'This change would leave the supported input range.' };
-    }
-    const r = runScenario(portfolio, next, filter).summary;
-    return {
-      id: f.id,
-      label: f.label,
-      change: f.change,
-      npvDelta: r.servicingNpv - base.servicingNpv,
-      prepaid12Delta: r.prepaid12 - base.prepaid12,
-      nextMonthCprDelta: r.nextMonthCpr !== null && base.nextMonthCpr !== null ? r.nextMonthCpr - base.nextMonthCpr : null,
-      skippedReason: null,
-    };
-  });
+  const plan = planSensitivities(portfolio, scenario);
+  return assembleSensitivities(plan, base, plan.map((p) => (p.scenario ? runScenario(portfolio, p.scenario, filter).summary : null)));
 }
 
 export interface GridAxis {
@@ -252,26 +281,54 @@ export function gridCellScenario(s: ScenarioInput, rowAxis: GridAxis, colAxis: G
   return n;
 }
 
+export interface GridPlan {
+  rowAxis: GridAxis;
+  colAxis: GridAxis;
+  note: string;
+  /** Row-major cells. */
+  cells: { row: number; col: number; scenario: ScenarioInput }[];
+}
+
+export function planGrid(s: ScenarioInput): GridPlan {
+  const { rowAxis, colAxis, note } = gridAxes(s);
+  const cells: GridPlan['cells'] = [];
+  for (let r = 0; r < rowAxis.values.length; r++) {
+    for (let c = 0; c < colAxis.values.length; c++) cells.push({ row: r, col: c, scenario: gridCellScenario(s, rowAxis, colAxis, r, c) });
+  }
+  return { rowAxis, colAxis, note, cells };
+}
+
+/** Each result is a summary, or an error message for a cell that could not be run. */
+export type GridCellOutcome = { summary: SummaryMetrics } | { error: string };
+
+export function assembleGrid(plan: GridPlan, outcomes: GridCellOutcome[]): GridResult {
+  const cells: GridCell[] = plan.cells.map((cell, i) => {
+    const o = outcomes[i];
+    if ('summary' in o) {
+      return { ...cell, servicingNpv: o.summary.servicingNpv, servicingValueBps: o.summary.servicingValueBps, nextMonthCpr: o.summary.nextMonthCpr, error: null };
+    }
+    return { ...cell, servicingNpv: null, servicingValueBps: null, nextMonthCpr: null, error: o.error };
+  });
+  return { rowAxis: plan.rowAxis, colAxis: plan.colAxis, cells, note: plan.note };
+}
+
+/** Synchronous convenience over plan + assemble. */
 export function sensitivityGrid(
   portfolio: Portfolio,
   s: ScenarioInput,
   filter: PopulationFilter,
   onProgress?: (done: number, total: number) => void,
 ): GridResult {
-  const { rowAxis, colAxis, note } = gridAxes(s);
-  const cells: GridCell[] = [];
-  const total = rowAxis.values.length * colAxis.values.length;
-  for (let r = 0; r < rowAxis.values.length; r++) {
-    for (let c = 0; c < colAxis.values.length; c++) {
-      const scenario = gridCellScenario(s, rowAxis, colAxis, r, c);
-      try {
-        const sum = runScenario(portfolio, scenario, filter).summary;
-        cells.push({ row: r, col: c, scenario, servicingNpv: sum.servicingNpv, servicingValueBps: sum.servicingValueBps, nextMonthCpr: sum.nextMonthCpr, error: null });
-      } catch (e) {
-        cells.push({ row: r, col: c, scenario, servicingNpv: null, servicingValueBps: null, nextMonthCpr: null, error: (e as Error).message });
-      }
-      onProgress?.(cells.length, total);
+  const plan = planGrid(s);
+  const outcomes = plan.cells.map((cell, i): GridCellOutcome => {
+    let o: GridCellOutcome;
+    try {
+      o = { summary: runScenario(portfolio, cell.scenario, filter).summary };
+    } catch (e) {
+      o = { error: (e as Error).message };
     }
-  }
-  return { rowAxis, colAxis, cells, note };
+    onProgress?.(i + 1, plan.cells.length);
+    return o;
+  });
+  return assembleGrid(plan, outcomes);
 }

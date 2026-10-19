@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useStore } from '../../app/store';
+import { HYPOTHESIS_MAX, useStore } from '../../app/store';
 import { formatMonth } from '../../domain/calendar';
 import { pct, pp, usd } from '../../domain/format';
 import type { ValidationResult } from '../../domain/validation';
@@ -20,8 +20,8 @@ export function useValidation() {
 
 export function ValidationPage() {
   const { v, err } = useValidation();
+  const { state, dispatch } = useStore();
   const [sel, setSel] = useState<number | null>(null);
-  const [hypothesis, setHypothesis] = useState('');
   if (err) return <Notice kind="err">The validation lab failed to load: {err}</Notice>;
   if (!v) return <p>Loading the synthetic history…</p>;
   const labels = v.months.map((m) => formatMonth(m.month));
@@ -81,7 +81,8 @@ export function ValidationPage() {
       <section className="card">
         <h2>Your hypothesis</h2>
         <label htmlFor="hyp">What could explain the pattern of errors? What evidence would test it?</label>
-        <textarea id="hyp" value={hypothesis} onChange={(e) => setHypothesis(e.target.value.slice(0, 4000))} />
+        <textarea id="hyp" value={state.validationHypothesis} maxLength={HYPOTHESIS_MAX} onChange={(e) => dispatch({ type: 'setHypothesis', text: e.target.value })} data-testid="hypothesis" />
+        <p className="muted" style={{ fontSize: '0.85rem' }}>{state.storage.status === 'unavailable' ? 'Not saved: local storage is unavailable, so this text lasts only while the tab is open.' : 'Saved on this device with your workspace.'}</p>
         <p className="muted" style={{ fontSize: '0.85rem' }}>A good hypothesis names a driver (rate path, refinance response, turnover, friction), predicts which cohorts it would affect, and says what data would confirm or reject it. Fitting the history better is not proof.</p>
       </section>
       <details className="drawer">

@@ -6,6 +6,7 @@ import { defaultScenario, scenarioInputHash, validateScenario, type FieldError }
 import type { Portfolio, PopulationFilter, RunOutput, ScenarioInput } from '../domain/types';
 import { buildScenarioFile, parseScenarioFile, type DecisionNote, type Workspace } from '../storage/files';
 import { kv } from '../storage/idb';
+import { cleanText } from '../storage/sanitize';
 import { EngineClient, JobCancelled, JobError } from '../worker/client';
 
 export type Role = 'gm' | 'director' | 'analyst';
@@ -53,6 +54,8 @@ export interface AppState {
   selectedMonth: number | null;
   notes: Record<string, DecisionNote>;
   exercises: Record<string, ExerciseRecord>;
+  /** Validation-lab hypothesis text; saved on this device with the workspace. */
+  validationHypothesis: string;
   storage: StorageState;
   announcement: string;
   /** Bumped when the workspace is replaced, so every scenario recalculates. */
@@ -89,6 +92,7 @@ function initialState(): AppState {
     selectedMonth: 0,
     notes: {},
     exercises: {},
+    validationHypothesis: '',
     storage: { status: 'loading', savedAt: null, message: null },
     announcement: '',
     generation: 0,
@@ -119,8 +123,9 @@ type Action =
   | { type: 'selectMonth'; index: number | null }
   | { type: 'setNote'; id: string; note: DecisionNote }
   | { type: 'exercise'; id: string; record: ExerciseRecord }
+  | { type: 'setHypothesis'; text: string }
   | { type: 'storage'; storage: Partial<StorageState> }
-  | { type: 'restore'; ws: Workspace; goal?: Lens; role?: Role; exercises?: Record<string, ExerciseRecord>; started: boolean }
+  | { type: 'restore'; ws: Workspace; goal?: Lens; role?: Role; exercises?: Record<string, ExerciseRecord>; hypothesis?: string; started: boolean }
   | { type: 'announce'; text: string };
 
 const mapSlot = (s: AppState, id: string, fn: (x: Slot) => Slot): Slot[] => s.slots.map((x) => (x.draft.scenarioId === id ? fn(x) : x));
@@ -203,6 +208,8 @@ function reducer(s: AppState, a: Action): AppState {
       return { ...s, notes: { ...s.notes, [a.id]: a.note } };
     case 'exercise':
       return { ...s, exercises: { ...s.exercises, [a.id]: a.record } };
+    case 'setHypothesis':
+      return { ...s, validationHypothesis: cleanText(a.text, HYPOTHESIS_MAX) };
     case 'storage':
       return { ...s, storage: { ...s.storage, ...a.storage } };
     case 'restore': {
@@ -220,6 +227,7 @@ function reducer(s: AppState, a: Action): AppState {
         goal: a.goal ?? s.goal,
         role: a.role ?? s.role,
         exercises: a.exercises ?? s.exercises,
+        validationHypothesis: a.hypothesis ?? s.validationHypothesis,
         generation: s.generation + 1,
       };
     }
@@ -252,6 +260,18 @@ interface Api {
 const Ctx = createContext<Api | null>(null);
 
 const STORAGE_KEY = 'workspace-v1';
+export const HYPOTHESIS_MAX = 4000;
+
+interface SavedRecord {
+  savedAt: string;
+  file: string;
+  goal: Lens;
+  role: Role;
+  exercises: Record<string, ExerciseRecord>;
+  started: boolean;
+  /** Added after 1.0.0's first build; older records lack it. */
+  hypothesis?: unknown;
+}
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
@@ -327,11 +347,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     restored.current = true;
     (async () => {
       try {
-        const saved = await kv.get<{ savedAt: string; file: string; goal: Lens; role: Role; exercises: Record<string, ExerciseRecord>; started: boolean }>(STORAGE_KEY);
+        const saved = await kv.get<SavedRecord>(STORAGE_KEY);
         if (saved) {
           try {
             const { workspace } = parseScenarioFile(saved.file);
-            dispatch({ type: 'restore', ws: workspace, goal: saved.goal, role: saved.role, exercises: saved.exercises, started: saved.started });
+            const hypothesis = typeof saved.hypothesis === 'string' ? cleanText(saved.hypothesis, HYPOTHESIS_MAX) : undefined;
+            dispatch({ type: 'restore', ws: workspace, goal: saved.goal, role: saved.role, exercises: saved.exercises, hypothesis, started: saved.started });
             dispatch({ type: 'storage', storage: { status: 'saved', savedAt: saved.savedAt, message: null } });
           } catch (e) {
             dispatch({ type: 'storage', storage: { status: 'saved', savedAt: null, message: `A saved workspace could not be restored (${(e as Error).message}). Starting fresh.` } });
@@ -344,7 +365,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Debounced save.
-  const saveKey = JSON.stringify([state.started, state.goal, state.role, state.portfolio.meta.hash, state.baselineId, state.slots.map((x) => x.draft), state.filter, state.notes, state.exercises]);
+  const saveKey = JSON.stringify([state.started, state.goal, state.role, state.portfolio.meta.hash, state.baselineId, state.slots.map((x) => x.draft), state.filter, state.notes, state.exercises, state.validationHypothesis]);
   useEffect(() => {
     if (state.storage.status === 'loading' || state.storage.status === 'unavailable') return;
     const t = setTimeout(async () => {
@@ -353,7 +374,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const ws: Workspace = { portfolio: s.portfolio, baselineId: s.baselineId, scenarios: s.slots.map((x) => x.draft), filter: s.filter, notes: s.notes };
         const file = JSON.stringify(buildScenarioFile(ws, []));
         const savedAt = new Date().toISOString();
-        await kv.set(STORAGE_KEY, { savedAt, file, goal: s.goal, role: s.role, exercises: s.exercises, started: s.started });
+        const record: SavedRecord = { savedAt, file, goal: s.goal, role: s.role, exercises: s.exercises, started: s.started, hypothesis: s.validationHypothesis };
+        await kv.set(STORAGE_KEY, record);
         dispatch({ type: 'storage', storage: { status: 'saved', savedAt } });
       } catch (e) {
         dispatch({ type: 'storage', storage: { status: 'unavailable', message: `Could not save on this device: ${(e as Error).message}` } });

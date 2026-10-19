@@ -20,7 +20,11 @@ modern-laptop reference environment; re-measure there before quoting to users.
 | Production bundle | 487 KB JS (145 KB gzip), 31 KB worker, 9 KB CSS | `npm run build` |
 
 The engine runs in a Web Worker in chunks of 250 loans with a yield between chunks, so
-the main thread stays responsive and a cancel takes effect within one chunk. Results are
+the main thread stays responsive and a cancel takes effect within one chunk. This also
+applies to every run inside the sensitivity and grid jobs: after cancelling a
+10,000-loan grid, a normal run completes within the 5 s bound asserted by
+`tests/e2e/robustness.spec.ts`. Before this fix, the grid ran to completion after a
+cancel (25 runs; an estimated 13 s at 10,000 loans). Results are
 cached in the worker by input hash plus population filter (24 entries, LRU).
 
 The tests assert generous ceilings (1 s, 5 s, 2.5 s) to catch pathological regressions

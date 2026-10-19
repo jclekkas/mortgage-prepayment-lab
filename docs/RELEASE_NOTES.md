@@ -4,17 +4,25 @@
 
 Status: built and verified locally; **not deployed**. No production URL exists yet.
 
-### Verification evidence (October 19, 2026)
+### Verification evidence
 
-| Gate | Result |
-| --- | --- |
-| `npm run typecheck` | pass |
-| `npm run lint` | pass, 0 warnings |
-| `npm run test:numerics` | 35 tests pass: N01-N16 and 6 reference-model reconciliations |
-| `npm test` | 49 tests pass (numerics, files/import/export, validation lab, benchmark) |
-| `npm run build` | pass |
-| `npm run test:e2e` | 15 tests pass in Chromium against the production build, including axe WCAG 2.0/2.1/2.2 A and AA on 11 pages |
-| Mutation check | a planted burnout off-by-one fails the reference suite |
+Recorded per tested commit in the pull request description and in the review handoff.
+Gates: `npm run typecheck`, `npm run lint`, `npm run test:numerics` (35),
+`npm test` (68), reference fixtures regenerate byte-identical, `npm run build`,
+`npm run test:e2e` (17, Chromium, against a fresh production build).
+
+### Fixed after the first review build (`6e723fc`)
+
+- **D1** Sensitivity and grid jobs are now cancellable mid-run: each underlying run is
+  chunked and checks for cancellation every 250 loans. The sensitivity panel gained a
+  progress bar and Cancel button. Unit tests fail against the old executor (verified).
+- **D2** The validation-lab hypothesis is saved on this device with the workspace and
+  restored after navigation or reload.
+- **D3** `sensitivity.ts` has unit tests (14) whose expected values come from hand-built
+  scenarios, covering factor lists per mode, deltas, direction, bounds skips, the cost
+  override, non-additivity, filters, grid axes and cells.
+- An end-to-end assertion that had been silently swallowed (`.catch(() => {})`) in the
+  10,000-loan import test now asserts the real import message.
 
 ### Known limitations
 

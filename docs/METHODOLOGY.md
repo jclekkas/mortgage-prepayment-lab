@@ -165,6 +165,14 @@ offer rate x refinance response (behavioral, flat immediate rate per cell), fixe
 discount rate (fixed), or PSA x discount rate (PSA). Each cell is a full run and can be
 opened as a scenario.
 
+`planSensitivities` / `planGrid` build the scenarios without running them;
+`assembleSensitivities` / `assembleGrid` turn summaries into rows and cells. The worker
+runs every planned scenario through the same chunked runner as a normal run, so a cancel
+takes effect within one 250-loan chunk. A cell that fails input validation is reported
+as an error in that cell; a cancel stops the whole job. Tested in
+`tests/unit/sensitivity.test.ts` (expected values from hand-built scenarios) and
+`tests/unit/execute.test.ts` (cancellation and equality with the synchronous path).
+
 ## Hashes and reproducibility
 
 - Portfolio hash: SHA-256 of canonical JSON (sorted keys, shortest round-trip numbers) of

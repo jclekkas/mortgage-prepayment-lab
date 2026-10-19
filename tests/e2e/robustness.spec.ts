@@ -17,7 +17,8 @@ test('10,000-loan import runs with progress and can be cancelled', async ({ page
   const buf = bigFile();
   expect(buf.length).toBeLessThan(10 * 1024 * 1024);
   await page.getByTestId('import-input').setInputFiles({ name: 'big.json', mimeType: 'application/json', buffer: buf });
-  await expect(page.getByTestId('import-message')).toContainText('Reproduced 0 of 0|Imported', { timeout: 30_000 }).catch(() => {});
+  // The generated file carries no saved results, so the reproduction check has nothing to compare.
+  await expect(page.getByTestId('import-message')).toContainText('Imported. The file had no saved results to compare.', { timeout: 30_000 });
   await page.goto('/#/lab');
   await expect(page.getByText('Ten thousand loans')).toBeVisible();
   await expect(page.getByTestId('kpi-npv-value')).toBeVisible({ timeout: 30_000 });
@@ -83,4 +84,48 @@ test('saved workspace is restored after reload', async ({ page }) => {
   await page.waitForTimeout(1200);
   await page.reload();
   await expect(page.getByTestId('ctl-friction').locator('input[type=number]')).toHaveValue('75');
+});
+
+test('cancelling a 10,000-loan grid or sensitivity frees the worker immediately (D1)', async ({ page }) => {
+  await startFresh(page);
+  await page.goto('/#/decision');
+  await page.getByTestId('import-input').setInputFiles({ name: 'big.json', mimeType: 'application/json', buffer: bigFile() });
+  await page.goto('/#/lab');
+  await expect(page.getByText('Ten thousand loans')).toBeVisible();
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 30_000 });
+
+  // Grid: 25 full runs of 10,000 loans would occupy the worker for well over 5 s.
+  await page.goto('/#/decision');
+  await page.getByTestId('grid-run').click();
+  await expect(page.getByRole('progressbar', { name: 'Grid progress' })).toBeVisible();
+  await page.getByTestId('grid-cancel').click();
+  await expect(page.getByTestId('grid-run')).toBeVisible();
+  await page.goto('/#/lab');
+  await setNumber(page, 'ctl-shock', '-75');
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 5_000 });
+
+  // Sensitivities: the panel now has its own progress bar and Cancel.
+  await page.getByLabel('Role (changes detail level, not formulas)').selectOption('director');
+  await page.getByTestId('sensitivity-run').click();
+  await expect(page.getByRole('progressbar', { name: 'Sensitivity progress' })).toBeVisible();
+  await page.getByTestId('sensitivity-cancel').click();
+  await expect(page.getByTestId('sensitivity-run')).toBeVisible();
+  await setNumber(page, 'ctl-shock', '-25');
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 5_000 });
+});
+
+test('the validation hypothesis survives navigation and reload (D2)', async ({ page }) => {
+  await startFresh(page);
+  await page.goto('/#/validation');
+  const text = 'Refinance response was higher than assumed; test on the 6-7% band.';
+  await page.getByTestId('hypothesis').fill(text);
+  await page.goto('/#/overview');
+  await page.goto('/#/validation');
+  await expect(page.getByTestId('hypothesis')).toHaveValue(text);
+  await expect(page.getByText('Saved on this device')).toBeVisible();
+  await page.waitForTimeout(1200); // debounced save
+  await page.reload();
+  await expect(page.getByTestId('hypothesis')).toHaveValue(text);
 });

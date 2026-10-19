@@ -57,7 +57,7 @@ export function GridPanel() {
         <div className="row">
           <span>Calculating grid…</span>
           <Progress value={progress} label="Grid progress" />
-          <button type="button" onClick={() => { handle.current?.cancel(); setProgress(null); }}>Cancel</button>
+          <button type="button" onClick={() => { handle.current?.cancel(); setProgress(null); }} data-testid="grid-cancel">Cancel</button>
         </div>
       )}
       {error && <Notice kind="err">{error}</Notice>}

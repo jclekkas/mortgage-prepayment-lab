@@ -3,13 +3,14 @@ import { useStore } from '../../app/store';
 import { pp, usd } from '../../domain/format';
 import type { SensitivityRow } from '../../domain/sensitivity';
 import type { ScenarioInput } from '../../domain/types';
-import { DeltaBars, Notice } from '../../ui/misc';
+import { DeltaBars, Notice, Progress } from '../../ui/misc';
 import { JobCancelled } from '../../worker/client';
 
 export function SensitivityPanel({ input }: { input: ScenarioInput }) {
   const { client, state } = useStore();
   const [rows, setRows] = useState<SensitivityRow[] | null>(null);
   const [status, setStatus] = useState<'idle' | 'running' | 'error'>('idle');
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const handle = useRef<{ id: number; cancel: () => void } | null>(null);
   const key = JSON.stringify([input, state.filter]);
@@ -20,8 +21,9 @@ export function SensitivityPanel({ input }: { input: ScenarioInput }) {
   }, [key]);
   const go = () => {
     handle.current?.cancel();
-    const h = client.request({ kind: 'sensitivity', scenario: input, filter: state.filter });
+    const h = client.request({ kind: 'sensitivity', scenario: input, filter: state.filter }, (d, t) => setProgress(t ? d / t : 0));
     handle.current = h;
+    setProgress(0);
     setStatus('running');
     h.promise.then(
       ({ result }) => {
@@ -30,7 +32,11 @@ export function SensitivityPanel({ input }: { input: ScenarioInput }) {
         setStatus('idle');
       },
       (e: Error) => {
-        if (handle.current?.id !== h.id || e instanceof JobCancelled) return;
+        if (handle.current?.id !== h.id) return;
+        if (e instanceof JobCancelled) {
+          setStatus('idle');
+          return;
+        }
         setError(e.message);
         setStatus('error');
       },
@@ -42,10 +48,17 @@ export function SensitivityPanel({ input }: { input: ScenarioInput }) {
       <p className="muted" style={{ fontSize: '0.85rem' }}>
         Each row changes one assumption from this scenario and keeps everything else. The effects interact, so they are <strong>not additive</strong>: their sum is not the total change from moving several at once.
       </p>
-      {!rows && (
-        <button type="button" onClick={go} disabled={status === 'running'}>
-          {status === 'running' ? 'Calculating…' : 'Calculate sensitivities'}
+      {!rows && status !== 'running' && (
+        <button type="button" onClick={go} data-testid="sensitivity-run">
+          Calculate sensitivities
         </button>
+      )}
+      {status === 'running' && (
+        <div className="row">
+          <span>Calculating sensitivities…</span>
+          <Progress value={progress} label="Sensitivity progress" />
+          <button type="button" onClick={() => handle.current?.cancel()} data-testid="sensitivity-cancel">Cancel</button>
+        </div>
       )}
       {status === 'error' && <Notice kind="err">{error}</Notice>}
       {rows && (
