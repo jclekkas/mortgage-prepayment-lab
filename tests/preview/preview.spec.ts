@@ -52,7 +52,7 @@ test('hosted preview: assets, calculation, deep links, export/import, no console
   await page.goto('./#/lab');
   await page.getByTestId('ctl-shock').locator('input[type=number]').fill('-100');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs');
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
   await expect(page.getByTestId('kpi-cpr-value')).toHaveText(pct(shocked.nextMonthCpr));
   await expect(page.getByTestId('kpi-npv-value')).toHaveText(usd(shocked.servicingNpv, { compact: true }));
   await expect(page.getByTestId('reconciliation')).toContainText('within tolerance');

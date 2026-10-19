@@ -11,7 +11,8 @@ export interface TermDef {
 export const TERMS = {
   upb: { name: 'Unpaid principal balance', abbr: 'UPB', plain: 'What borrowers still owe on their loans. Servicing fees are charged as a percentage of it.' },
   cpr: { name: 'Conditional prepayment rate', abbr: 'CPR', plain: 'How fast loans are paying off early, stated as a yearly rate. At 8%, about 8% of the remaining balance would pay off early over a year if this month’s pace continued.' },
-  smm: { name: 'Single monthly mortality', abbr: 'SMM', plain: 'The share of the remaining balance paid off early in one month. It is the monthly version of the conditional prepayment rate.' },
+  smm: { name: 'Single monthly mortality', abbr: 'SMM', plain: 'The share of the remaining mortgage balance (after that month’s scheduled payment) that is paid off early during the month. It is the monthly version of the conditional prepayment rate.' },
+  prepaid: { name: 'Prepaid principal', plain: 'Principal repaid ahead of schedule. In this model every prepayment is a loan paid off in full, through a refinance or a home sale; partial extra payments are not modeled. It goes to the loan owner, not the servicer.' },
   psa: { name: 'Public Securities Association benchmark', abbr: 'PSA', plain: 'A standard speed curve: new loans pay off slowly and speed up until month 30. 100% PSA is the standard curve; 200% PSA is twice as fast. It ignores interest rates.' },
   npv: { name: 'Net present value', abbr: 'NPV', plain: 'All future cash flows converted into today’s dollars and added up. Money received later counts for less, depending on the discount rate.' },
   pv: { name: 'Present value', abbr: 'PV', plain: 'One future cash flow converted into today’s dollars using the discount rate.' },

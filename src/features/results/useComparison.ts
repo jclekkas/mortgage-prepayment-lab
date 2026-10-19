@@ -1,5 +1,6 @@
 import { currentContext, isDirty, useStore, type Slot } from '../../app/store';
 import { stalenessReason } from '../../domain/comparability';
+import { diffInputs, type InputChange } from '../../domain/diff';
 import type { RunOutput, ScenarioInput } from '../../domain/types';
 
 export interface Pair {
@@ -16,6 +17,10 @@ export interface Pair {
   blockers: string[];
   dirty: boolean;
   isBaseline: boolean;
+  /** Edits made since the shown result was calculated (empty when results are up to date). */
+  pending: InputChange[];
+  /** True when the shown scenario result used exactly the baseline's inputs. */
+  sameAsBaseline: boolean;
 }
 
 export function useComparison(): Pair {
@@ -25,6 +30,9 @@ export function useComparison(): Pair {
   const baseWhy = why(baseline);
   const actWhy = why(active);
   const isBaseline = active.draft.scenarioId === state.baselineId;
+  const dirty = isDirty(active);
+  const pending = dirty && active.run.outputInput ? diffInputs(active.run.outputInput, active.draft) : [];
+  const sameAsBaseline = !isBaseline && !!active.run.outputInput && !!baseline.run.outputInput && diffInputs(baseline.run.outputInput, active.run.outputInput).length === 0;
   const blockers = [
     ...(baseWhy && baseline.run.output ? [`Baseline: ${baseWhy}`] : []),
     ...(actWhy && active.run.output && !isBaseline ? [`${active.draft.name}: ${actWhy}`] : []),
@@ -38,7 +46,9 @@ export function useComparison(): Pair {
     actInput: actWhy ? null : active.run.outputInput,
     ready: !baseWhy && !actWhy && !!baseline.run.outputInput && !!active.run.outputInput,
     blockers,
-    dirty: isDirty(active),
+    dirty,
     isBaseline,
+    pending,
+    sameAsBaseline,
   };
 }

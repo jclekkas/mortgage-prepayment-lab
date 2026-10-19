@@ -2,22 +2,29 @@ import { useStore } from '../../app/store';
 import { explainComparison } from '../../domain/narrative';
 import { useComparison } from './useComparison';
 import { BlockedNotice } from './BlockedNotice';
+import { pendingText } from './PendingEdits';
 
 export function Explanation() {
   const { state } = useStore();
-  const { baseOut, actOut, baseInput, actInput, ready, isBaseline, blockers } = useComparison();
+  const { baseOut, actOut, baseInput, actInput, ready, isBaseline, blockers, dirty, pending, sameAsBaseline } = useComparison();
+  const stale = dirty && !isBaseline;
   if (!ready) return <section className="card"><h2>What changed, in plain English</h2><BlockedNotice what="The explanation" blockers={blockers} /></section>;
   const groups: Record<string, string> = { market: 'Market conditions', behavior: 'Borrower behavior', business: 'Business decisions', model: 'Modeling assumptions' };
   const n = explainComparison(baseInput!, baseOut!, actInput!, actOut!, state.goal);
   return (
     <section className="card stack" aria-labelledby="explain-h" data-testid="explanation">
       <h2 id="explain-h">What changed, in plain English</h2>
+      {stale && (
+        <p className="notice warn" data-testid="explanation-stale">
+          <strong>Previous run.</strong> This explains the last run of {actInput!.name}. Edited since then, not yet run: {pendingText(pending)}.
+        </p>
+      )}
       {isBaseline ? (
         <p>You are viewing the frozen baseline. Pick or duplicate a scenario, change one assumption and run it to compare.</p>
       ) : (
         <>
-          <p data-testid="explanation-headline"><strong>{n.headline}</strong></p>
-          {n.points.length > 0 && (
+          <p data-testid="explanation-headline"><strong>{sameAsBaseline && stale ? `When last run, ${actInput!.name} had the same inputs as the baseline, so every result matched.` : n.headline}</strong></p>
+          {n.points.length > 0 && !(sameAsBaseline && stale) && (
             <ul>
               {n.points.map((p, i) => <li key={i}>{p}</li>)}
             </ul>
@@ -45,7 +52,7 @@ export function Explanation() {
         </div>
       )}
       <p className="muted" style={{ fontSize: '0.8rem' }}>
-        Explanations are generated from calculated results by fixed templates. Run key {actOut!.runKey.slice(0, 12)}…, model {actOut!.modelVersion}.
+        Explanations are generated from calculated results by fixed templates. Reproducibility key {actOut!.runKey.slice(0, 12)}…, model {actOut!.modelVersion}.
       </p>
     </section>
   );

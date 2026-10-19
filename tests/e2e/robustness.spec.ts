@@ -40,11 +40,11 @@ test('10,000-loan import runs with progress and can be cancelled', async ({ page
     return false;
   });
   expect(cancelled, 'the Cancel button appeared while the run was in progress').toBe(true);
-  await expect(page.getByTestId('dirty-badge')).toHaveText(/Unsaved changes/);
+  await expect(page.getByTestId('dirty-badge')).toHaveText(/Edited: press Run/);
   await expect(page.getByTestId('cancel')).toHaveCount(0);
   // The app still works after cancellation.
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 30_000 });
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 30_000 });
 });
 
 test('a slower older run never overwrites a newer one', async ({ page }) => {
@@ -54,7 +54,7 @@ test('a slower older run never overwrites a newer one', async ({ page }) => {
   await page.getByTestId('run').click();
   await setNumber(page, 'ctl-shock', '50');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs');
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
   await page.waitForTimeout(500);
   await expect(page.getByTestId('explanation')).toContainText('Rate shock: 0 basis points → 50 basis points');
 });
@@ -108,7 +108,7 @@ test('cancelling a 10,000-loan grid or sensitivity frees the worker immediately 
   await expect(page.getByTestId('import-message')).toContainText('Imported', { timeout: 30_000 });
   await page.goto('/#/lab');
   await expect(page.getByText('Ten thousand loans')).toBeVisible();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 30_000 });
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 30_000 });
 
   // Grid: 25 full runs of 10,000 loans would occupy the worker for well over 5 s.
   await page.goto('/#/decision');
@@ -119,7 +119,7 @@ test('cancelling a 10,000-loan grid or sensitivity frees the worker immediately 
   await page.goto('/#/lab');
   await setNumber(page, 'ctl-shock', '-75');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 5_000 });
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 5_000 });
 
   // Sensitivities: the panel now has its own progress bar and Cancel.
   await page.getByLabel('Role (changes detail level, not formulas)').selectOption('director');
@@ -129,7 +129,7 @@ test('cancelling a 10,000-loan grid or sensitivity frees the worker immediately 
   await expect(page.getByTestId('sensitivity-run')).toBeVisible();
   await setNumber(page, 'ctl-shock', '-25');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 5_000 });
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 5_000 });
 });
 
 test('the validation hypothesis survives navigation and reload (D2)', async ({ page }) => {
@@ -156,7 +156,7 @@ test('REGRESSION: after a filter change, a cancelled recalculation is never comp
   await expect(page.getByTestId('import-message')).toContainText('Imported', { timeout: 30_000 });
   await page.goto('/#/lab');
   await expect(page.getByText('Ten thousand loans')).toBeVisible();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 30_000 });
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 30_000 });
 
   await page.goto('/#/cohorts');
   await page.getByTestId('filter-coupon-ge7').check();
@@ -188,7 +188,7 @@ test('REGRESSION: after a filter change, a cancelled recalculation is never comp
 
   // Running Scenario 1 for the new population restores everything.
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 30_000 });
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 30_000 });
   await expect(page.getByTestId('export-csv')).toBeVisible();
   await page.goto('/#/decision');
   await expect(page.getByTestId('comparison-blocked')).toHaveCount(0);

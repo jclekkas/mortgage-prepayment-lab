@@ -62,14 +62,15 @@ export function explainComparison(
   const lowerRates = rateA !== null && rateB !== null && rateB < rateA - 1e-9;
   const higherRates = rateA !== null && rateB !== null && rateB > rateA + 1e-9;
   const nonRate = changes.filter((c) => c.group !== 'market');
+  const onlyRates = nonRate.length === 0;
 
   let headline: string;
   if (changes.some((c) => c.id === 'mode')) {
     headline = `The scenario switches the model from ${changes.find((c) => c.id === 'mode')!.from} to ${changes.find((c) => c.id === 'mode')!.to}. Differences come from the modeling convention, not from a market event.`;
-  } else if (lowerRates && faster) {
-    headline = `Under your lower-rate assumption, more loans have a note rate far enough above the offer rate to clear refinance friction, so projected 12-month prepaid principal rises by ${usd(dPrep, { compact: true })}.`;
-  } else if (higherRates && slower) {
-    headline = `Under your higher-rate assumption, fewer loans have a refinance incentive, so projected 12-month prepaid principal falls by ${usd(-dPrep, { compact: true })}.`;
+  } else if (lowerRates && faster && onlyRates) {
+    headline = `Under your lower-rate assumption, borrowers’ refinance incentive (their note rate minus the offer rate, less friction) rises, so the model projects more refinance payoffs: 12-month prepaid principal rises by ${usd(dPrep, { compact: true })}.`;
+  } else if (higherRates && slower && onlyRates) {
+    headline = `Under your higher-rate assumption, borrowers’ refinance incentive falls, so the model projects fewer refinance payoffs: 12-month prepaid principal falls by ${usd(-dPrep, { compact: true })}.`;
   } else if (lowerRates && !faster) {
     headline = `Rates are lower in this scenario, yet 12-month prepaid principal did not rise (${usd(dPrep, { compact: true, signed: true })}). The other changes outweigh the rate effect: ${listChanges(nonRate) || 'see the input list'}.`;
   } else if (faster) {
@@ -90,17 +91,19 @@ export function explainComparison(
   if (lens !== 'investor') {
     const servicingDrivers = changes.filter((c) => ['fee', 'cost', 'discount'].includes(c.id));
     if (Math.abs(dNpv) > EPS_USD) {
-      if (faster && dNpv < 0) {
+      if (faster && dNpv < 0 && servicingDrivers.length === 0) {
         points.push(`Loans that pay off stop paying servicing fees, so illustrative servicing net present value (NPV) changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of balance versus ${bps(b.servicingValueBps)}).`);
+      } else if (faster && dNpv < 0) {
+        points.push(`Illustrative servicing net present value (NPV) changes by ${usd(dNpv, { compact: true, signed: true })}. Faster payoffs (which end servicing fees) and the servicing inputs you changed (${listChanges(servicingDrivers)}) both contribute; this comparison does not split the two.`);
       } else if (faster && dNpv > 0) {
         const why = servicingDrivers.length
           ? `because ${listChanges(servicingDrivers)} outweighs the lost fees`
           : b.negativeMarginMonths > 0 || s.negativeMarginMonths > 0
-            ? 'because some of the loans paying off cost more to service than they earn, so losing them helps'
+            ? `which can happen when loans cost more to service than they earn (net servicing cash flow is negative in ${Math.max(b.negativeMarginMonths, s.negativeMarginMonths)} projected months); this comparison does not identify which loans`
             : 'because of the combination of changes listed below';
           points.push(`Unusually, servicing net present value (NPV) rises by ${usd(dNpv, { compact: true })} even though more loans pay off, ${why}.`);
       } else if (slower && dNpv < 0) {
-        const why = servicingDrivers.length ? `because ${listChanges(servicingDrivers)}` : 'because the loans that stay longer cost more to service than they earn';
+        const why = servicingDrivers.length ? `with these servicing inputs changed: ${listChanges(servicingDrivers)}` : 'which can happen when loans that stay longer cost more to service than they earn; this comparison does not identify which loans';
         points.push(`Servicing net present value (NPV) falls by ${usd(-dNpv, { compact: true })} even though fewer loans pay off, ${why}.`);
       } else {
         points.push(`Illustrative servicing net present value (NPV) changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of balance versus ${bps(b.servicingValueBps)}).${servicingDrivers.length ? ` Servicing-side inputs changed: ${listChanges(servicingDrivers)}.` : ''}`);

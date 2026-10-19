@@ -21,7 +21,7 @@ export function RunBar() {
         {running ? 'Running…' : 'Run'}
       </button>
       {running && <button type="button" onClick={() => cancel(d.scenarioId)} data-testid="cancel">Cancel</button>}
-      {!frozen && <span className={`badge ${dirty ? 'dirty' : 'ok'}`} data-testid="dirty-badge">{dirty ? 'Unsaved changes: not yet run' : 'Results match inputs'}</span>}
+      {!frozen && <span className={`badge ${dirty ? 'dirty' : 'ok'}`} data-testid="dirty-badge">{dirty ? 'Edited: press Run to update results' : 'Results are up to date'}</span>}
       <button type="button" onClick={() => dispatch({ type: 'undo', id: d.scenarioId })} disabled={frozen || active.undo.length === 0}>Undo last edit</button>
     </div>
     <div className="row scenario-actions" aria-label="Scenario actions" role="group">

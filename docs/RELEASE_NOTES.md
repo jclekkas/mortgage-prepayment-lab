@@ -104,6 +104,32 @@ Items R1 to R3 are the findings of that review.
   under $1 or 0.5% of the baseline for dollars (`src/domain/trend.ts`, tested in
   `tests/unit/trend.test.ts`).
 
+### First-use journey review
+
+Walked a fresh session in a browser at desktop and phone widths: Mixed book, rate shock
+-100 basis points, edit without running, then Run. Fixes:
+
+- Edited but not yet run: the status badge now says "Edited: press Run to update results"
+  (edits are saved on the device; they are just not calculated). The notice above the
+  results names the pending edit, every headline card and the decision room column carry a
+  "Previous run" tag, the charts say they are from the last run, and the explanation no
+  longer says "this scenario has the same model inputs as the baseline" about an edited
+  scenario. After Run the badge reads "Results are up to date" and every tag disappears.
+- A scenario identical to the baseline shows a one-line note instead of a row of "flat"
+  arrows.
+- The assumptions panel names the scenario being edited and says what the frozen
+  baseline is.
+- Explanations claim only what the model establishes: the rate headline is used only when
+  rates are the sole change and describes the incentive mechanism, value changes with
+  several drivers say the comparison does not split them, and fallback wording no longer
+  asserts which loans cost more than they earn.
+- Plain wording: "Prepaid principal" has a help button explaining that every prepayment
+  here is a full payoff; single monthly mortality is defined as the share of the
+  remaining balance, after the scheduled payment, paid off early in the month; the Mixed
+  book description drops "coupon" and "seasoned"; "Run key" became "Reproducibility key".
+- Chart axis labels are larger on phones.
+
+
 ### Known limitations
 
 - Synthetic data and uncalibrated, illustrative behavioral coefficients. Not a forecast, a FICO model or a validated valuation.

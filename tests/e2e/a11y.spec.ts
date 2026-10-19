@@ -45,7 +45,7 @@ test('keyboard only: start, edit a control, run', async ({ page }) => {
   await page.getByTestId('run').focus();
   await expect(page.getByTestId('run')).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs');
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
   await expect(page.getByTestId('announcer')).toContainText('Calculation complete');
   // Focus stays on the Run button after recalculation.
   await expect(page.getByTestId('run')).toBeFocused();

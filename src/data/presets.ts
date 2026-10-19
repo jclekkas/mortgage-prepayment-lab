@@ -12,7 +12,7 @@ export const PRESETS: PresetInfo[] = [
   {
     id: 'mixed',
     name: 'Mixed book',
-    description: 'Equal thirds of low-coupon seasoned, middle-coupon mid-life and high-coupon recent loans.',
+    description: 'Equal thirds of older low-rate loans, mid-life middle-rate loans and recent high-rate loans.',
     config: { cohortWeights: [1, 1, 1] },
   },
   {

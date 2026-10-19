@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { href } from '../../app/router';
-import { assessSlots, slotLabel, useStore } from '../../app/store';
+import { assessSlots, isDirty, slotLabel, useStore } from '../../app/store';
+import { diffInputs } from '../../domain/diff';
 import { formatMonth } from '../../domain/calendar';
 import { pct, usd, years } from '../../domain/format';
 import { MODE_LABELS } from '../../domain/scenario';
@@ -97,11 +98,14 @@ export function DecisionPage() {
   const focus = entries.find((e) => !e.isBaseline) ?? entries[0];
   const baseItem = assessment.items.find((x) => x.id === state.baselineId);
   const baseSummary = baseItem?.current && baseItem.output ? baseItem.output.summary : null;
+  const baseItemInput = state.slots.find((x) => x.draft.scenarioId === state.baselineId)?.run.outputInput ?? null;
   const cell = (id: string, f: (s: SummaryMetrics) => string, trend?: [TrendMetric, (s: SummaryMetrics) => number | null]) => {
     const item = assessment.items.find((x) => x.id === id)!;
     if (item.current && item.output) {
       const s = item.output.summary;
-      if (!trend || !baseSummary || id === state.baselineId) return f(s);
+      const slot = state.slots.find((x) => x.draft.scenarioId === id);
+      const same = !!slot?.run.outputInput && !!baseItemInput && diffInputs(baseItemInput, slot.run.outputInput).length === 0;
+      if (!trend || !baseSummary || id === state.baselineId || same) return f(s);
       return <>{f(s)} <TrendArrow trend={trendOf(trend[0], trend[1](baseSummary), trend[1](s), state.goal)} /></>;
     }
     if (item.phase === 'running') return 'Calculating…';
@@ -111,7 +115,7 @@ export function DecisionPage() {
   return (
     <div className="stack">
       <h1>Decision room</h1>
-      <TermsOnPage ids={['upb', 'cpr', 'npv', 'pv', 'wal', 'bp', 'psa', 'recapture', 'discount']} />
+      <TermsOnPage ids={['upb', 'cpr', 'prepaid', 'npv', 'pv', 'wal', 'bp', 'psa', 'recapture', 'discount']} />
       <p className="muted">Up to four scenarios, including the frozen baseline, on the same valuation date ({formatMonth(state.portfolio.meta.asOfMonth)}) and the same population.</p>
       <PopulationBadge />
       {!assessment.comparable && (
@@ -129,7 +133,7 @@ export function DecisionPage() {
             <thead>
               <tr>
                 <th scope="col">Measure</th>
-                {state.slots.map((s) => <th scope="col" key={s.draft.scenarioId}>{slotLabel(state, s)}</th>)}
+                {state.slots.map((s) => <th scope="col" key={s.draft.scenarioId}>{slotLabel(state, s)}{s.draft.scenarioId !== state.baselineId && isDirty(s) && s.run.output && <><br /><span className="badge dirty">Previous run</span></>}</th>)}
               </tr>
             </thead>
             <tbody>

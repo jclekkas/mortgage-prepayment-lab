@@ -37,7 +37,7 @@ export function OverviewPage() {
         <p className="muted">
           {state.portfolio.meta.description} Synthetic as of {formatMonth(state.portfolio.meta.asOfMonth)}. The synthetic offer rate is an assumption, not today’s market rate.
         </p>
-        <TermsOnPage ids={['cpr', 'bp', 'ppt', 'upb', 'npv', 'wal', 'netServicing']} />
+        <TermsOnPage ids={['cpr', 'bp', 'ppt', 'upb', 'prepaid', 'npv', 'wal', 'netServicing']} />
         <PopulationBadge />
       </div>
       <RunStatus />

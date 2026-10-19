@@ -30,7 +30,7 @@ export function CohortsPage() {
   return (
     <div className="stack">
       <h1>Cohort explorer: {actSlot.draft.name}</h1>
-      <TermsOnPage ids={['upb', 'cpr', 'npv', 'bp', 'netServicing']} />
+      <TermsOnPage ids={['upb', 'cpr', 'prepaid', 'npv', 'bp', 'netServicing']} />
       <p className="muted">
         Filter the population to a segment and every chart, card and comparison updates. Each row shows the segment’s unpaid principal balance (UPB), its conditional prepayment rate (CPR), the yearly pace of early payoffs, and its servicing net present value (NPV), future fees less costs in today’s dollars. Dollars show size; the normalized columns (share of balance, and basis points of balance) show intensity, so a large segment is not automatically the riskier one.
         There is no credit-score effect in this release: a credit score is not a prepayment probability.

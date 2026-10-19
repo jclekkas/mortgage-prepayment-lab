@@ -9,11 +9,24 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   // Lab: shock rates on Scenario 1 and run.
   await page.goto('/#/lab');
   await setNumber(page, 'ctl-shock', '-100');
-  await expect(page.getByTestId('dirty-badge')).toHaveText(/Unsaved changes/);
-  await expect(page.getByText('Previous run.')).toBeVisible();
+  await expect(page.getByTestId('dirty-badge')).toHaveText(/Edited: press Run/);
+  // Before Run: nothing may present the old results as reflecting the edit.
+  await expect(page.getByTestId('run-status')).toContainText('Previous run.');
+  await expect(page.getByTestId('run-status')).toContainText('Rate shock: 0 basis points → -100 basis points');
+  await expect(page.getByTestId('kpi-stale').first()).toBeVisible();
+  await expect(page.getByTestId('explanation-stale')).toContainText('not yet run');
+  await expect(page.getByTestId('explanation-headline')).toContainText('When last run');
+  await expect(page.getByTestId('charts-stale')).toBeVisible();
+  await expect(page.getByTestId('kpi-npv-value')).toHaveText(baseNpv!);
+  await expect(page.getByTestId('same-as-baseline')).toBeVisible();
+  await expect(page.getByTestId('kpi-cpr').getByTestId('trend')).toHaveCount(0);
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs');
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
   await expect(page.getByTestId('explanation-headline')).toContainText('lower-rate assumption');
+  // After Run: every previous-run marker is gone.
+  await expect(page.getByTestId('kpi-stale')).toHaveCount(0);
+  await expect(page.getByTestId('explanation-stale')).toHaveCount(0);
+  await expect(page.getByTestId('charts-stale')).toHaveCount(0);
   const shockNpv = await page.getByTestId('kpi-npv-value').textContent();
   expect(shockNpv).not.toBe(baseNpv);
   // Arrows: faster prepayment is up but worse for the servicer; lower value is down and worse.
@@ -80,7 +93,7 @@ test('fixed CPR mode disables rate and recapture controls and ignores rates', as
   await page.goto('/#/lab');
   await page.getByTestId('mode-fixedCpr').check();
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs');
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
   const npv = await page.getByTestId('kpi-npv-value').textContent();
   await expect(page.getByTestId('ctl-shock').locator('input[type=number]')).toBeDisabled();
   await expect(page.getByTestId('ctl-recapture')).toContainText('Disabled');

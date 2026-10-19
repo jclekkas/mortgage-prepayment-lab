@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStore } from '../../app/store';
+import { isDirty, useStore } from '../../app/store';
 import { Explanation } from '../results/Explanation';
 import { FormulaDrawer } from '../results/FormulaDrawer';
 import { InvestorPanel } from '../results/InvestorPanel';
@@ -27,12 +27,16 @@ export function LabPage() {
         <h1 style={{ margin: 0 }}>Scenario lab: {active.draft.name}</h1>
         <PopulationBadge />
       </div>
-      <TermsOnPage ids={['bp', 'ppt', 'cpr', 'smm', 'psa', 'upb', 'npv', 'pv', 'wal', 'msr', 'mbs', 'incentive', 'friction', 'turnover', 'burnout', 'discount', 'servicingFee', 'netServicing', 'recapture']} />
+      <TermsOnPage ids={['bp', 'ppt', 'cpr', 'smm', 'psa', 'upb', 'npv', 'pv', 'wal', 'prepaid', 'msr', 'mbs', 'incentive', 'friction', 'turnover', 'burnout', 'discount', 'servicingFee', 'netServicing', 'recapture']} />
       <div className="lab-layout">
         <section aria-labelledby="assump-h" className="card" style={{ padding: 0 }}>
           <div style={{ padding: '1rem 1rem 0' }}>
-            <h2 id="assump-h">Assumptions</h2>
-            <p className="muted" style={{ fontSize: '0.85rem' }}>Change one thing at a time, run, and compare with the frozen baseline (dashed grey).</p>
+            <h2 id="assump-h">Assumptions: {active.draft.name}</h2>
+            <p className="muted" style={{ fontSize: '0.85rem' }}>
+              {active.draft.scenarioId === state.baselineId
+                ? 'This is the frozen baseline: the starting assumptions, kept fixed for comparison. Pick a scenario in “Viewing” to make changes.'
+                : 'Edits apply to this scenario only and take effect when you press Run. The frozen baseline keeps the starting assumptions for comparison (dashed grey in charts).'}
+            </p>
           </div>
           <div style={{ padding: '0 1rem' }}>
             <Controls />
@@ -51,6 +55,7 @@ export function LabPage() {
           {focus && out && input ? (
             lens === 'servicing' ? (
               <>
+                {isDirty(active) && active.draft.scenarioId !== state.baselineId && <p className="notice warn" data-testid="charts-stale"><strong>Previous run.</strong> The charts and ledger below are from the last run. Press Run to include your edits.</p>}
                 <ScenarioCharts entries={entries} focus={focus} />
                 <MonthLedger out={out} baseOut={baseline.run.output} name={active.draft.name} />
                 <FormulaDrawer out={out} input={input} />

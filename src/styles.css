@@ -167,6 +167,7 @@ tr.selected td { background: var(--surface-2); outline: 2px solid var(--accent);
 .chart-head { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
 .chart svg { width: 100%; height: auto; display: block; overflow: visible; }
 .chart text { fill: var(--muted); font-size: 14px; }
+@media (max-width: 520px) { .chart text { font-size: 19px; } }
 .legend { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.85rem; margin: 0.25rem 0; }
 .legend .swatch { display: inline-block; width: 22px; height: 0; border-top: 3px solid currentColor; vertical-align: middle; margin-right: 0.3rem; }
 .legend .swatch.dashed { border-top-style: dashed; }

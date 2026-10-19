@@ -27,7 +27,7 @@ const pctChange = (b: number, s: number) => (b === 0 ? '' : ` (${signedPct((s - 
 const CARDS: CardDef[] = [
   { id: 'upb', term: 'upb', trend: ['upb', (s) => s.currentUpb], label: 'Current unpaid principal balance (UPB)', period: (a) => `As of ${formatMonth(a)}`, value: (s) => usd(s.currentUpb, { compact: true }), delta: (b, s) => usd(s.currentUpb - b.currentUpb, { compact: true, signed: true }) },
   { id: 'cpr', term: 'cpr', trend: ['cpr', (s) => s.nextMonthCpr], label: 'Next-month conditional prepayment rate (CPR)', period: (a) => `${formatMonth(addMonths(a, 1))}, annualized`, value: (s) => pct(s.nextMonthCpr), delta: (b, s) => (s.nextMonthCpr === null || b.nextMonthCpr === null ? 'Not applicable' : pp(s.nextMonthCpr - b.nextMonthCpr)) },
-  { id: 'prepaid12', trend: ['prepaid12', (s) => s.prepaid12], label: 'Projected 12-month prepaid principal', period: (a) => `${formatMonth(addMonths(a, 1))} to ${formatMonth(addMonths(a, 12))}`, value: (s) => usd(s.prepaid12, { compact: true }), delta: (b, s) => `${usd(s.prepaid12 - b.prepaid12, { compact: true, signed: true })}${pctChange(b.prepaid12, s.prepaid12)}` },
+  { id: 'prepaid12', term: 'prepaid', trend: ['prepaid12', (s) => s.prepaid12], label: 'Projected 12-month prepaid principal', period: (a) => `${formatMonth(addMonths(a, 1))} to ${formatMonth(addMonths(a, 12))}`, value: (s) => usd(s.prepaid12, { compact: true }), delta: (b, s) => `${usd(s.prepaid12 - b.prepaid12, { compact: true, signed: true })}${pctChange(b.prepaid12, s.prepaid12)}` },
   { id: 'net12', term: 'netServicing', trend: ['net12', (s) => s.netServicing12], label: 'Projected 12-month net servicing cash flow', period: (a) => `${formatMonth(addMonths(a, 1))} to ${formatMonth(addMonths(a, 12))}`, value: (s) => usd(s.netServicing12, { compact: true }), delta: (b, s) => `${usd(s.netServicing12 - b.netServicing12, { compact: true, signed: true })}${pctChange(b.netServicing12, s.netServicing12)}` },
   { id: 'npv', term: 'npv', trend: ['npv', (s) => s.servicingNpv], label: 'Illustrative lifetime servicing net present value (NPV)', period: () => 'All remaining months, discounted', value: (s) => `${usd(s.servicingNpv, { compact: true })}`, delta: (b, s) => `${usd(s.servicingNpv - b.servicingNpv, { compact: true, signed: true })}${pctChange(b.servicingNpv, s.servicingNpv)}` },
 ];
@@ -36,45 +36,50 @@ const WAL: CardDef = { id: 'wal', term: 'wal', trend: ['wal', (s) => s.wal], lab
 
 export function KpiCards() {
   const { state } = useStore();
-  const { actInput, ready, isBaseline, blockers } = useComparison();
+  const { actInput, ready, isBaseline, blockers, dirty, sameAsBaseline } = useComparison();
+  const stale = dirty && !isBaseline;
   if (!ready) return <BlockedNotice what="Headline measures" blockers={blockers} />;
   const asOf = state.portfolio.meta.asOfMonth;
   const cards = state.goal === 'investor' ? [...CARDS.slice(0, 3), WAL, ...CARDS.slice(3)] : CARDS;
   return (
     <section aria-labelledby="kpi-h" className="stack">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h2 id="kpi-h" style={{ margin: 0 }}>Headline measures: {actInput!.name}</h2>
+        <h2 id="kpi-h" style={{ margin: 0 }}>Headline measures: {actInput!.name}{stale && <span className="badge dirty" style={{ marginLeft: '0.5rem', verticalAlign: 'middle' }}>Previous run</span>}</h2>
         <span className="muted" style={{ fontSize: '0.85rem' }}>
-          {isBaseline ? 'Showing the frozen baseline.' : `Differences are versus the frozen baseline.`}
+          {isBaseline ? 'Showing the frozen baseline: the starting assumptions, kept fixed for comparison.' : 'Differences are versus the frozen baseline: the starting assumptions, kept fixed for comparison.'}
         </span>
       </div>
-      {!isBaseline && <TrendKey investor={state.goal === 'investor'} />}
+      {!isBaseline && (sameAsBaseline
+        ? <p className="muted" style={{ fontSize: '0.85rem' }} data-testid="same-as-baseline">{actInput!.name} {stale ? 'was last run with' : 'has'} the same inputs as the baseline, so every difference is zero. Change an assumption and press Run to compare.</p>
+        : <TrendKey investor={state.goal === 'investor'} />)}
       <div className="grid-cards">
         {cards.map((c) => (
-          <Kpi key={c.id} def={c} asOf={asOf} isBaseline={isBaseline} />
+          <Kpi key={c.id} def={c} asOf={asOf} isBaseline={isBaseline} same={sameAsBaseline} />
         ))}
       </div>
       {state.goal !== 'investor' && (
         <div className="grid-cards">
-          <Kpi def={WAL} asOf={asOf} isBaseline={isBaseline} secondary />
+          <Kpi def={WAL} asOf={asOf} isBaseline={isBaseline} same={sameAsBaseline} secondary />
         </div>
       )}
     </section>
   );
 }
 
-function Kpi({ def, asOf, isBaseline, secondary }: { def: CardDef; asOf: string; isBaseline: boolean; secondary?: boolean }) {
-  const { baseOut, actOut, baseInput, actInput } = useComparison();
+function Kpi({ def, asOf, isBaseline, secondary, same }: { def: CardDef; asOf: string; isBaseline: boolean; secondary?: boolean; same: boolean }) {
+  const { baseOut, actOut, baseInput, actInput, dirty } = useComparison();
   const { state } = useStore();
+  const stale = dirty && !isBaseline;
   const [open, setOpen] = useState(false);
   const b = baseOut!.summary, s = actOut!.summary;
   return (
     <article className="card kpi" data-testid={`kpi-${def.id}`} style={secondary ? { background: 'var(--surface-2)' } : undefined}>
       <div className="label"><LabelWithHelp label={def.label} term={def.term} /></div>
       <div className="value" data-testid={`kpi-${def.id}-value`}>{def.value(s)}</div>
+      {stale && <div className="period" data-testid="kpi-stale"><span className="badge dirty">Previous run</span></div>}
       {def.id === 'npv' && <div className="period">{s.servicingValueBps === null ? 'Not applicable' : `${s.servicingValueBps.toFixed(1)} basis points of current balance`}</div>}
       <div className="period">{def.period(asOf)}</div>
-      {!isBaseline && <div className="delta">vs baseline: {def.delta(b, s)} <TrendArrow trend={trendOf(def.trend[0], def.trend[1](b), def.trend[1](s), state.goal)} /></div>}
+      {!isBaseline && <div className="delta">vs baseline: {def.delta(b, s)} {!same && <TrendArrow trend={trendOf(def.trend[0], def.trend[1](b), def.trend[1](s), state.goal)} />}</div>}
       <button type="button" className="link" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         Why did this change?
       </button>

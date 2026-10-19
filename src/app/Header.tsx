@@ -31,7 +31,7 @@ export function Header({ route }: { route: Route }) {
           </span>
           <span>As of {formatMonth(p.asOfMonth)}</span>
           <span>
-            {MODE_LABELS[active.draft.mode]} · <span className="muted">{MODEL_VERSION}</span>
+            {MODE_LABELS[active.draft.mode]} model · <span className="muted">version {MODEL_VERSION}</span>
           </span>
           <label className="row" style={{ gap: '0.3rem', fontWeight: 400 }}>
             <span>Viewing</span>
@@ -39,7 +39,7 @@ export function Header({ route }: { route: Route }) {
               {state.slots.map((s) => (
                 <option key={s.draft.scenarioId} value={s.draft.scenarioId}>
                   {s.draft.scenarioId === state.baselineId ? `Baseline (frozen): ${s.draft.name}` : s.draft.name}
-                  {s.draft.scenarioId !== state.baselineId && isDirty(s) ? ' · unsaved changes' : ''}
+                  {s.draft.scenarioId !== state.baselineId && isDirty(s) ? ' · edited, not yet run' : ''}
                 </option>
               ))}
             </select>

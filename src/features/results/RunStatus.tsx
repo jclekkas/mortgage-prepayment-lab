@@ -3,6 +3,7 @@ import { stalenessReason } from '../../domain/comparability';
 import { describeFilter, isFilterEmpty } from '../../domain/segments';
 import { Notice, Progress } from '../../ui/misc';
 import { useComparison } from './useComparison';
+import { pendingText } from './PendingEdits';
 
 /**
  * States for the active scenario's result: running, cancelled, failed, previous run, and
@@ -10,7 +11,7 @@ import { useComparison } from './useComparison';
  */
 export function RunStatus() {
   const { cancel, state } = useStore();
-  const { actSlot, dirty, isBaseline } = useComparison();
+  const { actSlot, dirty, isBaseline, pending } = useComparison();
   const r = actSlot.run;
   const stale = r.output ? stalenessReason(r.output, currentContext(state)) : null;
   return (
@@ -43,7 +44,7 @@ export function RunStatus() {
       )}
       {r.output && !stale && !isBaseline && dirty && r.status !== 'running' && (
         <Notice kind="warn">
-          <strong>Previous run.</strong> You have changed inputs since these results were calculated. Press Run to update them.
+          <strong>Previous run.</strong> The results below were calculated before your latest edits ({pendingText(pending)}). Press Run to update them.
         </Notice>
       )}
       {r.output && !stale && r.isLastGood && r.status === 'done' && <Notice kind="warn">Showing the last good run.</Notice>}
