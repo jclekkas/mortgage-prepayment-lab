@@ -9,6 +9,7 @@ import { describeFilter } from '../../domain/segments';
 import { MODE_LABELS } from '../../domain/scenario';
 import { APP_BUILD, MODEL_VERSION } from '../../domain/version';
 import { fullName, TERMS, type TermId } from '../../ui/terms';
+import { TrustNote } from '../../ui/TrustNote';
 
 const BRIEF_TERMS: TermId[] = ['cpr', 'npv', 'wal', 'bp', 'upb', 'recapture', 'discount'];
 
@@ -80,9 +81,9 @@ export function BriefPage() {
                 <ul>{n.points.map((x, i) => <li key={i}>{x}</li>)}</ul>
                 {note && (note.whatChanged || note.evidence || note.investigateNext) && (
                   <div>
-                    <p><strong>What I think changed:</strong> {note.whatChanged || '—'}</p>
-                    <p><strong>Evidence:</strong> {note.evidence || '—'}</p>
-                    <p><strong>What I would investigate next:</strong> {note.investigateNext || '—'}</p>
+                    <p><strong>What I think changed:</strong> {note.whatChanged || 'Not written'}</p>
+                    <p><strong>Evidence:</strong> {note.evidence || 'Not written'}</p>
+                    <p><strong>What I would investigate next:</strong> {note.investigateNext || 'Not written'}</p>
                   </div>
                 )}
               </section>
@@ -90,8 +91,9 @@ export function BriefPage() {
           })}
           <section className="card">
             <h2>Limitations</h2>
+            <TrustNote />
             <ul style={{ fontSize: '0.9rem' }}>
-              <li>Synthetic data and illustrative, uncalibrated behavioral coefficients. Not a FICO model, a forecast, or a validated valuation.</li>
+              <li>Synthetic data and illustrative, uncalibrated behavioral coefficients. Not a FICO model, a forecast, or a valuation. The model has not been tested against real loan outcomes.</li>
               <li>Illustrative servicing NPV is not market value or accounting fair value. It excludes float, ancillary fees, advances, default costs, taxes, hedges and any terminal value.</li>
               <li>Performing, fixed-rate, fully amortizing first liens only. No delinquency, curtailments, modifications, adjustable-rate mortgages (ARMs), interest-only or balloon loans.</li>
               <li>Recapture contribution is separate from the original book and excludes replacement servicing value. Assumed uplift is not proven causality.</li>

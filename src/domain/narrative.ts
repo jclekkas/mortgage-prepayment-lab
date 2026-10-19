@@ -1,7 +1,7 @@
 /**
- * Deterministic explanation templates populated from calculated results. If the
- * results contradict the usual pattern, the text names the actual driver instead of
- * forcing the template.
+ * Deterministic explanation templates populated from calculated results (no generative text).
+ * A cause is stated only when the calculation supports it: when several assumptions changed,
+ * the text reports their combined effect and does not attribute it to one of them.
  */
 import { avgOffer12, diffInputs, type InputChange } from './diff';
 import { pct, pp, usd, years } from './format';
@@ -26,6 +26,16 @@ function largestCohortChange(base: CohortRow[], scen: CohortRow[]): { row: Cohor
     if (!best || Math.abs(d) > Math.abs(best.delta)) best = { row: r, delta: d };
   }
   return best && Math.abs(best.delta) > EPS_USD ? best : null;
+}
+
+/** Present value of servicing fees and of servicing costs, from the ledger (NPV = fees - costs). */
+export function servicingPvParts(out: RunOutput): { fees: number; costs: number } {
+  let fees = 0, costs = 0;
+  for (const m of out.ledger) {
+    fees += m.grossFee * m.discountFactor;
+    costs += m.operatingCost * m.discountFactor;
+  }
+  return { fees, costs };
 }
 
 function listChanges(changes: InputChange[]): string {
@@ -71,14 +81,15 @@ export function explainComparison(
     headline = `Under your lower-rate assumption, borrowers’ refinance incentive (their note rate minus the offer rate, less friction) rises, so the model projects more refinance payoffs: 12-month prepaid principal rises by ${usd(dPrep, { compact: true })}.`;
   } else if (higherRates && slower && onlyRates) {
     headline = `Under your higher-rate assumption, borrowers’ refinance incentive falls, so the model projects fewer refinance payoffs: 12-month prepaid principal falls by ${usd(-dPrep, { compact: true })}.`;
+  } else if (lowerRates && !faster && !onlyRates) {
+    headline = `Rates are lower in this scenario, yet 12-month prepaid principal did not rise (${usd(dPrep, { compact: true, signed: true })}). Other assumptions changed at the same time (${listChanges(nonRate)}); this comparison cannot separate their effect from the rate change.`;
   } else if (lowerRates && !faster) {
-    headline = `Rates are lower in this scenario, yet 12-month prepaid principal did not rise (${usd(dPrep, { compact: true, signed: true })}). The other changes outweigh the rate effect: ${listChanges(nonRate) || 'see the input list'}.`;
-  } else if (faster) {
-    headline = `Projected 12-month prepaid principal rises by ${usd(dPrep, { compact: true })}, driven by: ${listChanges(changes)}.`;
-  } else if (slower) {
-    headline = `Projected 12-month prepaid principal falls by ${usd(-dPrep, { compact: true })}, driven by: ${listChanges(changes)}.`;
+    headline = `Rates are lower in this scenario, yet 12-month prepaid principal did not rise (${usd(dPrep, { compact: true, signed: true })}). In this model that can happen when the lower rates do not raise many borrowers’ incentive within the first 12 months, for example a gradual path or a change only in later months.`;
   } else {
-    headline = `Prepayment is essentially unchanged; the difference comes from: ${listChanges(changes)}.`;
+    const verb = faster ? `rises by ${usd(dPrep, { compact: true })}` : slower ? `falls by ${usd(-dPrep, { compact: true })}` : 'is essentially unchanged';
+    headline = changes.length === 1
+      ? `Projected 12-month prepaid principal ${verb}. The one assumption changed is ${listChanges(changes)}.`
+      : `Projected 12-month prepaid principal ${verb}. Several assumptions changed together (${listChanges(changes)}); this comparison shows their combined effect and does not split it among them.`;
   }
 
   if (dCpr !== null && Math.abs(dCpr) > 1e-6) points.push(`Next-month conditional prepayment rate (CPR) moves from ${pct(b.nextMonthCpr)} to ${pct(s.nextMonthCpr)} (${pp(dCpr)}).`);
@@ -97,9 +108,11 @@ export function explainComparison(
         points.push(`${change} The servicing inputs you changed (${listChanges(servicingDrivers)}) and any change in how long loans stay both contribute; this comparison does not split them.`);
       } else if (faster || slower) {
         // With fee, cost and discount unchanged, value changes in this model only through how long loans stay.
-        const fewerMonths = faster;
-        const feesWin = (dNpv < 0) === fewerMonths;
-        points.push(`${change} With the servicing fee, cost and discount rate unchanged, the only channel in this model is how long loans stay. ${fewerMonths ? 'Faster payoffs end both the servicing fees and the servicing costs of the loans that leave' : 'Slower payoffs keep both the servicing fees and the servicing costs of loans that stay'}; here the ${feesWin ? 'fees' : 'costs'} involved outweigh the ${feesWin ? 'costs' : 'fees'}.`);
+        // NPV = PV(fees) - PV(costs), so the split below is arithmetic, not an inference.
+        const pb = servicingPvParts(base), ps = servicingPvParts(scen);
+        const dFees = ps.fees - pb.fees, dCosts = ps.costs - pb.costs;
+        const move = (d: number) => (Math.abs(d) <= EPS_USD ? 'do not change' : `${d < 0 ? 'fall' : 'rise'} by ${usd(Math.abs(d), { compact: true })}`);
+        points.push(`${change} With the servicing fee, cost and discount rate unchanged, value can change in this model only through how long loans stay. In today’s dollars, servicing fees ${move(dFees)} and servicing costs ${move(dCosts)}; value changes by fees minus costs.`);
       } else {
         points.push(change);
       }
@@ -113,7 +126,7 @@ export function explainComparison(
   }
   if (lens === 'investor' || lens === 'learn') {
     if (b.wal !== null && s.wal !== null && Math.abs(s.wal - b.wal) > 1e-4) {
-      points.push(`For the loan owner, principal weighted-average life moves from ${years(b.wal)} to ${years(s.wal)}. ${s.wal < b.wal ? 'Principal comes back sooner. That changes cash-flow timing and can affect the investment’s value; this simulator does not determine whether it is favorable for the owner.' : 'Principal comes back later; the owner earns the note rate for longer.'}`);
+      points.push(`For the loan owner, principal weighted-average life moves from ${years(b.wal)} to ${years(s.wal)}. ${s.wal < b.wal ? 'Principal comes back sooner. That changes cash-flow timing and can affect the investment’s value; this simulator does not determine whether it is favorable for the owner.' : 'Principal comes back later, and the owner receives interest on it for longer. This simulator does not determine whether that is favorable for the owner.'}`);
     }
   }
   if (base.population.isFiltered) points.push('Both runs use the same filtered population.');

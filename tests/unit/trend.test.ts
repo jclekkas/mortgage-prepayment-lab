@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadPreset } from '../../src/data/presets';
 import { runScenario } from '../../src/domain/engine';
-import { explainComparison } from '../../src/domain/narrative';
+import { explainComparison, servicingPvParts } from '../../src/domain/narrative';
 import { defaultScenario } from '../../src/domain/scenario';
 import { trendOf, trendOfDelta } from '../../src/domain/trend';
 
@@ -90,11 +90,13 @@ describe('reported counterexample: zero servicing fee, $100 cost, rates down 100
     expect(trendOf('npv', b.summary.servicingNpv, s.summary.servicingNpv)).toMatchObject({ word: 'smaller loss', tone: 'good' });
   });
 
-  it('the explanation names the only channel and does not call the result a profit', () => {
+  it('the explanation shows fees and costs in today’s dollars and does not call the result a profit', () => {
     const n = explainComparison(base, b, scen, s, 'servicing');
     const text = [n.headline, ...n.points].join(' ');
-    expect(text).toContain('the only channel in this model is how long loans stay');
-    expect(text).toContain('costs involved outweigh the fees');
+    expect(text).toContain('value can change in this model only through how long loans stay');
+    // Zero fee: no fees to give up; faster payoff only saves costs.
+    expect(text).toContain('servicing fees do not change');
+    expect(text).toMatch(/servicing costs fall by \$\d/);
     expect(text).toContain('A smaller loss is not a profit');
     expect(text).not.toMatch(/Unusually/);
   });
@@ -106,10 +108,16 @@ describe('standard experiment: Mixed book, default assumptions, rates down 100 b
   const scen = { ...structuredClone(base), scenarioId: 'cut' };
   scen.ratePath.shockBps = -100;
   const b = runScenario(p, base), s = runScenario(p, scen);
-  it('faster prepayment with positive margins lowers servicing value, explained through fees outweighing costs', () => {
+  it('faster prepayment with positive margins lowers servicing value, explained as fees given up exceeding costs saved', () => {
     expect(trendOf('npv', b.summary.servicingNpv, s.summary.servicingNpv)).toMatchObject({ word: 'lower', tone: 'bad' });
     const text = explainComparison(base, b, scen, s, 'servicing').points.join(' ');
-    expect(text).toContain('fees involved outweigh the costs');
+    expect(text).toMatch(/servicing fees fall by \$[\d.]+[KM] and servicing costs fall by \$[\d.]+K/);
+    // The split is arithmetic: NPV = PV(fees) - PV(costs), and fees given up exceed costs saved.
+    const pb = servicingPvParts(b), ps = servicingPvParts(s);
+    expect(pb.fees - pb.costs).toBeCloseTo(b.summary.servicingNpv, 4);
+    expect(ps.fees - ps.costs).toBeCloseTo(s.summary.servicingNpv, 4);
+    expect(pb.fees - ps.fees).toBeGreaterThan(pb.costs - ps.costs);
+    expect(pb.costs - ps.costs).toBeGreaterThan(0);
   });
   it('when the fee also changes, the explanation does not attribute the result to one cause', () => {
     const both = { ...structuredClone(scen), scenarioId: 'both' };
@@ -117,6 +125,6 @@ describe('standard experiment: Mixed book, default assumptions, rates down 100 b
     const o = runScenario(p, both);
     const text = explainComparison(base, b, both, o, 'servicing').points.join(' ');
     expect(text).toContain('this comparison does not split them');
-    expect(text).not.toContain('the only channel');
+    expect(text).not.toContain('only through how long loans stay');
   });
 });

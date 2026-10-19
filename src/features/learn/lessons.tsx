@@ -118,7 +118,7 @@ export const LESSONS: Lesson[] = [
       const best = deltas.reduce((a, x) => (x.d > a.d ? x : a), deltas[0]);
       return {
         correctId: best.key,
-        explanation: 'Every group’s incentive rose by the same 100 basis points. The modeled response is not equal: the S-shaped curve is steepest around zero effective incentive, so groups that move from slightly negative to positive incentive gain the most probability, while groups far below the offer rate stay unlikely to refinance and groups already deep in the money were already responding. The dollar change also depends on how much balance sits in each group, and on loan age (new loans respond less) and burnout in this model. Those are teaching assumptions, not calibrated behavior.',
+        explanation: `The largest increase was among borrowers whose existing rate is ${best.label} (${usd(best.d, { compact: true, signed: true })}). Every group’s incentive rose by the same 100 basis points; the modeled response differs. In this model the refinance curve is steepest near zero effective incentive, so a group that moves from just below to above the threshold tends to gain the most probability, while groups far below the offer rate stay unlikely to refinance. The dollar change also depends on how much balance sits in each group, on loan age (new loans respond less) and on burnout. These are teaching assumptions, not calibrated behavior.`,
         reveal: (
           <div className="table-wrap">
             <table>
@@ -216,11 +216,11 @@ export const LESSONS: Lesson[] = [
       const worst = v.cohorts.reduce((a, c) => (Math.abs(c.bias) > Math.abs(a.bias) ? c : a), v.cohorts[0]);
       return {
         correctId: Math.abs(share) <= 0.05 ? 'right' : share > 0 ? 'many' : 'few',
-        explanation: 'Compare cumulative forecast prepaid dollars with the synthetic actual. Then check how much of the miss disappears when the same model is re-run on the rates that actually occurred: what remains is a behavior miss.',
+        explanation: `The frozen forecast was ${usd(f.prepaidError, { compact: true, signed: true })} off the synthetic actual (${(share * 100).toFixed(1)}%; positive means it predicted too many payoff dollars). Re-running the same model on the rates that actually occurred leaves a miss of ${usd(ar.prepaidError, { compact: true, signed: true })}. The part that disappears came from the wrong rate path; what remains comes from behavior the model got wrong, plus chance in which individual loans paid off.`,
         reveal: (
           <>
             <p>Frozen forecast minus actual: {usd(f.prepaidError, { compact: true, signed: true })} ({(share * 100).toFixed(1)}% of actual). Re-run with actual rates: {usd(ar.prepaidError, { compact: true, signed: true })}.</p>
-            <p>The largest dollar bias is in the {worst.label} band ({usd(worst.bias, { compact: true, signed: true })}). Write a hypothesis in the validation lab. A better fit to one synthetic history is evidence, not proof.</p>
+            <p>The largest dollar bias is in the {worst.label} band ({usd(worst.bias, { compact: true, signed: true })}). Write a hypothesis on the Forecast check page. A better fit to one synthetic history is evidence, not proof.</p>
           </>
         ),
       };

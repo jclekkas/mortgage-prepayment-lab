@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { href, navigate } from '../../app/router';
 import { newScenarioId, useStore } from '../../app/store';
-import { explainComparison } from '../../domain/narrative';
+import { explainComparison, servicingPvParts } from '../../domain/narrative';
 import { pct, pp, usd } from '../../domain/format';
 import { defaultScenario } from '../../domain/scenario';
 import { trendOf, type TrendMetric } from '../../domain/trend';
@@ -141,7 +141,7 @@ export function GuidedPage() {
               </tbody>
             </table>
           </div>
-          <p>At these rates, {above.toLocaleString()} of the {p.loans.length.toLocaleString()} borrowers have an existing rate high enough that refinancing would save more than that friction. Some borrowers also pay off every year because they move, whatever rates do.</p>
+          <p>At these rates, {above.toLocaleString()} of the {p.loans.length.toLocaleString()} borrowers have an existing rate high enough that refinancing would save more than that friction. In this model some borrowers also pay off each year because they sell or move, regardless of rates.</p>
           <div className="row">
             <button type="button" onClick={() => setStep(1)}>Back</button>
             <button type="button" className="primary" onClick={() => setStep(3)} data-testid="guided-next">Next: make a prediction</button>
@@ -224,11 +224,13 @@ function GuidedResult({ result, answers, onRestart, onAdd, added, canAdd }: {
       <p data-testid="guided-headline"><strong>{n.headline}</strong></p>
       <ul>{n.points.map((x, i) => <li key={i}>{x}</li>)}</ul>
       <p data-testid="guided-takeaway">
-        {cut.summary.prepaid12 > base.summary.prepaid12 && cut.summary.servicingNpv < base.summary.servicingNpv
-          ? 'In this example the loans that paid off sooner earned more in servicing fees than they cost, so losing them lowered the value today.'
-          : cut.summary.prepaid12 > base.summary.prepaid12 && cut.summary.servicingNpv > base.summary.servicingNpv
-            ? 'In this example the loans that paid off sooner cost more to service than they earned in fees, so losing them raised the value today.'
-            : 'In this example prepayment barely changed, so neither income nor value moved much.'}{' '}
+        {(() => {
+          const pb = servicingPvParts(base), ps = servicingPvParts(cut);
+          const feesLost = pb.fees - ps.fees, costsSaved = pb.costs - ps.costs;
+          const faster = cut.summary.prepaid12 > base.summary.prepaid12;
+          if (!faster) return 'In this example prepayment barely changed, so neither income nor value moved much.';
+          return `Only the offer rate changed, so value could move only through how long loans stay. Loans that paid off sooner stopped paying servicing fees (${usd(feesLost, { compact: true })} less in today’s dollars) and stopped costing money to service (${usd(costsSaved, { compact: true })} less). ${feesLost > costsSaved ? 'The fees given up were larger, so value fell.' : 'The costs saved were larger, so value rose.'}`;
+        })()}{' '}
         That is a result of these assumptions, not a rule: with a much lower fee or a higher cost per loan, faster payoffs can raise servicing value. Try it in the Scenario lab.
       </p>
       <TrustNote />

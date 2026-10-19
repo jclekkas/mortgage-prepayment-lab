@@ -9,12 +9,14 @@ import { BlockedNotice } from '../results/BlockedNotice';
 import { LabelWithHelp, TermsOnPage } from '../../ui/TermHelp';
 import { trendOf } from '../../domain/trend';
 import { TrendArrow, TrendKey } from '../../ui/TrendArrow';
+import { PerspectiveSwitch, usePerspective } from '../results/Perspective';
 
 export function CohortsPage() {
   const { state, dispatch } = useStore();
   const { baseOut, actOut, isBaseline, actSlot, blockers, dirty } = useComparison();
   const stale = dirty && !isBaseline && !!actOut;
   const [dim, setDim] = useState<SegmentDimension>('coupon');
+  const servicer = usePerspective() === 'servicer';
   const filter = state.filter;
   const toggle = (d: SegmentDimension, key: string) => {
     const cur = new Set(filter[d] ?? []);
@@ -73,9 +75,15 @@ export function CohortsPage() {
             </select>
           </label>
         </div>
+        <div className="row" style={{ marginTop: '0.5rem' }}><PerspectiveSwitch /></div>
+        <p className="muted" style={{ fontSize: '0.85rem' }} data-testid="cohort-perspective">
+          {servicer
+            ? 'Servicer perspective: servicing fee income, cost and illustrative value are shown for each segment.'
+            : 'Loan owner perspective: principal timing only. Servicing income and value columns are hidden; this simulator does not calculate the loan owner’s investment value.'}
+        </p>
         {!isBaseline && <TrendKey />}
         <div className="table-wrap">
-          <table data-testid="cohort-table">
+          <table data-testid="cohort-table" data-perspective={servicer ? 'servicer' : 'owner'}>
             <caption>{DIMENSION_LABELS[dim]}: {actSlot.draft.name}{!isBaseline ? ', with change versus baseline' : ''}{stale ? ' (previous run; edits not yet run)' : ''}</caption>
             <thead>
               <tr>
@@ -87,11 +95,11 @@ export function CohortsPage() {
                 <th scope="col">12-month scheduled principal</th>
                 <th scope="col">12-month prepaid principal</th>
                 <th scope="col">Prepaid, share of balance</th>
-                <th scope="col">12-month net servicing</th>
-                <th scope="col"><LabelWithHelp label="Servicing NPV" term="npv" /></th>
-                <th scope="col"><LabelWithHelp label="NPV, basis points of balance" term="bp" /></th>
+                {servicer && <th scope="col">12-month net servicing</th>}
+                {servicer && <th scope="col"><LabelWithHelp label="Servicing NPV" term="npv" /></th>}
+                {servicer && <th scope="col"><LabelWithHelp label="NPV, basis points of balance" term="bp" /></th>}
                 {!isBaseline && <th scope="col">Change in prepaid vs baseline</th>}
-                {!isBaseline && <th scope="col">Change in NPV vs baseline</th>}
+                {!isBaseline && servicer && <th scope="col">Change in servicing NPV vs baseline</th>}
                 <th scope="col"><span className="sr-only">Action</span></th>
               </tr>
             </thead>
@@ -108,11 +116,11 @@ export function CohortsPage() {
                     <td>{usd(r.scheduled12, { compact: true })}</td>
                     <td>{usd(r.prepaid12, { compact: true })}</td>
                     <td>{pct(r.prepaid12Share)}</td>
-                    <td>{usd(r.netServicing12, { compact: true })}</td>
-                    <td>{usd(r.servicingNpv, { compact: true })}</td>
-                    <td>{r.servicingValueBps === null ? 'Not applicable' : r.servicingValueBps.toFixed(1)}</td>
+                    {servicer && <td>{usd(r.netServicing12, { compact: true })}</td>}
+                    {servicer && <td>{usd(r.servicingNpv, { compact: true })}</td>}
+                    {servicer && <td>{r.servicingValueBps === null ? 'Not applicable' : r.servicingValueBps.toFixed(1)}</td>}
                     {!isBaseline && <td>{b ? <>{usd(r.prepaid12 - b.prepaid12, { compact: true, signed: true })} <TrendArrow trend={trendOf('prepaid12', b.prepaid12, r.prepaid12)} /></> : 'Not applicable'}</td>}
-                    {!isBaseline && <td>{b ? <>{usd(r.servicingNpv - b.servicingNpv, { compact: true, signed: true })} <TrendArrow trend={trendOf('npv', b.servicingNpv, r.servicingNpv)} /></> : 'Not applicable'}</td>}
+                    {!isBaseline && servicer && <td>{b ? <>{usd(r.servicingNpv - b.servicingNpv, { compact: true, signed: true })} <TrendArrow trend={trendOf('npv', b.servicingNpv, r.servicingNpv)} /></> : 'Not applicable'}</td>}
                     <td><button type="button" className="link" onClick={() => only(dim, r.key)}>Filter to this<span className="sr-only"> segment: {r.label}</span></button></td>
                   </tr>
                 );

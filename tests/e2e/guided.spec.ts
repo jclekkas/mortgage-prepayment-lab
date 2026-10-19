@@ -53,6 +53,7 @@ test('guided experiment teaches, asks for a prediction, then shows baseline, rat
   await expect(npv).toContainText('lower');
   await expect(page.getByTestId('guided-headline')).not.toBeEmpty();
   await expect(page.getByTestId('guided-takeaway')).toContainText('not a rule');
+  await expect(page.getByTestId('guided-takeaway')).toContainText('The fees given up were larger, so value fell.');
   await expect(page.getByTestId('guided-result').getByTestId('trust-note')).toContainText('Real-world accuracy not established');
 
   // The guided run did not touch the learner's scenarios until they choose to add it.

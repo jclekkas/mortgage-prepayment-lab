@@ -9,7 +9,7 @@ const NAV: [Route, string][] = [
   ['lab', 'Scenario lab'],
   ['cohorts', 'Loan groups'],
   ['decision', 'Decision room'],
-  ['validation', 'Validation lab'],
+  ['validation', 'Forecast check'],
   ['learn', 'Learn'],
   ['glossary', 'Glossary'],
   ['methodology', 'Methodology'],
