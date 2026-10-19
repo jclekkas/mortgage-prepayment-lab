@@ -1,7 +1,9 @@
 # Methodology
 
-Model `mpl-engine-1.0.0`, behavioral coefficients `behavioral-coeff-1.0.0`, scenario
-schema 1, generator `synthetic-gen-1.0.0`. Implemented in `src/domain/engine.ts`;
+Model `mpl-engine-1.1.0`, behavioral coefficients `behavioral-coeff-1.0.0`, scenario
+schema 1, generator `synthetic-gen-1.1.0`. The version policy and history are in
+`src/domain/version.ts` and `docs/RELEASE_NOTES.md`; requirement-by-requirement evidence
+is in `docs/EVIDENCE.md`. Implemented in `src/domain/engine.ts`;
 independently re-implemented in `scripts/reference_model.py` for verification.
 
 Everything here is an educational convention, not a calibrated market forecast. No
@@ -10,7 +12,7 @@ coefficient is a FICO parameter.
 ## Units
 
 - Rates are annual decimals internally (6.25% is `0.0625`). Basis-point inputs are divided by 10,000.
-- Cash is in dollars. Nothing is rounded during calculation; rounding happens only in display.
+- Cash is in dollars. The synthetic generator rounds each loan's payment and current balance to whole cents so the data are identical in every JavaScript engine (generator 1.1.0); the engine itself does not round during calculation, and rounding otherwise happens only in display.
 - Portfolio ratios are computed from summed dollars, never by averaging loan ratios.
 - A ratio with a zero denominator is `null` and displays as "Not applicable", never 0 or not a number (NaN).
 
@@ -245,8 +247,13 @@ reason is unknown.
 - `tests/numerics/acceptance.test.ts`: PRD N01-N16 with expected values derived from first principles or quoted from the PRD.
 - `tests/numerics/reference.test.ts`: ledger and summary reconciliation (relative 1e-9) against six fixtures produced by `scripts/reference_model.py`, an independent Python implementation: single loan fixed and behavioral, six-loan multi-cohort with ramp shock, seasonality and burnout, custom rate path with cost override, PSA with fee override, and zero-rate plus one-month edge cases. A planted burnout bug fails this suite.
 
-## Sources (checked October 18, 2026)
+## Sources (cited, not verified)
 
+These are cited for context. As of October 19, 2026, none of them has been retrieved and read in this project's
+work sessions: the build environment's network policy denies these hosts. Treat every rule
+below that names a source as unconfirmed until it is checked; see `docs/EVIDENCE.md`.
+
+- **S0** SIFMA (formerly The Bond Market Association), *Uniform Practices*, Chapter SF, *Standard Formulas*: the expected source for SMM, CPR, PSA and WAL conventions. https://www.sifma.org/wp-content/uploads/2017/08/chsf.pdf
 - **S1** Office of the Comptroller of the Currency (OCC), Comptroller's Handbook, *Mortgage Banking*, servicing-asset and valuation sections (printed pages 67-72). Context only; not certification of this simulator. https://www.occ.treas.gov/publications-and-resources/publications/comptrollers-handbook/files/mortgage-banking/pub-ch-mortgage-banking.pdf
 - **S2** Oracle Financial Services, *PSA Method*. https://docs.oracle.com/en/industries/financial-services/ofs-analytical-applications/analytical-applications-infrastructure/812/almug/psa-method.html
 - **S3** Fannie Mae Single-Family Loan Performance Data: candidate for a licensed P1 adapter; terms restrict redistribution, and no records are bundled. https://capitalmarkets.fanniemae.com/credit-risk-transfer/fannie-mae-single-family-loan-performance-data

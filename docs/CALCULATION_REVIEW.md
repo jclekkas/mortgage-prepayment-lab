@@ -12,7 +12,7 @@ not check whether the behavioral model is realistic, calibrated or fit for valua
 Agreement between the TypeScript engine and the Python reference model only shows that
 two implementations of one reading of the PRD agree. So this review adds
 `tests/numerics/worked-examples.test.ts`, worked examples W1 to W9. Their expected values are derived **in closed
-form**: published figures, annuity sums, geometric series and power formulas. None comes
+form**: the level-payment formula, annuity sums, geometric series and power formulas. None comes
 from either implementation or from a month-by-month loop that mirrors the engine. The
 review then changed only what those examples proved wrong.
 
@@ -32,7 +32,7 @@ numerical acceptance tests, and F1 is the finding described below.
 
 | Area | Convention implemented | Independent check (closed form) | Result |
 | --- | --- | --- | --- |
-| Level payment | A = B r / (1 − (1+r)^−n) | $300,000 at 6.5% for 360 months = $1,896.20, the textbook figure | Pass (W1) |
+| Level payment | A = B r / (1 − (1+r)^−n) | $300,000 at 6.5% for 360 months = $1,896.20 by the closed form | Pass (W1) |
 | Scheduled amortization | Interest on the beginning balance; principal = A − interest; payoff forced at maturity | Balance after k payments B(1+r)^k − A((1+r)^k − 1)/r at k = 12, 120, 300, 359; interest + principal = A every month | Pass (W1) |
 | Scheduled vs voluntary | Voluntary payoff applies to the balance *after* the scheduled payment; maturity is not voluntary | Month-t prepaid = w (B − (A − rB)) s; maturity month prepaid = 0 and matured = (1−s)^359 | Pass (W2, N05) |
 | Survival weighting | Expected balance = w × contractual balance; survivors keep the original payment | At constant single monthly mortality (SMM) s: w = (1−s)^(t−1), balance = w B_(t−1), expected principal and interest (P&I) = w A (no recast), at months 1, 2, 60, 200, 359 | Pass (W2) |
@@ -85,6 +85,21 @@ because no shocked rate lands exactly on the threshold):
 | Mixed | 22 | $3,545,316 → $3,524,196 (−0.6%) | 9.04 → 8.95 years |
 | Seasoned low-rate | 4 | $3,728,139 → $3,722,887 (−0.1%) | 10.03 → 10.01 years |
 | Recent higher-rate | 44 | $3,139,315 → $3,097,286 (−1.3%) | 7.48 → 7.31 years |
+
+## Versions after this review
+
+The F1 fix changes numbers for the same inputs, so under the version policy in
+`src/domain/version.ts` it is a minor version: the model is `mpl-engine-1.1.0`. The fix first
+shipped under the old 1.0.0 label. Files and saved work stamped 1.0.0 are kept, marked, and
+recalculated only through an explicit path that shows before and after.
+
+Separately, the synthetic generator (`synthetic-gen-1.1.0`) now rounds each loan's payment and
+balance to whole cents. Before this, the last digits of `Math.pow` differed between JavaScript
+engines, which made the preset fingerprints engine-dependent. Rounding moves portfolio
+results by cents to tens of dollars (the Mixed baseline NPV moves by less than $50). The
+impact table above was measured before that rounding.
+
+Requirement-by-requirement evidence and open source checks are in `docs/EVIDENCE.md`.
 
 ## Illustrative assumptions (by design, documented, not errors)
 

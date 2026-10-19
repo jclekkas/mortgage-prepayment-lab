@@ -2,7 +2,7 @@
  * Engineering review of the mortgage calculations: independently worked examples.
  *
  * Each expected value is derived here in closed form (annuity sums, geometric series,
- * published textbook figures), not by re-running a month-by-month loop. Neither the
+ * the level-payment formula), not by re-running a month-by-month loop. Neither the
  * engine nor the Python reference model is used to produce an expected value. This
  * is an engineering check of the arithmetic and conventions, not independent
  * professional model validation.
@@ -18,7 +18,7 @@ const balanceClosed = (B: number, r: number, A: number, k: number) => (r === 0 ?
 
 describe('W1 amortization and level payment', () => {
   const loan = simpleLoan({ id: 'w1', originalBalance: 300_000, noteRate: 0.065 });
-  it('$300,000 at 6.5% for 360 months pays $1,896.20 a month (published textbook figure)', () => {
+  it('$300,000 at 6.5% for 360 months pays $1,896.20 a month (level-payment closed form)', () => {
     expect(loan.contractualPayment).toBeCloseTo(1896.2, 2);
   });
   it('scheduled balances match the closed-form balance after k payments, with no prepayment', () => {

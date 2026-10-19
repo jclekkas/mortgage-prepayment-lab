@@ -10,7 +10,7 @@ import { PRESETS, loadPreset } from '../data/presets';
 import { populationContext, stalenessReason } from '../domain/comparability';
 import { IMPORT_LIMITS } from '../domain/config';
 import { levelPayment } from '../domain/math';
-import { validateScenario } from '../domain/scenario';
+import { scenarioInputHash, validateScenario } from '../domain/scenario';
 import type { Loan, Portfolio, PopulationFilter, RunOutput, ScenarioInput } from '../domain/types';
 import { APP_BUILD, LEGACY_MODEL_VERSIONS, MODEL_VERSION, SCHEMA_VERSION, SUPPORTED_MODEL_VERSIONS, SUPPORTED_SCHEMA_VERSIONS } from '../domain/version';
 import { cleanText } from './sanitize';
@@ -45,6 +45,13 @@ export function buildScenarioFile(ws: Workspace, results: RunOutput[], exportedA
     return why ? [`${r.scenarioId}: ${why}`] : [];
   });
   if (problems.length) throw new PopulationMismatchError(problems);
+  // Each saved result must sit next to the assumptions that produced it, never edited ones.
+  for (const r of results) {
+    const sc = ws.scenarios.find((x) => x.scenarioId === r.scenarioId);
+    if (!sc || scenarioInputHash(sc) !== r.inputHash) {
+      throw new Error(`The result for ${r.scenarioId} was calculated from different assumptions than the ones being saved. Run the scenario again, then export.`);
+    }
+  }
   const isPreset = PRESETS.some((p) => p.id === ws.portfolio.meta.presetId) && loadPreset(ws.portfolio.meta.presetId).meta.hash === ws.portfolio.meta.hash;
   return {
     fileType: 'mortgage-prepayment-lab/scenarios',
