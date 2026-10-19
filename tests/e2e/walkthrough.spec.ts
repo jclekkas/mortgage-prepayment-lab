@@ -1,0 +1,95 @@
+import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { setNumber, startFresh } from './fixtures';
+
+test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, import, reproduce', async ({ page }) => {
+  await startFresh(page);
+  const baseNpv = await page.getByTestId('kpi-npv-value').textContent();
+
+  // Lab: shock rates on Scenario 1 and run.
+  await page.goto('/#/lab');
+  await setNumber(page, 'ctl-shock', '-100');
+  await expect(page.getByTestId('dirty-badge')).toHaveText(/Unsaved changes/);
+  await expect(page.getByText('Previous run.')).toBeVisible();
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs');
+  await expect(page.getByTestId('explanation-headline')).toContainText('lower-rate assumption');
+  const shockNpv = await page.getByTestId('kpi-npv-value').textContent();
+  expect(shockNpv).not.toBe(baseNpv);
+
+  // Inspect a month via the ledger; reconciliation must pass.
+  await page.getByRole('button', { name: 'Next month' }).click();
+  await expect(page.getByTestId('month-ledger')).toContainText('month 2');
+  await expect(page.getByTestId('reconciliation')).toContainText('within tolerance');
+
+  // Freeze the shocked scenario as baseline, then restore by viewing it.
+  await page.getByTestId('freeze').click();
+  await page.getByLabel('Active scenario').selectOption({ label: 'Baseline (frozen): Baseline (from Scenario 1)' });
+  await expect(page.getByTestId('kpi-npv-value')).toHaveText(shockNpv!);
+  await page.getByLabel('Active scenario').selectOption({ index: 1 });
+
+  // Filter a cohort: population badge updates everywhere.
+  await page.goto('/#/cohorts');
+  await page.getByTestId('filter-coupon-ge7').check();
+  await expect(page.getByTestId('population-badge')).toContainText('(filtered)');
+  await page.goto('/#/overview');
+  await expect(page.getByTestId('population-badge')).toContainText('(filtered)');
+  await page.getByRole('button', { name: 'Clear filters' }).click();
+  await expect(page.getByTestId('population-badge')).toContainText('all 1,000 loans');
+
+  // Compare in the decision room.
+  await page.goto('/#/decision');
+  await expect(page.getByTestId('compare-table')).toContainText('Illustrative servicing NPV');
+
+  // Export JSON, then import it and confirm results reproduce.
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);
+  const path = await download.path();
+  const text = readFileSync(path!, 'utf8');
+  expect(JSON.parse(text).fileType).toBe('mortgage-prepayment-lab/scenarios');
+  await page.getByTestId('import-input').setInputFiles({ name: 'scenarios.json', mimeType: 'application/json', buffer: Buffer.from(text) });
+  await expect(page.getByTestId('import-message')).toContainText(/Reproduced (\d+) of \1 saved results exactly/);
+
+  // CSV export has no NaN/Infinity.
+  await page.goto('/#/lab');
+  const [csv] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-csv').click()]);
+  const csvText = readFileSync((await csv.path())!, 'utf8');
+  expect(csvText).not.toMatch(/NaN|Infinity/);
+
+  // Finish an exercise.
+  await page.goto('/#/learn/speedometer');
+  await page.getByLabel('About 0.514%').check();
+  await page.getByTestId('check-prediction').click();
+  await expect(page.getByTestId('lesson-result')).toContainText('Your prediction matches the calculation');
+  await page.goto('/#/learn');
+  await expect(page.getByText('Completed').first()).toBeVisible();
+
+  // Brief shows a reproducibility hash.
+  await page.goto('/#/brief');
+  await expect(page.getByTestId('repro-hash')).toHaveText(/^[0-9a-f]{64}$/);
+});
+
+test('fixed CPR mode disables rate and recapture controls and ignores rates', async ({ page }) => {
+  await startFresh(page);
+  await page.goto('/#/lab');
+  await page.getByTestId('mode-fixedCpr').check();
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs');
+  const npv = await page.getByTestId('kpi-npv-value').textContent();
+  await expect(page.getByTestId('ctl-shock').locator('input[type=number]')).toBeDisabled();
+  await expect(page.getByTestId('ctl-recapture')).toContainText('Disabled');
+  await expect(page.getByTestId('recapture-panel')).toContainText('Not available');
+  await setNumber(page, 'ctl-cpr', '12');
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('kpi-npv-value')).not.toHaveText(npv!);
+});
+
+test('out-of-range input is rejected with a reason, not silently clamped', async ({ page }) => {
+  await startFresh(page);
+  await page.goto('/#/lab');
+  await setNumber(page, 'ctl-offer', '1.5');
+  await setNumber(page, 'ctl-shock', '-100');
+  await expect(page.getByTestId('run-bar')).toContainText('outside the supported 1% to 15% range');
+  await expect(page.getByTestId('run')).toBeDisabled();
+  await setNumber(page, 'ctl-shock', '-400');
+  await expect(page.getByTestId('ctl-shock')).toContainText('Allowed range');
+});

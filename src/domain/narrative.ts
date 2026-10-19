@@ -1,0 +1,156 @@
+/**
+ * Deterministic explanation templates populated from calculated results. If the
+ * results contradict the usual pattern, the text names the actual driver instead of
+ * forcing the template.
+ */
+import { avgOffer12, diffInputs, type InputChange } from './diff';
+import { bps, pct, pp, usd, years } from './format';
+import type { CohortRow, RunOutput, ScenarioInput } from './types';
+
+export type Lens = 'servicing' | 'investor' | 'learn';
+
+export interface Narrative {
+  headline: string;
+  points: string[];
+  changes: InputChange[];
+}
+
+const EPS_USD = 0.5;
+
+function largestCohortChange(base: CohortRow[], scen: CohortRow[]): { row: CohortRow; delta: number } | null {
+  let best: { row: CohortRow; delta: number } | null = null;
+  for (const r of scen) {
+    const b = base.find((x) => x.key === r.key);
+    if (!b) continue;
+    const d = r.prepaid12 - b.prepaid12;
+    if (!best || Math.abs(d) > Math.abs(best.delta)) best = { row: r, delta: d };
+  }
+  return best && Math.abs(best.delta) > EPS_USD ? best : null;
+}
+
+function listChanges(changes: InputChange[]): string {
+  return changes.map((c) => `${c.label.toLowerCase()} (${c.from} → ${c.to})`).join('; ');
+}
+
+export function explainComparison(
+  baseInput: ScenarioInput,
+  base: RunOutput,
+  scenInput: ScenarioInput,
+  scen: RunOutput,
+  lens: Lens,
+): Narrative {
+  const changes = diffInputs(baseInput, scenInput);
+  const b = base.summary, s = scen.summary;
+  const points: string[] = [];
+  if (base.runKey === scen.runKey || changes.length === 0) {
+    return {
+      headline: 'This scenario has the same model inputs as the baseline, so every result matches.',
+      points: ['Change one assumption and run again to see what it does.'],
+      changes,
+    };
+  }
+  if (s.loanCount === 0) {
+    return { headline: 'No loans are in the selected population, so there is nothing to compare.', points: [], changes };
+  }
+
+  const dPrep = s.prepaid12 - b.prepaid12;
+  const dCpr = s.nextMonthCpr !== null && b.nextMonthCpr !== null ? s.nextMonthCpr - b.nextMonthCpr : null;
+  const dNpv = s.servicingNpv - b.servicingNpv;
+  const faster = dPrep > EPS_USD;
+  const slower = dPrep < -EPS_USD;
+  const rateA = avgOffer12(baseInput), rateB = avgOffer12(scenInput);
+  const lowerRates = rateA !== null && rateB !== null && rateB < rateA - 1e-9;
+  const higherRates = rateA !== null && rateB !== null && rateB > rateA + 1e-9;
+  const nonRate = changes.filter((c) => c.group !== 'market');
+
+  let headline: string;
+  if (changes.some((c) => c.id === 'mode')) {
+    headline = `The scenario switches the model from ${changes.find((c) => c.id === 'mode')!.from} to ${changes.find((c) => c.id === 'mode')!.to}. Differences come from the modeling convention, not from a market event.`;
+  } else if (lowerRates && faster) {
+    headline = `Under your lower-rate assumption, more loans have a note rate far enough above the offer rate to clear refinance friction, so projected 12-month prepaid principal rises by ${usd(dPrep, { compact: true })}.`;
+  } else if (higherRates && slower) {
+    headline = `Under your higher-rate assumption, fewer loans have a refinance incentive, so projected 12-month prepaid principal falls by ${usd(-dPrep, { compact: true })}.`;
+  } else if (lowerRates && !faster) {
+    headline = `Rates are lower in this scenario, yet 12-month prepaid principal did not rise (${usd(dPrep, { compact: true, signed: true })}). The other changes outweigh the rate effect: ${listChanges(nonRate) || 'see the input list'}.`;
+  } else if (faster) {
+    headline = `Projected 12-month prepaid principal rises by ${usd(dPrep, { compact: true })}, driven by: ${listChanges(changes)}.`;
+  } else if (slower) {
+    headline = `Projected 12-month prepaid principal falls by ${usd(-dPrep, { compact: true })}, driven by: ${listChanges(changes)}.`;
+  } else {
+    headline = `Prepayment is essentially unchanged; the difference comes from: ${listChanges(changes)}.`;
+  }
+
+  if (dCpr !== null && Math.abs(dCpr) > 1e-6) points.push(`Next-month annualized speed (CPR) moves from ${pct(b.nextMonthCpr)} to ${pct(s.nextMonthCpr)} (${pp(dCpr)}).`);
+
+  const cohort = largestCohortChange(base.cohorts.coupon, scen.cohorts.coupon);
+  if (cohort && (faster || slower)) {
+    points.push(`The largest change in 12-month prepaid principal is in the ${cohort.row.label} note-rate band (${usd(cohort.delta, { compact: true, signed: true })}).`);
+  }
+
+  if (lens !== 'investor') {
+    const servicingDrivers = changes.filter((c) => ['fee', 'cost', 'discount'].includes(c.id));
+    if (Math.abs(dNpv) > EPS_USD) {
+      if (faster && dNpv < 0) {
+        points.push(`Loans that pay off stop paying servicing fees, so illustrative servicing NPV changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of UPB versus ${bps(b.servicingValueBps)}).`);
+      } else if (faster && dNpv > 0) {
+        const why = servicingDrivers.length
+          ? `because ${listChanges(servicingDrivers)} outweighs the lost fees`
+          : b.negativeMarginMonths > 0 || s.negativeMarginMonths > 0
+            ? 'because some of the loans paying off cost more to service than they earn, so losing them helps'
+            : 'because of the combination of changes listed below';
+          points.push(`Unusually, servicing NPV rises by ${usd(dNpv, { compact: true })} even though more loans pay off, ${why}.`);
+      } else if (slower && dNpv < 0) {
+        const why = servicingDrivers.length ? `because ${listChanges(servicingDrivers)}` : 'because the loans that stay longer cost more to service than they earn';
+        points.push(`Servicing NPV falls by ${usd(-dNpv, { compact: true })} even though fewer loans pay off, ${why}.`);
+      } else {
+        points.push(`Illustrative servicing NPV changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of UPB versus ${bps(b.servicingValueBps)}).${servicingDrivers.length ? ` Servicing-side inputs changed: ${listChanges(servicingDrivers)}.` : ''}`);
+      }
+    }
+    if (s.recapturePv !== null && b.recapturePv !== null && Math.abs(s.recapturePv - b.recapturePv) > EPS_USD) {
+      points.push(`The separate recapture contribution changes by ${usd(s.recapturePv - b.recapturePv, { compact: true, signed: true })}. It is new origination income; it does not keep the original loans or their servicing fees alive.`);
+    }
+  }
+  if (lens === 'investor' || lens === 'learn') {
+    if (b.wal !== null && s.wal !== null && Math.abs(s.wal - b.wal) > 1e-4) {
+      points.push(`For the loan owner, principal weighted-average life moves from ${years(b.wal)} to ${years(s.wal)}. ${s.wal < b.wal ? 'Principal comes back sooner, which raises a reinvestment question; it is not an equal-dollar loss.' : 'Principal comes back later; the owner earns the note rate for longer.'}`);
+    }
+  }
+  if (base.population.isFiltered) points.push('Both runs use the same filtered population.');
+  return { headline, points, changes };
+}
+
+export type MetricId = 'upb' | 'cpr' | 'prepaid12' | 'net12' | 'npv' | 'wal';
+
+/** Short "why did this change?" explanation for one headline card. */
+export function explainMetric(metric: MetricId, baseInput: ScenarioInput, base: RunOutput, scenInput: ScenarioInput, scen: RunOutput): string[] {
+  const changes = diffInputs(baseInput, scenInput);
+  const b = base.summary, s = scen.summary;
+  if (changes.length === 0) return ['Nothing differs from the baseline inputs, so this number is the same.'];
+  const lines: string[] = [];
+  const list = listChanges(changes);
+  switch (metric) {
+    case 'upb':
+      lines.push('Current unpaid principal balance is today’s book; no assumption changes it. It differs only if the population filter differs.');
+      break;
+    case 'cpr':
+      lines.push(`Month-1 speed is ${pct(s.nextMonthCpr)} versus ${pct(b.nextMonthCpr)}. It is prepaid principal divided by balance eligible to prepay, annualized.`);
+      if (scenInput.mode === 'behavioral') lines.push('In behavioral mode it responds to the offer rate, friction, refinance response, turnover and burnout.');
+      else lines.push('In this mode, rates do not affect speed; only the speed assumption does.');
+      break;
+    case 'prepaid12':
+      lines.push(`Twelve-month prepaid principal is summed from the monthly ledger: ${usd(s.prepaid12)} versus ${usd(b.prepaid12)}. It is not CPR times today’s balance.`);
+      break;
+    case 'net12':
+      lines.push(`Twelve-month net servicing cash flow is fees on surviving balances minus cost per surviving loan: ${usd(s.netServicing12)} versus ${usd(b.netServicing12)}.`);
+      break;
+    case 'npv':
+      lines.push(`Illustrative servicing NPV discounts every remaining month of net servicing cash flow: ${usd(s.servicingNpv)} versus ${usd(b.servicingNpv)}.`);
+      lines.push('Faster payoff shortens the fee stream; a higher discount rate shrinks distant months; higher cost per loan lowers every month.');
+      break;
+    case 'wal':
+      lines.push(`Weighted-average life of principal is ${years(s.wal)} versus ${years(b.wal)}. It measures when the loan owner gets principal back, not servicing duration.`);
+      break;
+  }
+  lines.push(`Inputs that differ from the baseline: ${list}.`);
+  return lines;
+}

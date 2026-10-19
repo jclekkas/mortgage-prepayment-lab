@@ -1,0 +1,226 @@
+import type { ReactNode } from 'react';
+import { lessonBooks } from '../../data/presets';
+import type { LoanMonth } from '../../domain/engine';
+import { pct, usd, usdExact } from '../../domain/format';
+import { cprToSmm } from '../../domain/math';
+import { defaultScenario } from '../../domain/scenario';
+import { segmentKey, segmentOptions } from '../../domain/segments';
+import type { Portfolio, RunOutput, ScenarioInput } from '../../domain/types';
+import type { EngineClient } from '../../worker/client';
+
+export interface LessonContext {
+  client: EngineClient;
+  portfolio: Portfolio;
+}
+
+export interface LessonOutcome {
+  correctId: string;
+  reveal: ReactNode;
+  /** Explanation shown when the prediction was wrong: the underlying cash flow, not just a red mark. */
+  ifWrong: string;
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  intro: string;
+  question: string;
+  options: { id: string; label: string }[] | ((ctx: LessonContext) => { id: string; label: string }[]);
+  compute: (ctx: LessonContext) => Promise<LessonOutcome>;
+}
+
+const base = (p: Portfolio): ScenarioInput => defaultScenario(p.meta.hash, p.meta.asOfMonth);
+const run = async (ctx: LessonContext, scenario: ScenarioInput): Promise<RunOutput> => (await ctx.client.request({ kind: 'run', scenario, filter: {} }).promise).result;
+const runOn = async (ctx: LessonContext, portfolio: Portfolio, scenario: ScenarioInput): Promise<RunOutput> => (await ctx.client.request({ kind: 'runOn', portfolio, scenario }).promise).result;
+
+export const LESSONS: Lesson[] = [
+  {
+    id: 'one-dollar',
+    title: '1. Follow one dollar',
+    intro: 'A borrower’s monthly payment splits into interest and principal. The servicer collects it, keeps a small fee, and passes the rest to whoever owns the loan.',
+    question: 'If this borrower pays the loan off early, who receives the remaining principal?',
+    options: [
+      { id: 'owner', label: 'The loan owner (investor)' },
+      { id: 'servicer', label: 'The servicer' },
+      { id: 'split', label: 'Split between servicer and owner' },
+    ],
+    compute: async (ctx) => {
+      const loan = ctx.portfolio.loans[0];
+      const scenario = { ...base(ctx.portfolio), mode: 'fixedCpr' as const, prepaymentParameters: { fixedCpr: 0.06, psaPercent: 100 } };
+      const rows: LoanMonth[] = (await ctx.client.request({ kind: 'loan', scenario, loanId: loan.id }).promise).result;
+      const m = rows[0];
+      return {
+        correctId: 'owner',
+        ifWrong: 'Servicing rights are a contract to collect payments for a fee. The servicer never owns the principal: scheduled and prepaid principal both pass through to the loan owner. What the servicer loses on a payoff is its future fee stream.',
+        reveal: (
+          <div className="table-wrap">
+            <table>
+              <caption>Loan {loan.id}, month 1, at 6% CPR (expected values for one loan)</caption>
+              <tbody>
+                <tr><th scope="row">Contractual payment</th><td>{usdExact(m.contractualPayment)}</td></tr>
+                <tr><th scope="row">Interest (note rate {pct(loan.noteRate, 3)})</th><td>{usdExact(m.interest)}</td></tr>
+                <tr><th scope="row">Scheduled principal → loan owner</th><td>{usdExact(m.scheduledPrincipal)}</td></tr>
+                <tr><th scope="row">Expected prepaid principal → loan owner</th><td>{usdExact(m.prepaidPrincipal)}</td></tr>
+                <tr><th scope="row">Servicing fee → servicer ({loan.servicingFeeBps} bps a year)</th><td>{usdExact(m.grossFee)}</td></tr>
+                <tr><th scope="row">Interest net of fee → loan owner</th><td>{usdExact(m.interest - m.grossFee)}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        ),
+      };
+    },
+  },
+  {
+    id: 'speedometer',
+    title: '2. Read the speedometer',
+    intro: 'CPR is an annualized speed. The model works monthly with SMM, the share of the balance that could prepay this month and does.',
+    question: 'At 6% CPR, what is the monthly SMM?',
+    options: [
+      { id: 'half', label: 'Exactly 0.50% (6% ÷ 12)' },
+      { id: 'geo', label: 'About 0.514%' },
+      { id: 'low', label: 'About 0.487%' },
+    ],
+    compute: async (ctx) => {
+      const scenario = { ...base(ctx.portfolio), mode: 'fixedCpr' as const, prepaymentParameters: { fixedCpr: 0.06, psaPercent: 100 } };
+      const out = await run(ctx, scenario);
+      const smm = cprToSmm(0.06);
+      const m = out.ledger[0];
+      return {
+        // The option closest to the calculated SMM is the correct one.
+        correctId: (Object.entries({ half: 0.06 / 12, geo: 0.005143, low: 0.004868 }) as [string, number][]).reduce((a, x) => (Math.abs(x[1] - smm) < Math.abs(a[1] - smm) ? x : a))[0],
+        ifWrong: 'Speeds compound. Surviving twelve months at monthly rate SMM leaves (1 − SMM)^12 of the balance, so SMM = 1 − (1 − CPR)^(1/12). Dividing by 12 ignores that each month applies to a smaller survivor balance.',
+        reveal: (
+          <>
+            <p className="formula">SMM = 1 − (1 − 0.06)^(1/12) = {pct(smm, 5)}</p>
+            <p>The engine’s month-1 portfolio ledger agrees: prepaid {usd(m.prepaidPrincipal, { compact: true })} ÷ eligible balance {usd(m.beginningUpb - m.scheduledPrincipal, { compact: true })} = {pct(m.smm, 5)}.</p>
+            <p>CPR is a conditional annualized rate. It is not the share of today’s book that will be gone in a year, because scheduled principal also shrinks the book.</p>
+          </>
+        ),
+      };
+    },
+  },
+  {
+    id: 'rates-fall',
+    title: '3. Rates fall',
+    intro: 'In behavioral mode, a borrower’s refinance incentive is their note rate minus the offer rate, less friction. Lower offer rates raise the incentive, most for loans already near or above it.',
+    question: 'With a −100 bps shock, which note-rate band will show the largest increase in 12-month prepaid principal?',
+    options: (ctx) => {
+      const present = new Set(ctx.portfolio.loans.map((l) => segmentKey(l, 'coupon')));
+      return segmentOptions('coupon', ctx.portfolio.loans).filter((o) => present.has(o.key)).map((o) => ({ id: o.key, label: o.label }));
+    },
+    compute: async (ctx) => {
+      const b = base(ctx.portfolio);
+      const [o0, o1] = await Promise.all([run(ctx, b), run(ctx, { ...b, scenarioId: 'lesson-shock', ratePath: { ...b.ratePath, shockBps: -100 } })]);
+      const deltas = o1.cohorts.coupon.map((r) => ({ key: r.key, label: r.label, d: r.prepaid12 - (o0.cohorts.coupon.find((x) => x.key === r.key)?.prepaid12 ?? 0), share: r.prepaid12Share }));
+      const best = deltas.reduce((a, x) => (x.d > a.d ? x : a), deltas[0]);
+      return {
+        correctId: best.key,
+        ifWrong: 'The sigmoid incentive curve is steepest around zero effective incentive. Loans far below the offer rate stay out of the money even after a 100 bps drop, while loans near or above it cross into strong incentive. Dollar change also depends on how much balance sits in each band.',
+        reveal: (
+          <div className="table-wrap">
+            <table>
+              <caption>12-month prepaid principal change, −100 bps versus default assumptions</caption>
+              <thead><tr><th scope="col">Note rate</th><th scope="col">Change</th></tr></thead>
+              <tbody>{deltas.map((x) => <tr key={x.key}><th scope="row">{x.label}</th><td>{usd(x.d, { compact: true, signed: true })}</td></tr>)}</tbody>
+            </table>
+          </div>
+        ),
+      };
+    },
+  },
+  {
+    id: 'same-speed',
+    title: '4. Same speed, different cost',
+    intro: 'Two books have the same loan ages, rates and prepayment speed (8% CPR) and the same $100 annual cost per loan. One has $150k loans, the other $600k loans.',
+    question: 'Which book has the higher servicing value per dollar of UPB (bps)?',
+    options: [
+      { id: 'small', label: 'The small-loan book' },
+      { id: 'large', label: 'The large-loan book' },
+      { id: 'same', label: 'They are the same: same speed, same fee rate' },
+    ],
+    compute: async (ctx) => {
+      const { small, large } = lessonBooks();
+      const sc = (p: Portfolio) => ({ ...base(p), mode: 'fixedCpr' as const });
+      const [os, ol] = await Promise.all([runOn(ctx, small, sc(small)), runOn(ctx, large, sc(large))]);
+      const vs = os.summary.servicingValueBps!, vl = ol.summary.servicingValueBps!;
+      return {
+        correctId: Math.abs(vs - vl) < 0.05 ? 'same' : vl > vs ? 'large' : 'small',
+        ifWrong: 'Fee income scales with balance but cost scales with the number of loans. A $150k loan earns $375 a year at 25 bps and costs $100; a $600k loan earns $1,500 for the same $100. Per dollar of UPB, small loans keep much less margin.',
+        reveal: (
+          <div className="table-wrap">
+            <table>
+              <caption>Both books at 8% CPR, 25 bps fee, $100 per loan</caption>
+              <thead><tr><th scope="col">Book</th><th scope="col">UPB</th><th scope="col">Servicing NPV</th><th scope="col">bps of UPB</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Small loans</th><td>{usd(os.summary.currentUpb, { compact: true })}</td><td>{usd(os.summary.servicingNpv, { compact: true })}</td><td>{vs.toFixed(1)}</td></tr>
+                <tr><th scope="row">Large loans</th><td>{usd(ol.summary.currentUpb, { compact: true })}</td><td>{usd(ol.summary.servicingNpv, { compact: true })}</td><td>{vl.toFixed(1)}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        ),
+      };
+    },
+  },
+  {
+    id: 'keep-customer',
+    title: '5. Keep the customer',
+    intro: 'Recapture means a refinancing borrower takes the new loan from you. The new loan earns an origination contribution.',
+    question: 'If the recapture share triples from 20% to 60%, what happens to the original book’s servicing NPV?',
+    options: [
+      { id: 'up', label: 'It rises, because fewer loans are lost' },
+      { id: 'same', label: 'It does not change' },
+      { id: 'down', label: 'It falls' },
+    ],
+    compute: async (ctx) => {
+      const b = base(ctx.portfolio);
+      const [o20, o60] = await Promise.all([run(ctx, b), run(ctx, { ...b, scenarioId: 'lesson-recap', recaptureParameters: { ...b.recaptureParameters, share: 0.6 } })]);
+      const d = o60.summary.servicingNpv - o20.summary.servicingNpv;
+      return {
+        correctId: Math.abs(d) < 0.01 ? 'same' : d > 0 ? 'up' : 'down',
+        ifWrong: 'The original loan still pays off in full and its servicing fee still stops. Recapture creates a separate new loan with its own origination contribution, shown as a separate number. This release does not add the new loan’s servicing value.',
+        reveal: (
+          <div className="table-wrap">
+            <table>
+              <caption>Default assumptions, recapture 20% versus 60%</caption>
+              <thead><tr><th scope="col">Measure</th><th scope="col">20%</th><th scope="col">60%</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Original-book servicing NPV</th><td>{usd(o20.summary.servicingNpv, { compact: true })}</td><td>{usd(o60.summary.servicingNpv, { compact: true })}</td></tr>
+                <tr><th scope="row">Recapture contribution PV</th><td>{usd(o20.summary.recapturePv, { compact: true })}</td><td>{usd(o60.summary.recapturePv, { compact: true })}</td></tr>
+                <tr><th scope="row">12-month prepaid principal</th><td>{usd(o20.summary.prepaid12, { compact: true })}</td><td>{usd(o60.summary.prepaid12, { compact: true })}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        ),
+      };
+    },
+  },
+  {
+    id: 'challenge-forecast',
+    title: '6. Challenge the forecast',
+    intro: 'A forecast was frozen 24 months ago. The validation lab shows what happened next in a synthetic history.',
+    question: 'Over those 24 months, did the frozen forecast predict too many or too few payoff dollars?',
+    options: [
+      { id: 'many', label: 'Too many: actual payoffs were lower' },
+      { id: 'few', label: 'Too few: actual payoffs were higher' },
+      { id: 'right', label: 'About right (within 5%)' },
+    ],
+    compute: async (ctx) => {
+      const v = (await ctx.client.request({ kind: 'validation' }).promise).result;
+      const f = v.scores.find((s) => s.id === 'frozen')!;
+      const ar = v.scores.find((s) => s.id === 'actualRates')!;
+      const actual = v.months.reduce((a, m) => a + m.actualPrepaid, 0);
+      const share = f.prepaidError / actual;
+      const worst = v.cohorts.reduce((a, c) => (Math.abs(c.bias) > Math.abs(a.bias) ? c : a), v.cohorts[0]);
+      return {
+        correctId: Math.abs(share) <= 0.05 ? 'right' : share > 0 ? 'many' : 'few',
+        ifWrong: 'Compare cumulative forecast prepaid dollars with the synthetic actual. Then check how much of the miss disappears when the same model is re-run on the rates that actually occurred: what remains is a behavior miss.',
+        reveal: (
+          <>
+            <p>Frozen forecast minus actual: {usd(f.prepaidError, { compact: true, signed: true })} ({(share * 100).toFixed(1)}% of actual). Re-run with actual rates: {usd(ar.prepaidError, { compact: true, signed: true })}.</p>
+            <p>The largest dollar bias is in the {worst.label} band ({usd(worst.bias, { compact: true, signed: true })}). Write a hypothesis in the validation lab. A better fit to one synthetic history is evidence, not proof.</p>
+          </>
+        ),
+      };
+    },
+  },
+];
