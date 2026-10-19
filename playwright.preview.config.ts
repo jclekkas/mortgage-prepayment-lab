@@ -18,5 +18,8 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined } } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    // Phone-sized, dark mode: the first-learner journey only.
+    { name: 'chromium-phone-dark', testMatch: /journey/, use: { ...devices['Pixel 7'], colorScheme: 'dark', launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined } } },
+    { name: 'webkit-phone-dark', testMatch: /journey/, use: { ...devices['iPhone 13'], colorScheme: 'dark' } },
   ],
 });
