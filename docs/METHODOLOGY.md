@@ -114,7 +114,7 @@ q       = 1 - exp(-h_move - h_refi)
 q_refi  = q h_refi / (h_move + h_refi);  q_move = q - q_refi   (both 0 when total hazard is 0)
 ```
 
-E counts prior months with x > 0. It starts at 0 for every synthetic loan (disclosed in
+E counts prior months with x > 0. An x smaller than 10⁻⁶ bps is floating-point noise and is set to exactly 0, so a loan exactly at the threshold never accrues burnout (see `docs/CALCULATION_REVIEW.md`, finding F1). It starts at 0 for every synthetic loan (disclosed in
 every behavioral run) and is incremented after the current month is computed. Default
 seasonality is 1; the optional preset is
 `0.80 0.80 0.95 1.05 1.15 1.20 1.20 1.15 1.05 0.95 0.85 0.85` (January first), mean

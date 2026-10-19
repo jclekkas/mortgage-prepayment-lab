@@ -64,13 +64,17 @@ function Routes() {
   return (
     <>
       <a href="#main" className="skip-link" onClick={(e) => { e.preventDefault(); mainRef.current?.focus(); }}>Skip to content</a>
+      <p className="preview-note" role="note" data-testid="preview-note">
+        Educational simulation with synthetic data and illustrative assumptions. Not investment advice.
+      </p>
       {route !== 'start' && <Header route={route} />}
       <main id="main" ref={mainRef} tabIndex={-1}>
         <ErrorBoundary key={route}>{page}</ErrorBoundary>
       </main>
       <div className="sr-only" role="status" aria-live="polite" data-testid="announcer">{state.announcement}</div>
       <footer className="footer">
-        Educational software. Synthetic data only. Illustrative results are not market value, accounting fair value, investment advice or a FICO model. Model {MODEL_VERSION}.
+        Independent educational project, not affiliated with, sponsored or endorsed by FICO or any lender. Synthetic data only. Illustrative results are
+        not market value, accounting fair value or investment advice. Model {MODEL_VERSION} · build <span data-testid="build-commit">{__BUILD_COMMIT__.slice(0, 7)}</span>.
       </footer>
     </>
   );

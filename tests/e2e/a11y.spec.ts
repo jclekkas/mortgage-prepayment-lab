@@ -18,6 +18,18 @@ test('axe finds no WCAG A/AA violations on the main pages', async ({ page }) => 
   expect(res.violations.map((v) => v.id)).toEqual([]);
 });
 
+test('axe finds no WCAG A/AA violations in dark mode', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await startFresh(page);
+  for (const r of PAGES) {
+    await page.goto(`/#/${r}`);
+    await page.waitForTimeout(700);
+    const res = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
+    const summary = res.violations.map((v) => `${r} (dark): ${v.id} (${v.nodes.length}) ${v.help} :: ${v.nodes[0]?.target.join(' ')}`);
+    expect(summary, summary.join('\n')).toEqual([]);
+  }
+});
+
 test('keyboard only: start, edit a control, run', async ({ page }) => {
   await page.goto('/#/start');
   await page.evaluate(() => new Promise<void>((r) => { const q = indexedDB.deleteDatabase('mortgage-prepayment-lab'); q.onsuccess = q.onerror = q.onblocked = () => r(); }));

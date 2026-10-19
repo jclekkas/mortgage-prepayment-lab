@@ -83,6 +83,8 @@ def project_loan(loan, sc):
             season = SEASONAL[calendar_index(sc["valuationMonth"], t)] if bp["seasonality"] == "seasonal" else 1.0
             h_move = 0.003 * bp["turnoverMultiplier"] * season
             x = (loan["noteRate"] - offer_at(sc["ratePath"], t)) * 10000 - bp["frictionBps"]
+            if abs(x) < 1e-6:  # floating-point noise at the threshold counts as zero incentive
+                x = 0.0
             s = min(age / 30.0, 1.0)
             burn = math.exp(-0.02 * exposure) if bp["burnout"] else 1.0
             h_refi = 0.04 * bp["refiMultiplier"] * loan["refiPropensity"] * s * burn * sigmoid(x / 50.0)

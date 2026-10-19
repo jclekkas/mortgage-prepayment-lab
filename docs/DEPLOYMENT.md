@@ -10,7 +10,29 @@ fallback. There are no secrets, environment variables or servers.
 2. The destination is confirmed by the product owner. Nothing deploys automatically.
 3. Record: commit SHA, model version (`mpl-engine-1.0.0`), build date, URL, smoke-test result, rollback command.
 
-## Option A: GitHub Pages (configured)
+## Review preview: `gh-pages` branch (no merge required)
+
+The public, synthetic-data review preview is published from a separate `gh-pages`
+branch holding only built files, so PR #1 does not need to be merged. (Option A's
+Actions workflow can only be started from the default branch, which does not have it yet.)
+
+1. Check out the exact commit to publish; it must have green CI, and the tree must be clean.
+2. `scripts/build-preview.sh /tmp/preview` builds with `BASE_PATH=/mortgage-prepayment-lab/`
+   and the commit stamped in `build.json` and the footer. It also adds `.nojekyll`,
+   `SOURCE_COMMIT` and the smoke workflow (`deploy/preview-smoke.yml`).
+3. Commit `/tmp/preview` as the `gh-pages` branch and push it. Never force-push over
+   history someone else depends on; each publish is a new commit on `gh-pages`.
+4. One-time: in repository Settings > Pages, set Source to **Deploy from a branch**,
+   branch **gh-pages**, folder **/ (root)**, if GitHub has not enabled it automatically.
+5. The `Preview smoke test (hosted URL)` workflow runs on the push. It waits until
+   `https://jclekkas.github.io/mortgage-prepayment-lab/build.json` reports the commit,
+   then runs `tests/preview` in Chromium and WebKit against the live URL. The deployment
+   counts only when that run passes.
+
+**Rollback:** push a new `gh-pages` commit built from the previous good source commit
+(step 2), or check out the previous `gh-pages` commit's tree and commit it again.
+
+## Option A: GitHub Pages via Actions (after merge)
 
 1. Repository Settings > Pages > Source: **GitHub Actions**.
 2. Actions > "Deploy synthetic demo to GitHub Pages" > Run workflow, entering the commit SHA or tag that passed CI.

@@ -1,0 +1,54 @@
+# Lives in the gh-pages branch (copied there by scripts/build-preview.sh). After each
+# publish it waits until the live site reports the expected commit, then runs the hosted
+# smoke test (tests/preview) from that source commit in Chromium and WebKit.
+name: Preview smoke test (hosted URL)
+
+on:
+  push:
+    branches: [gh-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: site
+      - id: meta
+        run: |
+          echo "commit=$(cat site/SOURCE_COMMIT)" >> "$GITHUB_OUTPUT"
+          echo "url=https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.meta.outputs.commit }}
+          path: src
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: src/.nvmrc
+          cache: npm
+          cache-dependency-path: src/package-lock.json
+      - run: npm ci
+        working-directory: src
+      - run: npx playwright install --with-deps chromium webkit
+        working-directory: src
+      - name: Wait for GitHub Pages to serve this commit
+        run: |
+          for i in $(seq 1 60); do
+            got=$(curl -fsS "${{ steps.meta.outputs.url }}build.json?nocache=$i" | python3 -c 'import sys,json; print(json.load(sys.stdin)["commit"])' || true)
+            echo "attempt $i: live commit '${got}'"
+            if [ "$got" = "${{ steps.meta.outputs.commit }}" ]; then exit 0; fi
+            sleep 15
+          done
+          echo "The live site never served ${{ steps.meta.outputs.commit }}. Is GitHub Pages enabled for the gh-pages branch?" >&2
+          exit 1
+      - name: Hosted smoke test (Chromium and WebKit)
+        working-directory: src
+        env:
+          PREVIEW_URL: ${{ steps.meta.outputs.url }}
+          EXPECTED_COMMIT: ${{ steps.meta.outputs.commit }}
+        run: npx playwright test --config=playwright.preview.config.ts

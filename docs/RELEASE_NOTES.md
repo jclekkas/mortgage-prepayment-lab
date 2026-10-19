@@ -47,6 +47,26 @@ Gates: `npm run typecheck`, `npm run lint`, `npm run test:numerics` (35),
   panel showing "Calculating" indefinitely. Late progress from a cancelled grid is now
   ignored.
 
+### Calculation review and preview hardening (after `805f912`)
+
+- **F1 (fixed): floating-point noise at the refinance threshold.** (0.07 − 0.065) × 10,000 − 50
+  evaluated to +4e−14, so loans exactly at the threshold (for example every 6.75% loan
+  against the default 6.25% offer) accrued burnout each month. Incentives below 10⁻⁶ bps
+  are now exactly zero, in the engine and the Python reference. Baseline servicing NPV
+  changes by −0.1% to −1.3% across the default books. See `docs/CALCULATION_REVIEW.md`.
+- 26 closed-form worked examples (`tests/numerics/worked-examples.test.ts`) cover
+  amortization, survival weighting, PSA indexing, fee units, NPV, WAL, cause split,
+  burnout timing and recapture.
+- WebKit (Safari's engine) added to CI: the full end-to-end suite at desktop size, and the
+  core journey on an iPhone-sized screen.
+- An axe scan in dark mode was added.
+- On phones the header no longer stays pinned (it took about 30% of the screen) and the
+  navigation wraps.
+- A preview notice on every screen, a footer stating no affiliation with FICO or any
+  lender, and the build commit in the footer and `build.json`.
+- A hosted-preview smoke test (`tests/preview`, `playwright.preview.config.ts`) and the
+  `gh-pages` publishing path (`scripts/build-preview.sh`).
+
 ### Known limitations
 
 - Synthetic data and uncalibrated, illustrative behavioral coefficients. Not a forecast, a FICO model or a validated valuation.

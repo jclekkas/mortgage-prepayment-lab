@@ -26,6 +26,14 @@ import type {
 } from './types';
 import { MODEL_VERSION } from './version';
 
+/**
+ * Effective incentive below this size (bps) is floating-point noise and is treated as zero.
+ * Without it, (0.07 - 0.065) x 10,000 - 50 evaluates to +4e-14, so a loan exactly at the
+ * refinance threshold would count as "positive incentive" and accrue burnout every month.
+ */
+export const INCENTIVE_EPSILON_BPS = 1e-6;
+export const snapIncentive = (x: number) => (Math.abs(x) < INCENTIVE_EPSILON_BPS ? 0 : x);
+
 export class EngineInputError extends Error {
   constructor(
     message: string,
@@ -144,7 +152,7 @@ export function simulateLoan(loan: Loan, ctx: RunContext, sink: (m: LoanMonth) =
     }
     if (behavioral) {
       const offer = ctx.offer![i];
-      const x = (loan.noteRate - offer) * 10_000 - bp.frictionBps;
+      const x = snapIncentive((loan.noteRate - offer) * 10_000 - bp.frictionBps);
       const seasoning = Math.min(age / C.seasoningMonths, 1);
       const burnoutFactor = bp.burnout ? Math.exp(-C.burnoutDecay * E) : 1;
       const hMove = C.baseTurnoverHazard * bp.turnoverMultiplier * ctx.seasonality[i];

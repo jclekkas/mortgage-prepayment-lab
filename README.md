@@ -55,6 +55,7 @@ In a sandbox without Playwright's browser download, point at an installed Chromi
 
 - [docs/PRD.md](docs/PRD.md): product requirements (v1.0, October 18, 2026)
 - [docs/METHODOLOGY.md](docs/METHODOLOGY.md): every formula, convention and exclusion
+- [docs/CALCULATION_REVIEW.md](docs/CALCULATION_REVIEW.md): engineering review of the mortgage calculations with closed-form worked examples (not professional model validation)
 - [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md): loan, portfolio, scenario and output fields
 - [docs/PERFORMANCE.md](docs/PERFORMANCE.md): measured timings and environment
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): deployment runbook and rollback
