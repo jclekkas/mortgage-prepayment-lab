@@ -18,7 +18,7 @@ export function InvestorPanel({ out, baseOut, name }: { out: RunOutput; baseOut:
         <h3 id="inv-h">Loan owner view: {name}</h3>
         <p className="notice info" style={{ fontSize: '0.88rem' }}>
           Simplified loan-owner view before credit losses, funding costs, guaranty fees, remittance delays and any security structure. It is not a priced agency mortgage-backed security.
-          The servicer does not own this principal; it collects it and passes it on.
+          Principal repayment belongs to the loan owner. The servicer administers the loan and earns servicing fees. One organization may perform both roles. The servicer collects principal and passes it on.
         </p>
         <div className="table-wrap">
           <table>

@@ -62,7 +62,7 @@ export function Controls() {
           help="Scales how strongly borrowers respond to an incentive. It does not change who has an incentive." />
         <NumberControl testId="ctl-friction" label="Refinance friction" term="friction" value={d.behavioralParameters.frictionBps} min={0} max={200} step={5} unit="basis points" defaultValue={50} digits={0}
           onChange={(v) => edit((n) => { n.behavioralParameters.frictionBps = v; })} source="Teaching assumption" disabledReason={why(notBehavioral)}
-          help="Rate saving a borrower needs before refinancing is worth the cost and hassle; 50 basis points is half a percentage point. Reduces the effective incentive." />
+          help="Assumed allowance for refinancing cost and hassle, subtracted from the rate gap; 50 basis points is half a percentage point. Reduces the effective incentive." />
         <Toggle label="Burnout" term="burnout" checked={d.behavioralParameters.burnout} disabledReason={why(notBehavioral)} source="Behavior assumption"
           help="Borrowers who have ignored past refinance chances respond less. Starts from zero history in these synthetic loans."
           onChange={(v) => edit((n) => { n.behavioralParameters.burnout = v; })} />

@@ -84,7 +84,7 @@ export function CohortsPage() {
         {!isBaseline && <TrendKey />}
         <div className="table-wrap">
           <table data-testid="cohort-table" data-perspective={servicer ? 'servicer' : 'owner'}>
-            <caption>{DIMENSION_LABELS[dim]}: {actSlot.draft.name}{!isBaseline ? ', with change versus baseline' : ''}{stale ? ' (previous run; edits not yet run)' : ''}</caption>
+            <caption>{DIMENSION_LABELS[dim]}: {actSlot.draft.name}{!isBaseline ? ', with change versus baseline. Differences use unrounded values.' : ''}{stale ? ' (previous run; edits not yet run)' : ''}</caption>
             <thead>
               <tr>
                 <th scope="col">Segment</th>

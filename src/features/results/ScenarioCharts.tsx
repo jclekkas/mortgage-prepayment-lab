@@ -95,7 +95,7 @@ export function ScenarioCharts({ entries, focus }: { entries: ChartEntry[]; focu
         stacked
         title={`Cumulative principal returned to the loan owner: ${focus.label}`}
         axes="Up the side: running total of principal repaid, in dollars. Along the bottom: month."
-        summary={`Over the chart window, ${usd(cumSched[cumSched.length - 1], { compact: true })} comes back as scheduled principal and ${usd(cumPrep[cumPrep.length - 1], { compact: true })} as prepaid principal. This principal belongs to the loan owner, not the servicer.`}
+        summary={`Over the chart window, ${usd(cumSched[cumSched.length - 1], { compact: true })} comes back as scheduled principal and ${usd(cumPrep[cumPrep.length - 1], { compact: true })} as prepaid principal. Principal repayment belongs to the loan owner.`}
         series={[
           { id: 'sched', label: 'Scheduled principal', color: 'var(--sched)', values: cumSched },
           { id: 'prep', label: 'Prepaid principal', color: 'var(--prep)', values: cumPrep },

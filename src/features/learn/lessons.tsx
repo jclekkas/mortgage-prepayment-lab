@@ -37,7 +37,7 @@ export const LESSONS: Lesson[] = [
   {
     id: 'one-dollar',
     title: '1. Follow one dollar',
-    intro: 'Three parties: the borrower makes the monthly payment; the loan owner (an investor) is owed the principal and interest; the servicer collects the payment, keeps a small annual fee, and passes the rest to the loan owner. The servicer does not own the loan.',
+    intro: 'Three parties: the borrower makes the monthly payment; the loan owner (an investor) is owed the principal and interest; the servicer collects the payment, keeps a small annual fee, and passes the rest to the loan owner. Principal repayment belongs to the loan owner. The servicer administers the loan and earns servicing fees. One organization may perform both roles. This lesson treats the roles separately.',
     question: 'If this borrower pays the loan off early, who receives the remaining principal?',
     options: [
       { id: 'owner', label: 'The loan owner (investor)' },
@@ -51,7 +51,7 @@ export const LESSONS: Lesson[] = [
       const m = rows[0];
       return {
         correctId: 'owner',
-        explanation: 'Servicing rights are a contract to collect payments for a fee. The servicer never owns the principal: scheduled and prepaid principal both pass through to the loan owner. What the servicer loses on a payoff is its future fee on that loan, because the loan no longer exists.',
+        explanation: 'Principal repayment belongs to the loan owner. The servicer administers the loan and earns servicing fees. One organization may perform both roles. Scheduled and prepaid principal both pass through to the loan owner. In the servicer role, what is lost on a payoff is the future fee on that loan, because the loan no longer exists.',
         reveal: (
           <>
           <p data-testid="expected-explainer"><strong>Before the numbers: what “expected” means.</strong> The model does not know which borrowers will pay off. It multiplies each possible outcome by its probability. At a 6% yearly prepayment rate there is about a 0.5% chance this borrower pays off in full this month, so the expected prepaid principal is about 0.5% of the balance left after the scheduled payment. The real borrower either pays off the whole balance or pays nothing extra: the expected amount is an average across many similar borrowers, not a payment anyone actually makes. The same is why portfolio screens show fractional loan counts.</p>

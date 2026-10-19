@@ -64,10 +64,10 @@ export function KpiCards() {
         <PerspectiveSwitch />
       </div>
       <p className="muted" style={{ fontSize: '0.85rem', margin: 0 }}>
-        {isBaseline ? 'Showing the frozen baseline: the starting assumptions, kept fixed for comparison.' : 'Differences are versus the frozen baseline: the starting assumptions, kept fixed for comparison.'}
+        {isBaseline ? 'Showing the frozen baseline: the starting assumptions, kept fixed for comparison.' : 'Differences are versus the frozen baseline: the starting assumptions, kept fixed for comparison. Differences use unrounded values.'}
         {owner
           ? ' The loan owner view shows when principal and interest arrive. It does not calculate the investment’s value, yield or profit: those need a purchase price, funding cost, reinvestment rate and credit losses, which this simulator does not model.'
-          : ' The servicer collects payments for a fee and pays the cost of servicing; it does not own the loans.'}
+          : ' The servicer administers the loans, earns servicing fees and pays the cost of servicing. Principal repayment belongs to the loan owner. One organization may perform both roles.'}
       </p>
       {!isBaseline && (sameAsBaseline
         ? <p className="muted" style={{ fontSize: '0.85rem' }} data-testid="same-as-baseline">{actInput!.name} {stale ? 'was last run with' : 'has'} the same inputs as the baseline, so every difference is zero. Change an assumption and press Run to compare.</p>

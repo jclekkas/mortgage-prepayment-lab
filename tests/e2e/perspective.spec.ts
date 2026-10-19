@@ -23,4 +23,6 @@ test('one perspective drives cards, the loan-group table and the lab details', a
   await page.goto('/#/overview');
   await expect(page.getByTestId('kpi-section')).toHaveAttribute('data-perspective', 'servicer');
   await expect(page.getByTestId('kpi-npv')).toBeVisible();
+  await expect(page.getByTestId('kpi-section')).toContainText('Differences use unrounded values.');
+  await expect(page.getByTestId('kpi-section')).toContainText('One organization may perform both roles.');
 });

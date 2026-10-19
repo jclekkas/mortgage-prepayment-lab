@@ -180,6 +180,7 @@ Each defect below was reproduced on `b2016bd` before it was fixed, and each has 
   the rate cut with baseline, scenario and difference. Its explanation is arithmetic: fees given up
   versus costs saved, in today's dollars. Test: `tests/e2e/guided.spec.ts`.
 - **Expected values explained first.** Lesson 1 now explains what an expected (probability-weighted) amount is before showing one loan's expected payoff dollars, and says plainly that no borrower actually pays it. The monthly ledger carries the same note above its fractional loan counts. Test: `tests/e2e/lessons.spec.ts`.
+- **Teaching wording corrections (after `fdf028f`).** Ownership is described by role: principal repayment belongs to the loan owner, the servicer administers the loan and earns servicing fees, and one organization may perform both roles. Refinancing text says the lower rate raises the modeled likelihood of refinancing and does not judge whether refinancing is worthwhile for a borrower. Tables and cards that show figures next to their differences say the differences use unrounded values. This wording has not been checked against an external source.
 - **Explanations audited.** Causes are stated only when the calculation supports them. When several
   assumptions change, the text reports the combined effect. Glossary entries that describe model
   assumptions say so. "Validation lab" is renamed "Forecast check", and the page says what a synthetic

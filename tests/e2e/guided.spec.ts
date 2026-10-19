@@ -14,7 +14,9 @@ test('guided experiment teaches, asks for a prediction, then shows baseline, rat
 
   // Step 1: roles, before any question.
   await expect(page.getByRole('heading', { name: 'Three parties, one mortgage' })).toBeFocused();
-  await expect(page.getByTestId('guided')).toContainText('The servicer does not own the loan');
+  await expect(page.getByTestId('guided')).toContainText('Principal repayment belongs to the loan owner');
+  await expect(page.getByTestId('guided')).toContainText('The servicer administers the loan and earns servicing fees');
+  await expect(page.getByTestId('guided')).toContainText('One organization may perform both roles');
   await expect(page.getByTestId('guided')).toContainText('The servicer’s fee on it stops');
   await expect(page.getByTestId('guided-skip')).toHaveAttribute('href', '#/overview');
   await page.getByTestId('guided-next').click();
@@ -30,6 +32,8 @@ test('guided experiment teaches, asks for a prediction, then shows baseline, rat
 
   // Step 3: the rate cut is described before the prediction; all three answers are required.
   await expect(page.getByTestId('guided')).toContainText('drops from 6.25% to 5.25%');
+  await expect(page.getByTestId('guided')).toContainText('It does not determine whether refinancing is worthwhile for an individual borrower.');
+  await expect(page.getByTestId('guided')).not.toContainText(/worth it|would save more/);
   const apply = page.getByTestId('guided-apply');
   await expect(apply).toBeDisabled();
   // Keyboard: focus a radio and select it with Space.
@@ -43,6 +47,7 @@ test('guided experiment teaches, asks for a prediction, then shows baseline, rat
 
   // Step 4: baseline, scenario and difference for each of the three outcomes, plus reasoning.
   await expect(page.getByTestId('guided-result')).toBeVisible();
+  await expect(page.getByTestId('guided-table')).toContainText('Differences use unrounded values.');
   const cpr = page.getByTestId('guided-row-cpr');
   await expect(cpr).toContainText('faster');
   await expect(cpr).toContainText('Matches (up)');

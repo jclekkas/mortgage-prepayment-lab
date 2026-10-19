@@ -21,6 +21,8 @@ The book has 1,000 synthetic loans and $331.72M unpaid balance. The assumptions 
 | of which: costs, in today's dollars | $595,769 | $506,698 | -$89,071 |
 | Principal weighted-average life | 8.95 years | 7.30 years | -1.66 years |
 
+Differences use unrounded values.
+
 Exception the tool teaches, as a controlled comparison: two scenarios with the fee set to 0 and everything else identical, differing only in the rate shock (0 versus -100 bps). Servicing value moves from -$595,769 to -$506,698: it improves, but it is still a loss. Steps and full results: `docs/ACCEPTANCE_REVIEW.md`, section 1.
 
 ## Questions
@@ -57,6 +59,10 @@ Exception the tool teaches, as a controlled comparison: two scenarios with the f
 - Should the view say more about premium versus discount positions?
 
 **Q10. Wording.** Please read the guided experiment (start page, then "Start with a 3-minute guided experiment") and the six lessons. Flag any sentence that a mortgage professional would call wrong or misleading, even if it is simplified on purpose.
+
+**Q11. Roles and refinancing wording.** The app teaches these two statements. Are they accurate, and is anything important missing?
+- "Principal repayment belongs to the loan owner. The servicer administers the loan and earns servicing fees. One organization may perform both roles."
+- "In this illustrative model, the lower offered rate increases the modeled likelihood of refinancing. It does not determine whether refinancing is worthwhile for an individual borrower."
 
 ## What the reviewer is not asked to do
 

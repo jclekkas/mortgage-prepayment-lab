@@ -116,8 +116,9 @@ export function GuidedPage() {
           <h1 id="g1" ref={heading} tabIndex={-1}>Three parties, one mortgage</h1>
           <ul>
             <li><strong>The borrower</strong> took out the mortgage and makes a monthly payment of interest plus some principal.</li>
-            <li><strong>The loan owner</strong> (an investor) owns the loan. All the principal and most of the interest are theirs.</li>
-            <li><strong>The servicer</strong> collects the payments, keeps a small yearly fee (here {pct(feeBps / 10_000)} of the balance), pays its own cost of servicing each loan, and passes the rest to the loan owner. The servicer does not own the loan.</li>
+            <li><strong>The loan owner</strong> (an investor). Principal repayment belongs to the loan owner, along with most of the interest.</li>
+            <li><strong>The servicer</strong> collects the payments, keeps a small yearly fee (here {pct(feeBps / 10_000)} of the balance), pays its own cost of servicing each loan, and passes the rest to the loan owner. The servicer administers the loan and earns servicing fees.</li>
+            <li>One organization may perform both roles. Here they are treated separately.</li>
           </ul>
           <p><strong>Why an early payoff matters to the servicer.</strong> When a borrower refinances or sells the house, the old loan is paid off in full and stops existing. The servicer’s fee on it stops, and so does its cost of servicing it. Whether that helps or hurts the servicer depends on whether that loan earned more in fees than it cost.</p>
           <div className="row"><button type="button" className="primary" onClick={() => setStep(2)} data-testid="guided-next">Next: the starting assumptions</button></div>
@@ -134,14 +135,14 @@ export function GuidedPage() {
                 <tr><th scope="row">Balance still owed on all loans</th><td>{usd(upb, { compact: true })}</td></tr>
                 <tr><th scope="row">Borrowers’ existing mortgage rates</th><td>{pct(Math.min(...p.loans.map((l) => l.noteRate)))} to {pct(Math.max(...p.loans.map((l) => l.noteRate)))}, average {pct(avgRate)}</td></tr>
                 <tr><th scope="row">Mortgage rate available today (offer rate, synthetic)</th><td>{pct(baseIn.ratePath.offerRate)}</td></tr>
-                <tr><th scope="row">Rate saving a borrower needs before refinancing is worth it (friction)</th><td>{(baseIn.behavioralParameters.frictionBps / 100).toFixed(2)} percentage point ({baseIn.behavioralParameters.frictionBps} basis points)</td></tr>
+                <tr><th scope="row">Friction the model subtracts for refinancing cost and hassle (an assumption)</th><td>{(baseIn.behavioralParameters.frictionBps / 100).toFixed(2)} percentage point ({baseIn.behavioralParameters.frictionBps} basis points)</td></tr>
                 <tr><th scope="row">Servicing fee</th><td>{pct(feeBps / 10_000)} of each loan’s balance a year</td></tr>
                 <tr><th scope="row">Servicer’s cost</th><td>{usd(cost)} per active loan a year</td></tr>
                 <tr><th scope="row">Discount rate for value today</th><td>{pct(baseIn.servicingParameters.discountRate, 0)} a year</td></tr>
               </tbody>
             </table>
           </div>
-          <p>At these rates, {above.toLocaleString()} of the {p.loans.length.toLocaleString()} borrowers have an existing rate high enough that refinancing would save more than that friction. In this model some borrowers also pay off each year because they sell or move, regardless of rates.</p>
+          <p>At these rates, {above.toLocaleString()} of the {p.loans.length.toLocaleString()} borrowers have an existing rate more than that friction above the offer rate, so the model gives them a positive refinance incentive. In this model some borrowers also pay off each year because they sell or move, regardless of rates.</p>
           <div className="row">
             <button type="button" onClick={() => setStep(1)}>Back</button>
             <button type="button" className="primary" onClick={() => setStep(3)} data-testid="guided-next">Next: make a prediction</button>
@@ -152,7 +153,7 @@ export function GuidedPage() {
       {step === 3 && (
         <section className="card stack" aria-labelledby="g3">
           <h1 id="g3" ref={heading} tabIndex={-1}>Predict: the offer rate falls by 1 percentage point</h1>
-          <p>The mortgage rate available today drops from {pct(baseIn.ratePath.offerRate)} to {pct(baseIn.ratePath.offerRate - 0.01)} (100 basis points) and everything else stays the same. After the cut, {aboveAfter.toLocaleString()} borrowers would save more than the friction by refinancing, up from {above.toLocaleString()}. Predict the direction of each result:</p>
+          <p>The mortgage rate available today drops from {pct(baseIn.ratePath.offerRate)} to {pct(baseIn.ratePath.offerRate - 0.01)} (100 basis points) and everything else stays the same. After the cut, {aboveAfter.toLocaleString()} borrowers would have a positive modeled incentive, up from {above.toLocaleString()}. Borrowers still below that threshold also become more likely to refinance in the model, because the modeled likelihood rises gradually rather than switching on at the threshold. In this illustrative model, the lower offered rate increases the modeled likelihood of refinancing. It does not determine whether refinancing is worthwhile for an individual borrower. Predict the direction of each result:</p>
           {OUTCOMES.map((o) => (
             <fieldset key={o.id} className="card" style={{ margin: 0 }}>
               <legend style={{ fontWeight: 600 }}>{o.question}</legend>
@@ -200,7 +201,7 @@ function GuidedResult({ result, answers, onRestart, onAdd, added, canAdd }: {
       <h1 id="g4" ref={heading} tabIndex={-1}>What the model calculated</h1>
       <div className="table-wrap">
         <table data-testid="guided-table" className="stack-table">
-          <caption>Baseline versus the rate cut, all {base.population.loanCount.toLocaleString()} loans</caption>
+          <caption>Baseline versus the rate cut, all {base.population.loanCount.toLocaleString()} loans. Differences use unrounded values.</caption>
           <thead><tr><th scope="col">Result</th><th scope="col">Baseline</th><th scope="col">After the rate cut</th><th scope="col">Difference</th><th scope="col">Your prediction</th></tr></thead>
           <tbody>
             {OUTCOMES.map((o) => {
