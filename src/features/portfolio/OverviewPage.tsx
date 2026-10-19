@@ -7,16 +7,25 @@ import { KpiCards } from '../results/KpiCards';
 import { PopulationBadge, RunStatus } from '../results/RunStatus';
 import { entriesFor, ExcludedNotice, NpvComparison } from '../results/ScenarioCharts';
 import { useComparison } from '../results/useComparison';
+import { usePerspective } from '../results/Perspective';
+import { diffInputs } from '../../domain/diff';
+import { MODE_LABELS } from '../../domain/scenario';
 import { TermsOnPage } from '../../ui/TermHelp';
 
 export function OverviewPage() {
-  const { state, active, applyAndRun, dispatch } = useStore();
+  const { state, active, baseline, applyAndRun, dispatch } = useStore();
+  const perspective = usePerspective();
   const frozen = active.draft.scenarioId === state.baselineId;
   const target = frozen ? state.slots.find((s) => s.draft.scenarioId !== state.baselineId) : active;
-  const quick = (label: string, fn: (d: typeof active.draft) => void) => (
+  const behavioral = target?.draft.mode === 'behavioral';
+  const needsBehavioral = target && !behavioral ? `Needs the behavioral model; ${target.draft.name} uses ${MODE_LABELS[target.draft.mode]}. Change its model in the Scenario lab first.` : null;
+  // Everything the shortcut's scenario already differs from the baseline in, including unrun edits, so nothing changes silently.
+  const already = target ? diffInputs(baseline.draft, target.draft) : [];
+  const quick = (label: string, fn: (d: typeof active.draft) => void, disabledReason: string | null = null) => (
     <button
       type="button"
-      disabled={!target}
+      disabled={!target || !!disabledReason}
+      title={disabledReason ?? undefined}
       onClick={() => {
         const n = structuredClone(target!.draft);
         fn(n);
@@ -43,28 +52,34 @@ export function OverviewPage() {
       <RunStatus />
       <section className="card" aria-labelledby="try-h">
         <h2 id="try-h">Predict, then run</h2>
-        <p>Before you press a button, decide: will next month’s conditional prepayment rate (CPR), the yearly pace of early payoffs, go up or down, and which note-rate band will move most? Each button changes one assumption on {target?.draft.name ?? 'a scenario'} and runs it against the frozen baseline. Rate moves are in basis points: 100 basis points equal 1 percentage point.</p>
+        <p>Before you press a button, decide: will next month’s conditional prepayment rate (CPR), the yearly pace of early payoffs, go up or down? Rate moves are in basis points: 100 basis points equal 1 percentage point.</p>
+        <p data-testid="quick-scope">
+          Each button sets one assumption on <strong>{target?.draft.name ?? 'a scenario'}</strong> and runs it against the frozen baseline. It keeps that scenario’s other changes:{' '}
+          {already.length ? already.map((c) => `${c.label}: ${c.from} → ${c.to}`).join('; ') : 'none so far (it matches the baseline)'}.
+          To start a fresh experiment instead, use “Reset to baseline” or “Duplicate” in the Scenario lab.
+        </p>
         <div className="row">
-          {quick('Rates fall 100 basis points', (n) => { n.mode = 'behavioral'; n.ratePath.shockBps = -100; })}
-          {quick('Rates rise 100 basis points', (n) => { n.mode = 'behavioral'; n.ratePath.shockBps = 100; })}
-          {quick('Recapture share 40%', (n) => { n.mode = 'behavioral'; n.recaptureParameters.share = 0.4; })}
-          {quick('Cost per loan $150', (n) => { n.servicingParameters.costPerLoan = 150; })}
+          {quick('Set rate shock to −100 basis points', (n) => { n.ratePath.shockBps = -100; }, needsBehavioral)}
+          {quick('Set rate shock to +100 basis points', (n) => { n.ratePath.shockBps = 100; }, needsBehavioral)}
+          {quick('Set recapture share to 40%', (n) => { n.recaptureParameters.share = 0.4; }, needsBehavioral)}
+          {quick('Set cost per loan to $150 a year', (n) => { n.servicingParameters.costPerLoan = 150; })}
           <a className="button" href={href('lab')}>Open the scenario lab</a>
         </div>
+        {needsBehavioral && <p className="notice info" data-testid="quick-needs-behavioral">Rate and recapture buttons are off: {needsBehavioral} In the fixed-rate and benchmark models, interest rates do not drive prepayment.</p>}
       </section>
       <KpiCards />
       <div className="two-col">
         <Explanation />
         <div className="stack">
           <ExcludedNotice excluded={npv.excluded} />
-          <NpvComparison entries={npv.entries} />
-          {state.role !== 'gm' && coupon.length > 0 && (
+          {perspective === 'servicer' && <NpvComparison entries={npv.entries} />}
+          {perspective === 'servicer' && state.role !== 'gm' && coupon.length > 0 && (
             <section className="card">
-              <h3>Baseline by note rate</h3>
+              <h3>Baseline by borrower’s existing mortgage rate</h3>
               <div className="table-wrap">
                 <table>
-                  <caption className="sr-only">Baseline cohorts by note rate</caption>
-                  <thead><tr><th scope="col">Note rate</th><th scope="col">Loans</th><th scope="col">Balance</th><th scope="col">Next-month CPR</th><th scope="col">Servicing NPV, basis points of balance</th></tr></thead>
+                  <caption className="sr-only">Baseline loan groups by existing mortgage rate (note rate)</caption>
+                  <thead><tr><th scope="col">Existing mortgage rate</th><th scope="col">Loans</th><th scope="col">Balance</th><th scope="col">Next-month CPR</th><th scope="col">Servicing NPV, basis points of balance</th></tr></thead>
                   <tbody>
                     {coupon.map((c) => (
                       <tr key={c.key}><th scope="row">{c.label}</th><td>{c.loanCount}</td><td>{usd(c.beginningUpb, { compact: true })}</td><td>{pct(c.nextMonthCpr)}</td><td>{c.servicingValueBps === null ? 'Not applicable' : c.servicingValueBps.toFixed(1)}</td></tr>
@@ -72,7 +87,7 @@ export function OverviewPage() {
                   </tbody>
                 </table>
               </div>
-              <a href={href('cohorts')}>Explore cohorts</a>
+              <a href={href('cohorts')}>Explore loan groups</a>
             </section>
           )}
         </div>

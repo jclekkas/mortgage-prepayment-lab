@@ -10,6 +10,8 @@ import { TrendArrow } from '../../ui/TrendArrow';
 
 export function SensitivityPanel({ input }: { input: ScenarioInput }) {
   const { client, state, active } = useStore();
+  // Sensitivities are differences from this scenario's own last run, so that run is the base for the arrows.
+  const base = active.run.output?.summary ?? null;
   const stale = active.draft.scenarioId !== state.baselineId && isDirty(active);
   const [rows, setRows] = useState<SensitivityRow[] | null>(null);
   const [status, setStatus] = useState<'idle' | 'running' | 'error'>('idle');
@@ -82,9 +84,9 @@ export function SensitivityPanel({ input }: { input: ScenarioInput }) {
                 {rows.map((r) => (
                   <tr key={r.id}>
                     <th scope="row">{r.label}: {r.change}</th>
-                    <td>{r.npvDelta === null ? r.skippedReason : <>{usd(r.npvDelta, { compact: true, signed: true })} <TrendArrow trend={trendOfDelta('npv', r.npvDelta, null, state.goal)} /></>}</td>
-                    <td>{r.prepaid12Delta === null ? 'Not applicable' : <>{usd(r.prepaid12Delta, { compact: true, signed: true })} <TrendArrow trend={trendOfDelta('prepaid12', r.prepaid12Delta, null, state.goal)} /></>}</td>
-                    <td>{pp(r.nextMonthCprDelta)} <TrendArrow trend={trendOfDelta('cpr', r.nextMonthCprDelta, null, state.goal)} /></td>
+                    <td>{r.npvDelta === null ? r.skippedReason : <>{usd(r.npvDelta, { compact: true, signed: true })} <TrendArrow trend={trendOfDelta('npv', r.npvDelta, base?.servicingNpv ?? null)} /></>}</td>
+                    <td>{r.prepaid12Delta === null ? 'Not applicable' : <>{usd(r.prepaid12Delta, { compact: true, signed: true })} <TrendArrow trend={trendOfDelta('prepaid12', r.prepaid12Delta, base?.prepaid12 ?? null)} /></>}</td>
+                    <td>{pp(r.nextMonthCprDelta)} <TrendArrow trend={trendOfDelta('cpr', r.nextMonthCprDelta, base?.nextMonthCpr ?? null)} /></td>
                   </tr>
                 ))}
               </tbody>

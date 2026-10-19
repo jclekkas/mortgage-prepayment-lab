@@ -4,7 +4,7 @@
  * forcing the template.
  */
 import { avgOffer12, diffInputs, type InputChange } from './diff';
-import { bps, pct, pp, usd, years } from './format';
+import { pct, pp, usd, years } from './format';
 import type { CohortRow, RunOutput, ScenarioInput } from './types';
 
 export type Lens = 'servicing' | 'investor' | 'learn';
@@ -85,28 +85,26 @@ export function explainComparison(
 
   const cohort = largestCohortChange(base.cohorts.coupon, scen.cohorts.coupon);
   if (cohort && (faster || slower)) {
-    points.push(`The largest change in 12-month prepaid principal is in the ${cohort.row.label} note-rate band (${usd(cohort.delta, { compact: true, signed: true })}).`);
+    points.push(`The largest change in 12-month prepaid principal is among borrowers whose existing mortgage rate is ${cohort.row.label} (${usd(cohort.delta, { compact: true, signed: true })}).`);
   }
 
   if (lens !== 'investor') {
     const servicingDrivers = changes.filter((c) => ['fee', 'cost', 'discount'].includes(c.id));
     if (Math.abs(dNpv) > EPS_USD) {
-      if (faster && dNpv < 0 && servicingDrivers.length === 0) {
-        points.push(`Loans that pay off stop paying servicing fees, so illustrative servicing net present value (NPV) changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of balance versus ${bps(b.servicingValueBps)}).`);
-      } else if (faster && dNpv < 0) {
-        points.push(`Illustrative servicing net present value (NPV) changes by ${usd(dNpv, { compact: true, signed: true })}. Faster payoffs (which end servicing fees) and the servicing inputs you changed (${listChanges(servicingDrivers)}) both contribute; this comparison does not split the two.`);
-      } else if (faster && dNpv > 0) {
-        const why = servicingDrivers.length
-          ? `because ${listChanges(servicingDrivers)} outweighs the lost fees`
-          : b.negativeMarginMonths > 0 || s.negativeMarginMonths > 0
-            ? `which can happen when loans cost more to service than they earn (net servicing cash flow is negative in ${Math.max(b.negativeMarginMonths, s.negativeMarginMonths)} projected months); this comparison does not identify which loans`
-            : 'because of the combination of changes listed below';
-          points.push(`Unusually, servicing net present value (NPV) rises by ${usd(dNpv, { compact: true })} even though more loans pay off, ${why}.`);
-      } else if (slower && dNpv < 0) {
-        const why = servicingDrivers.length ? `with these servicing inputs changed: ${listChanges(servicingDrivers)}` : 'which can happen when loans that stay longer cost more to service than they earn; this comparison does not identify which loans';
-        points.push(`Servicing net present value (NPV) falls by ${usd(-dNpv, { compact: true })} even though fewer loans pay off, ${why}.`);
+      const change = `Illustrative lifetime servicing net present value (NPV, in today’s dollars) changes by ${usd(dNpv, { compact: true, signed: true })}, from ${usd(b.servicingNpv, { compact: true })} to ${usd(s.servicingNpv, { compact: true })}.`;
+      if (servicingDrivers.length) {
+        // Fee, cost or discount changed too: the comparison cannot separate their effect from the payoff effect.
+        points.push(`${change} The servicing inputs you changed (${listChanges(servicingDrivers)}) and any change in how long loans stay both contribute; this comparison does not split them.`);
+      } else if (faster || slower) {
+        // With fee, cost and discount unchanged, value changes in this model only through how long loans stay.
+        const fewerMonths = faster;
+        const feesWin = (dNpv < 0) === fewerMonths;
+        points.push(`${change} With the servicing fee, cost and discount rate unchanged, the only channel in this model is how long loans stay. ${fewerMonths ? 'Faster payoffs end both the servicing fees and the servicing costs of the loans that leave' : 'Slower payoffs keep both the servicing fees and the servicing costs of loans that stay'}; here the ${feesWin ? 'fees' : 'costs'} involved outweigh the ${feesWin ? 'costs' : 'fees'}.`);
       } else {
-        points.push(`Illustrative servicing net present value (NPV) changes by ${usd(dNpv, { compact: true, signed: true })} (${bps(s.servicingValueBps)} of balance versus ${bps(b.servicingValueBps)}).${servicingDrivers.length ? ` Servicing-side inputs changed: ${listChanges(servicingDrivers)}.` : ''}`);
+        points.push(change);
+      }
+      if (s.servicingNpv < 0) {
+        points.push(`Lifetime servicing value is still negative (${usd(s.servicingNpv, { compact: true })}) under these assumptions: servicing this book costs more than it earns. A smaller loss is not a profit.`);
       }
     }
     if (s.recapturePv !== null && b.recapturePv !== null && Math.abs(s.recapturePv - b.recapturePv) > EPS_USD) {
@@ -122,7 +120,7 @@ export function explainComparison(
   return { headline, points, changes };
 }
 
-export type MetricId = 'upb' | 'cpr' | 'prepaid12' | 'net12' | 'npv' | 'wal';
+export type MetricId = 'upb' | 'cpr' | 'prepaid12' | 'net12' | 'npv' | 'wal' | 'principal12' | 'ownerInterest12';
 
 /** Short "why did this change?" explanation for one headline card. */
 export function explainMetric(metric: MetricId, baseInput: ScenarioInput, base: RunOutput, scenInput: ScenarioInput, scen: RunOutput): string[] {
@@ -148,10 +146,18 @@ export function explainMetric(metric: MetricId, baseInput: ScenarioInput, base: 
       break;
     case 'npv':
       lines.push(`Illustrative servicing NPV discounts every remaining month of net servicing cash flow: ${usd(s.servicingNpv)} versus ${usd(b.servicingNpv)}.`);
-      lines.push('Faster payoff shortens the fee stream; a higher discount rate shrinks distant months; higher cost per loan lowers every month.');
+      lines.push('Faster payoff shortens both the fee stream and the cost stream of the loans that leave; whether value rises or falls depends on whether those loans earn more in fees than they cost. A higher discount rate shrinks distant months; a higher cost per loan lowers every month.');
       break;
     case 'wal':
       lines.push(`Weighted-average life of principal is ${years(s.wal)} versus ${years(b.wal)}. It measures when the loan owner gets principal back, not servicing duration.`);
+      break;
+    case 'principal12': {
+      const bp = b.scheduled12 + b.prepaid12, sp = s.scheduled12 + s.prepaid12;
+      lines.push(`Principal returned to the loan owner over the next 12 months, scheduled plus prepaid: ${usd(sp)} versus ${usd(bp)}. It is a timing measure: it says when cash arrives, not whether the investment gains or loses value.`);
+      break;
+    }
+    case 'ownerInterest12':
+      lines.push('Note interest the loan owner receives after the servicing fee, summed over the next 12 projected months. When loans pay off sooner, the owner receives less interest but gets principal back earlier to reinvest; this simulator does not model reinvestment or the price paid for the loans.');
       break;
   }
   lines.push(`Inputs that differ from the baseline: ${list}.`);

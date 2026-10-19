@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { isDirty, useStore } from '../../app/store';
 import { Explanation } from '../results/Explanation';
 import { FormulaDrawer } from '../results/FormulaDrawer';
@@ -9,13 +8,15 @@ import { RecapturePanel } from '../results/RecapturePanel';
 import { PopulationBadge, RunStatus } from '../results/RunStatus';
 import { entriesFor, ExcludedNotice, ScenarioCharts } from '../results/ScenarioCharts';
 import { SensitivityPanel } from '../results/SensitivityPanel';
+import { usePerspective } from '../results/Perspective';
 import { Controls } from './Controls';
 import { RunBar } from './RunBar';
 import { TermsOnPage } from '../../ui/TermHelp';
 
 export function LabPage() {
   const { state, active, baseline } = useStore();
-  const [lens, setLens] = useState<'servicing' | 'investor'>(state.goal === 'investor' ? 'investor' : 'servicing');
+  // One perspective drives the cards, charts and explanation; it is switched in the headline section.
+  const lens = usePerspective() === 'owner' ? 'investor' : 'servicing';
   const { entries, excluded } = entriesFor(state, state.slots.filter((s) => s === baseline || s === active));
   const focus = entries.find((e) => e.output.scenarioId === active.draft.scenarioId);
   // Only a result for the current population is shown in detail or exported.
@@ -47,10 +48,7 @@ export function LabPage() {
           <h2 id="results-h" className="sr-only">Results</h2>
           <RunStatus />
           <KpiCards />
-          <div role="tablist" aria-label="Economic lens" className="chips">
-            <button role="tab" type="button" className="chip" aria-selected={lens === 'servicing'} onClick={() => setLens('servicing')}>Servicing economics</button>
-            <button role="tab" type="button" className="chip" aria-selected={lens === 'investor'} onClick={() => setLens('investor')} data-testid="lens-investor">Loan owner cash flows</button>
-          </div>
+          <h2 className="section-label" data-testid="detail-perspective">Details: {lens === 'investor' ? 'loan owner' : 'servicer'} perspective</h2>
           <ExcludedNotice excluded={excluded} />
           {focus && out && input ? (
             lens === 'servicing' ? (

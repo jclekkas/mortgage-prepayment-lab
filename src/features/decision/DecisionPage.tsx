@@ -108,7 +108,7 @@ export function DecisionPage() {
       const slot = state.slots.find((x) => x.draft.scenarioId === id);
       const same = !!slot?.run.outputInput && !!baseItemInput && diffInputs(baseItemInput, slot.run.outputInput).length === 0;
       if (!trend || !baseSummary || id === state.baselineId || same) return f(s);
-      return <>{f(s)} <TrendArrow trend={trendOf(trend[0], trend[1](baseSummary), trend[1](s), state.goal)} /></>;
+      return <>{f(s)} <TrendArrow trend={trendOf(trend[0], trend[1](baseSummary), trend[1](s))} /></>;
     }
     if (item.phase === 'running') return 'Calculating…';
     if (!item.output) return 'Not run';
@@ -133,7 +133,8 @@ export function DecisionPage() {
       )}
       <section className="card" aria-labelledby="cmp-h">
         <h2 id="cmp-h">Scenario comparison</h2>
-        {state.slots.length > 1 && <TrendKey investor={state.goal === 'investor'} />}
+        {state.slots.length > 1 && <TrendKey />}
+        <p className="muted" style={{ fontSize: '0.85rem' }}>Cash-flow and value rows are the servicer’s. Speed, principal and average-life rows describe timing only; this simulator does not calculate the loan owner’s investment value.</p>
         <div className="table-wrap">
           <table data-testid="compare-table">
             <caption className="sr-only">Scenario comparison</caption>

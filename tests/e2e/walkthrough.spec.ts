@@ -42,12 +42,25 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   await expect(page.getByTestId('charts-stale')).toHaveCount(0);
   const shockNpv = await page.getByTestId('kpi-npv-value').textContent();
   expect(shockNpv).not.toBe(baseNpv);
-  // Arrows: faster prepayment is up but worse for the servicer; lower value is down and worse.
+  // Arrows: prepayment speed shows direction only; servicing value is judged on its own number.
   const cprTrend = page.getByTestId('kpi-cpr').getByTestId('trend');
   await expect(cprTrend).toHaveAttribute('data-direction', 'up');
-  await expect(cprTrend).toHaveAttribute('data-tone', 'bad');
-  await expect(cprTrend).toContainText('Up, worse for the servicer.');
-  await expect(page.getByTestId('kpi-npv').getByTestId('trend')).toHaveAttribute('data-direction', 'down');
+  await expect(cprTrend).toHaveAttribute('data-tone', 'neutral');
+  await expect(cprTrend).toContainText('faster');
+  await expect(cprTrend).not.toContainText('worse');
+  const npvTrend = page.getByTestId('kpi-npv').getByTestId('trend');
+  await expect(npvTrend).toHaveAttribute('data-direction', 'down');
+  await expect(npvTrend).toContainText('lower');
+  // Switching perspective changes the cards, the details panel and the explanation together.
+  await page.getByTestId('perspective-owner').click();
+  await expect(page.getByTestId('kpi-section')).toHaveAttribute('data-perspective', 'owner');
+  await expect(page.getByTestId('kpi-npv')).toHaveCount(0);
+  await expect(page.getByTestId('kpi-ownerInterest12')).toBeVisible();
+  await expect(page.getByTestId('kpi-section')).toContainText('does not calculate the investment’s value, yield or profit');
+  await expect(page.getByTestId('detail-perspective')).toContainText('loan owner');
+  await expect(page.getByTestId('investor-panel')).toBeVisible();
+  await page.getByTestId('perspective-servicer').click();
+  await expect(page.getByTestId('kpi-npv')).toBeVisible();
   await expect(page.getByTestId('kpi-upb').getByTestId('trend')).toHaveAttribute('data-tone', 'flat');
   await expect(page.getByTestId('kpi-upb').getByTestId('trend')).toContainText('no change');
   await expect(page.getByTestId('kpi-upb')).toContainText('vs baseline: $0');
