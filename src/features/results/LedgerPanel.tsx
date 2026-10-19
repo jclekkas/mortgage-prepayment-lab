@@ -16,7 +16,7 @@ const ROWS: Row[] = [
   ['Ending balance (UPB)', (m) => usdExact(m.endingUpb), 'Beginning minus scheduled minus prepaid.'],
   ['Single monthly mortality (SMM)', (m) => pct(m.smm, 4), 'Share of the balance paid off early this month: prepaid principal ÷ (beginning balance − scheduled principal).'],
   ['Conditional prepayment rate (CPR)', (m) => pct(m.cpr, 3), 'The same speed as a yearly rate: 1 − (1 − SMM)^12.'],
-  ['Expected active loans', (m) => num(m.beginningLoans, 2), 'Sum of survival weights. Fractional counts are intentional.'],
+  ['Expected active loans', (m) => num(m.beginningLoans, 2), 'Sum of survival weights. An expected value, so it can be fractional: no real loan is partly paid off.'],
   ['Expected voluntary payoffs (all causes)', (m) => num(m.voluntaryPayoffs, 3), 'Survival weight × payoff probability, summed by loan. Maturities are counted separately.'],
   ['… of which refinance', (m) => cause(m.refiPayoffs), 'Identified only in behavioral mode.'],
   ['… of which move / turnover', (m) => cause(m.turnoverPayoffs), 'Identified only in behavioral mode.'],
@@ -57,6 +57,9 @@ export function MonthLedger({ out, baseOut, name }: { out: RunOutput; baseOut: R
           <button type="button" disabled={i >= out.ledger.length - 1} onClick={() => dispatch({ type: 'selectMonth', index: i + 1 })}>Next month <span aria-hidden="true">→</span></button>
         </div>
       </div>
+      <p className="muted" style={{ fontSize: '0.85rem' }} data-testid="ledger-expected-note">
+        Amounts and loan counts here are expected values: each possible payoff is weighted by its probability and added up, so counts can be fractional. They are averages across many similar loans, not payments any one borrower makes.
+      </p>
       <p className={`notice ${Math.abs(residual) <= tol ? 'ok' : 'err'}`} data-testid="reconciliation">
         Reconciliation: beginning balance {usdExact(m.beginningUpb)} = scheduled {usdExact(m.scheduledPrincipal)} + prepaid {usdExact(m.prepaidPrincipal)} + ending {usdExact(m.endingUpb)}.
         Difference {usdExact(residual)} ({Math.abs(residual) <= tol ? 'within tolerance' : 'OUT OF TOLERANCE'}).

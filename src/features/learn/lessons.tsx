@@ -54,9 +54,10 @@ export const LESSONS: Lesson[] = [
         explanation: 'Servicing rights are a contract to collect payments for a fee. The servicer never owns the principal: scheduled and prepaid principal both pass through to the loan owner. What the servicer loses on a payoff is its future fee on that loan, because the loan no longer exists.',
         reveal: (
           <>
+          <p data-testid="expected-explainer"><strong>Before the numbers: what “expected” means.</strong> The model does not know which borrowers will pay off. It multiplies each possible outcome by its probability. At a 6% yearly prepayment rate there is about a 0.5% chance this borrower pays off in full this month, so the expected prepaid principal is about 0.5% of the balance left after the scheduled payment. The real borrower either pays off the whole balance or pays nothing extra: the expected amount is an average across many similar borrowers, not a payment anyone actually makes. The same is why portfolio screens show fractional loan counts.</p>
           <div className="table-wrap">
             <table>
-              <caption>One synthetic loan, month 1, at a 6% yearly prepayment rate. Amounts are expected values (explained below).</caption>
+              <caption>One synthetic loan, month 1, at a 6% yearly prepayment rate. The prepaid amount is an expected value, explained above.</caption>
               <tbody>
                 <tr><th scope="row">Contractual payment</th><td>{usdExact(m.contractualPayment)}</td></tr>
                 <tr><th scope="row">Interest (note rate {pct(loan.noteRate, 3)})</th><td>{usdExact(m.interest)}</td></tr>
@@ -67,7 +68,6 @@ export const LESSONS: Lesson[] = [
               </tbody>
             </table>
           </div>
-          <p><strong>What “expected” means.</strong> The model does not know which borrowers will pay off. It multiplies each possible outcome by its probability. At a 6% yearly prepayment rate there is about a 0.5% chance this borrower pays off in full this month, so the expected prepaid principal is about 0.5% of the balance left after the scheduled payment. The real borrower either pays off the whole balance or pays nothing extra: the expected amount is an average across many similar borrowers, not a payment anyone actually makes. The same is why portfolio screens show fractional loan counts.</p>
           </>
         ),
       };

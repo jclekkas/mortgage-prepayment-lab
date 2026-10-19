@@ -179,6 +179,7 @@ Each defect below was reproduced on `b2016bd` before it was fixed, and each has 
   servicer are, why an early payoff ends the fee, the starting assumptions, a prediction, then
   the rate cut with baseline, scenario and difference. Its explanation is arithmetic: fees given up
   versus costs saved, in today's dollars. Test: `tests/e2e/guided.spec.ts`.
+- **Expected values explained first.** Lesson 1 now explains what an expected (probability-weighted) amount is before showing one loan's expected payoff dollars, and says plainly that no borrower actually pays it. The monthly ledger carries the same note above its fractional loan counts. Test: `tests/e2e/lessons.spec.ts`.
 - **Explanations audited.** Causes are stated only when the calculation supports them. When several
   assumptions change, the text reports the combined effect. Glossary entries that describe model
   assumptions say so. "Validation lab" is renamed "Forecast check", and the page says what a synthetic

@@ -58,3 +58,17 @@ test('a slow calculation never publishes its answer into the next lesson', async
   await expect(page.getByTestId('lesson-view-same-speed')).toBeVisible();
   await expect(page.getByTestId('lesson-result')).toHaveCount(0);
 });
+
+test('expected values are explained before any expected dollars are shown', async ({ page }) => {
+  await startFresh(page);
+  await page.goto('/#/learn/one-dollar');
+  await page.locator('input[type=radio]').first().check();
+  await page.getByTestId('check-prediction').click();
+  const note = page.getByTestId('expected-explainer');
+  await expect(note).toContainText('not a payment anyone actually makes');
+  const table = page.getByTestId('lesson-result').locator('table');
+  const above = await note.evaluate((n, t) => !!(n.compareDocumentPosition(t as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await table.elementHandle());
+  expect(above).toBe(true);
+  await page.goto('/#/lab');
+  await expect(page.getByTestId('ledger-expected-note')).toContainText('not payments any one borrower makes');
+});
