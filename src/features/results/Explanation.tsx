@@ -1,4 +1,5 @@
 import { useStore } from '../../app/store';
+import { APP_BUILD } from '../../domain/version';
 import { explainComparison } from '../../domain/narrative';
 import { useComparison } from './useComparison';
 import { BlockedNotice } from './BlockedNotice';
@@ -52,7 +53,7 @@ export function Explanation() {
         </div>
       )}
       <p className="muted" style={{ fontSize: '0.8rem' }}>
-        Explanations are generated from calculated results by fixed templates. Reproducibility key {actOut!.runKey.slice(0, 12)}…, model {actOut!.modelVersion}.
+        Explanations are generated from calculated results by fixed templates. Reproducibility key {actOut!.runKey.slice(0, 12)}…, model {actOut!.modelVersion}, build {APP_BUILD.slice(0, 7)}.
       </p>
     </section>
   );

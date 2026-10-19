@@ -111,6 +111,8 @@ export const scenarioFileSchema = z.strictObject({
   fileType: z.literal('mortgage-prepayment-lab/scenarios'),
   schemaVersion,
   modelVersion: z.string().max(64),
+  /** Source build that wrote the file (git commit). Absent in files from earlier builds. */
+  appBuild: z.string().max(64).optional(),
   exportedAt: z.string().max(40),
   portfolio: z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('preset'), presetId: z.string().max(64), hash }),

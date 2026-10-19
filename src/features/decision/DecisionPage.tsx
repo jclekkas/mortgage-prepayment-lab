@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { href } from '../../app/router';
-import { assessSlots, isDirty, slotLabel, useStore } from '../../app/store';
+import { assessSlots, BACKUP_KEY, isDirty, slotLabel, useStore } from '../../app/store';
+import { kv } from '../../storage/idb';
+import { MODEL_VERSION } from '../../domain/version';
 import { diffInputs } from '../../domain/diff';
 import { formatMonth } from '../../domain/calendar';
 import { pct, usd, years } from '../../domain/format';
 import { MODE_LABELS } from '../../domain/scenario';
 import type { SummaryMetrics } from '../../domain/types';
-import { buildScenarioFile, ImportError, parseScenarioFile, PopulationMismatchError, readFileText, type DecisionNote } from '../../storage/files';
+import { buildScenarioFile, ImportError, parseScenarioFile, PopulationMismatchError, readFileText, type ImportResult, type DecisionNote } from '../../storage/files';
 import { verifyReproduction, type MetricDifference } from '../../storage/verify';
 import { downloadText, safeFileName } from '../../storage/exports';
 import type { ScenarioFile } from '../../storage/schema';
@@ -40,8 +42,14 @@ function fmtMetric(v: MetricDifference['saved']): string {
 
 export function DecisionPage() {
   const { state, dispatch, importWorkspace, clearSaved } = useStore();
-  const [importMsg, setImportMsg] = useState<{ kind: 'ok' | 'err'; text: string; details?: string[] } | null>(null);
+  const [importMsg, setImportMsg] = useState<{ kind: 'ok' | 'err' | 'info'; text: string; details?: string[] } | null>(null);
   const [saved, setSaved] = useState<ScenarioFile['results'] | null>(null);
+  const [legacy, setLegacy] = useState<ImportResult['legacy']>(null);
+  // A saved workspace an earlier visit could not open is kept; offer it as a file.
+  const [backup, setBackup] = useState<{ file: string; savedAt?: string } | null>(null);
+  useEffect(() => {
+    kv.get<{ file: string; savedAt?: string }>(BACKUP_KEY).then((b) => setBackup(b ?? null), () => setBackup(null));
+  }, []);
   // One gate for comparing, printing and exporting: every result must be for the current population.
   const assessment = assessSlots(state);
   const { entries, excluded } = entriesFor(state);
@@ -55,6 +63,16 @@ export function DecisionPage() {
     if (!saved || !settled) return;
     if (saved.length === 0) {
       setImportMsg({ kind: 'ok', text: 'Imported. The file had no saved results to compare.' });
+    } else if (legacy) {
+      // Different model version: show what changed, never call it a reproduction or a failure.
+      const name = (id: string) => state.slots.find((s) => s.draft.scenarioId === id)?.draft.name ?? id;
+      const report = verifyReproduction(saved, state.slots.map((s) => s.run.output!));
+      const details = report.scenarios.flatMap((v) => v.differences.map((d) => `${name(v.scenarioId)}: ${d.metric} was ${fmtMetric(d.saved)} under ${legacy.fromVersion}, now ${fmtMetric(d.actual)}`));
+      setImportMsg({
+        kind: 'info',
+        text: `Recalculated with ${MODEL_VERSION}. This file was made with ${legacy.fromVersion}, so its saved results are listed as the old numbers, not checked as a reproduction. ${legacy.note} ${details.length ? `${details.length} saved number(s) changed:` : 'No saved number changed.'}`,
+        details: details.slice(0, 40),
+      });
     } else {
       const report = verifyReproduction(saved, state.slots.map((s) => s.run.output!));
       const name = (id: string) => state.slots.find((s) => s.draft.scenarioId === id)?.draft.name ?? id;
@@ -71,7 +89,8 @@ export function DecisionPage() {
       });
     }
     setSaved(null);
-  }, [saved, settled, state.slots]);
+    setLegacy(null);
+  }, [saved, settled, state.slots, legacy]);
 
   const exportJson = () => {
     try {
@@ -85,10 +104,13 @@ export function DecisionPage() {
     if (!f) return;
     try {
       const text = await readFileText(f);
-      const { workspace, savedResults } = parseScenarioFile(text);
+      const { workspace, savedResults, legacy: old } = parseScenarioFile(text);
       importWorkspace(workspace);
       setSaved(savedResults);
-      setImportMsg({ kind: 'ok', text: 'Imported. Re-running to check the results reproduce…' });
+      setLegacy(old);
+      setImportMsg(old
+        ? { kind: 'info', text: `Imported assumptions and notes from a file made with model ${old.fromVersion}. Recalculating every scenario with ${MODEL_VERSION}…` }
+        : { kind: 'ok', text: 'Imported. Re-running to check the results reproduce…' });
     } catch (e) {
       setImportMsg({ kind: 'err', text: e instanceof ImportError ? e.message : `Import failed: ${(e as Error).message}`, details: e instanceof ImportError ? e.details : undefined });
     }
@@ -193,6 +215,11 @@ export function DecisionPage() {
             <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => { void onImport(e.target.files?.[0]); e.target.value = ''; }} data-testid="import-input" />
           </label>
           <button type="button" onClick={() => void clearSaved()}>Clear data saved on this device</button>
+          {backup && (
+            <button type="button" onClick={() => downloadText('earlier-saved-workspace.json', backup.file, 'application/json')} data-testid="download-backup">
+              Download earlier saved work (could not be opened)
+            </button>
+          )}
         </div>
         <p className="muted" style={{ fontSize: '0.85rem' }}>
           Files stay on your computer and are plain-text JavaScript Object Notation (JSON) files you can re-import. Imports are limited to 10 megabytes and 10,000 synthetic loans, are checked against a strict schema, and are never migrated or reinterpreted. Saved: {state.storage.savedAt ? new Date(state.storage.savedAt).toLocaleString() : 'not yet'}.

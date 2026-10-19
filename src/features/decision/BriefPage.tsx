@@ -7,7 +7,7 @@ import { hashValue } from '../../domain/hash';
 import { explainComparison } from '../../domain/narrative';
 import { describeFilter } from '../../domain/segments';
 import { MODE_LABELS } from '../../domain/scenario';
-import { MODEL_VERSION } from '../../domain/version';
+import { APP_BUILD, MODEL_VERSION } from '../../domain/version';
 import { fullName, TERMS, type TermId } from '../../ui/terms';
 
 const BRIEF_TERMS: TermId[] = ['cpr', 'npv', 'wal', 'bp', 'upb', 'recapture', 'discount'];
@@ -31,7 +31,7 @@ export function BriefPage() {
       <header>
         <h1>Scenario brief: {p.name}</h1>
         <p>
-          Synthetic portfolio, as of {formatMonth(p.asOfMonth)} · {state.portfolio.loans.length.toLocaleString()} loans · population: {describeFilter(state.filter)} · model {MODEL_VERSION} · prepared {new Date().toLocaleDateString()}
+          Synthetic portfolio, as of {formatMonth(p.asOfMonth)} · {state.portfolio.loans.length.toLocaleString()} loans · population: {describeFilter(state.filter)} · model {MODEL_VERSION} · build {APP_BUILD.slice(0, 7)} · prepared {new Date().toLocaleDateString()}
         </p>
         <p><strong>Reproducibility hash:</strong> <code data-testid="repro-hash">{reproHash ?? 'waiting for all runs'}</code> (portfolio {p.hash.slice(0, 12)}…)</p>
       </header>

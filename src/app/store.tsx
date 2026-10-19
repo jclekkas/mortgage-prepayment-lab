@@ -4,6 +4,7 @@ import type { ChartHorizon } from '../domain/config';
 import type { Lens } from '../domain/narrative';
 import { defaultScenario, scenarioInputHash, validateScenario, type FieldError } from '../domain/scenario';
 import type { Portfolio, PopulationFilter, RunOutput, ScenarioInput } from '../domain/types';
+import { MODEL_VERSION } from '../domain/version';
 import { buildScenarioFile, parseScenarioFile, type DecisionNote, type Workspace } from '../storage/files';
 import { kv } from '../storage/idb';
 import { assessComparison, populationContext, type ComparisonAssessment, type PopulationContext } from '../domain/comparability';
@@ -280,6 +281,8 @@ interface Api {
 const Ctx = createContext<Api | null>(null);
 
 const STORAGE_KEY = 'workspace-v1';
+/** A saved workspace this version could not read is copied here before anything new is saved, so it is never lost. */
+export const BACKUP_KEY = 'workspace-unreadable-backup';
 export const HYPOTHESIS_MAX = 4000;
 
 interface SavedRecord {
@@ -380,12 +383,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const saved = await kv.get<SavedRecord>(STORAGE_KEY);
         if (saved) {
           try {
-            const { workspace } = parseScenarioFile(saved.file);
+            const { workspace, legacy } = parseScenarioFile(saved.file);
             const hypothesis = typeof saved.hypothesis === 'string' ? cleanText(saved.hypothesis, HYPOTHESIS_MAX) : undefined;
             dispatch({ type: 'restore', ws: workspace, goal: saved.goal, role: saved.role, exercises: saved.exercises, hypothesis, started: saved.started });
-            dispatch({ type: 'storage', storage: { status: 'saved', savedAt: saved.savedAt, message: null } });
+            dispatch({
+              type: 'storage',
+              storage: {
+                status: 'saved',
+                savedAt: saved.savedAt,
+                message: legacy
+                  ? `Your saved work was made with model ${legacy.fromVersion}. Its assumptions and notes were kept and every scenario is being recalculated with ${MODEL_VERSION}, so numbers may differ from what you saw before. ${legacy.note}`
+                  : null,
+              },
+            });
           } catch (e) {
-            dispatch({ type: 'storage', storage: { status: 'saved', savedAt: null, message: `A saved workspace could not be restored (${(e as Error).message}). Starting fresh.` } });
+            // Keep the unreadable record before autosave can replace it.
+            await kv.set(BACKUP_KEY, { ...saved, backedUpAt: new Date().toISOString(), reason: (e as Error).message });
+            dispatch({ type: 'storage', storage: { status: 'saved', savedAt: null, message: `Your earlier saved work could not be opened by this version (${(e as Error).message}). It has been kept, not deleted: download it from the Decision room under “Brief, files and local data”. Starting with a new workspace.` } });
           }
         } else dispatch({ type: 'storage', storage: { status: 'saved', savedAt: null, message: null } });
       } catch (e) {

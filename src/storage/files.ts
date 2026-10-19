@@ -1,6 +1,9 @@
 /**
- * Save / import of scenario files. Import never migrates or reinterprets assumptions:
- * an unsupported schema or model version is rejected with a reason.
+ * Save / import of scenario files. Assumptions are never reinterpreted: a file from an
+ * unsupported schema or model version is rejected with a reason. A file from a listed older
+ * model version (LEGACY_MODEL_VERSIONS, same assumption meanings) keeps its assumptions and
+ * notes and is recalculated with the current model; the result says so, and its saved results
+ * are compared as "before versus after the model change", never as a reproduction.
  */
 import { portfolioHash } from '../data/generator';
 import { PRESETS, loadPreset } from '../data/presets';
@@ -9,7 +12,7 @@ import { IMPORT_LIMITS } from '../domain/config';
 import { levelPayment } from '../domain/math';
 import { validateScenario } from '../domain/scenario';
 import type { Loan, Portfolio, PopulationFilter, RunOutput, ScenarioInput } from '../domain/types';
-import { MODEL_VERSION, SCHEMA_VERSION, SUPPORTED_MODEL_VERSIONS, SUPPORTED_SCHEMA_VERSIONS } from '../domain/version';
+import { APP_BUILD, LEGACY_MODEL_VERSIONS, MODEL_VERSION, SCHEMA_VERSION, SUPPORTED_MODEL_VERSIONS, SUPPORTED_SCHEMA_VERSIONS } from '../domain/version';
 import { cleanText } from './sanitize';
 import { scenarioFileSchema, type ScenarioFile } from './schema';
 
@@ -47,6 +50,7 @@ export function buildScenarioFile(ws: Workspace, results: RunOutput[], exportedA
     fileType: 'mortgage-prepayment-lab/scenarios',
     schemaVersion: SCHEMA_VERSION,
     modelVersion: MODEL_VERSION,
+    appBuild: APP_BUILD,
     exportedAt,
     portfolio: isPreset
       ? { kind: 'preset', presetId: ws.portfolio.meta.presetId, hash: ws.portfolio.meta.hash }
@@ -93,6 +97,8 @@ export function loanProblems(l: Loan): string[] {
 export interface ImportResult {
   workspace: Workspace;
   savedResults: ScenarioFile['results'];
+  /** Set when the file came from an older, compatible model version and is being recalculated. */
+  legacy: { fromVersion: string; note: string } | null;
 }
 
 export async function readFileText(file: File): Promise<string> {
@@ -118,9 +124,11 @@ export function parseScenarioFile(text: string): ImportResult {
         : 'The file’s schema version is not supported. Nothing was imported.',
     );
   }
-  if (typeof obj.modelVersion !== 'string' || !SUPPORTED_MODEL_VERSIONS.includes(obj.modelVersion)) {
-    throw new ImportError(`The file was produced with model version "${String(obj.modelVersion)}". This lab runs ${MODEL_VERSION} and will not reinterpret assumptions from another model version.`);
+  const legacyNote = typeof obj.modelVersion === 'string' ? LEGACY_MODEL_VERSIONS[obj.modelVersion] : undefined;
+  if (typeof obj.modelVersion !== 'string' || (!SUPPORTED_MODEL_VERSIONS.includes(obj.modelVersion) && !legacyNote)) {
+    throw new ImportError(`The file was produced with model version "${String(obj.modelVersion)}". This lab runs ${MODEL_VERSION} and does not know how that version’s assumptions map to this one, so nothing was imported or changed.`);
   }
+  const legacy = legacyNote ? { fromVersion: obj.modelVersion as string, note: legacyNote } : null;
   const parsed = scenarioFileSchema.safeParse(raw);
   if (!parsed.success) {
     const details = parsed.error.issues.slice(0, 12).map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`);
@@ -129,11 +137,16 @@ export function parseScenarioFile(text: string): ImportResult {
   const f = parsed.data;
 
   let portfolio: Portfolio;
+  let presetRebuiltFrom: string | null = null;
   if (f.portfolio.kind === 'preset') {
     const preset = PRESETS.find((p) => p.id === (f.portfolio as { presetId: string }).presetId);
     if (!preset) throw new ImportError(`Unknown synthetic preset "${f.portfolio.presetId}".`);
     portfolio = loadPreset(preset.id);
-    if (portfolio.meta.hash !== f.portfolio.hash) throw new ImportError('The preset in this file was generated differently (hash mismatch). Results could not be reproduced, so it was not imported.');
+    if (portfolio.meta.hash !== f.portfolio.hash) {
+      // Same preset, different fingerprint: an earlier generator, or a browser engine whose last digits differed.
+      // The preset is rebuilt by this version; nothing is reinterpreted silently.
+      presetRebuiltFrom = f.portfolio.hash;
+    }
   } else {
     const embedded = f.portfolio;
     const loans = embedded.loans as Loan[];
@@ -150,7 +163,18 @@ export function parseScenarioFile(text: string): ImportResult {
     portfolio = { meta: { ...meta, name: cleanText(meta.name, 120), description: cleanText(meta.description, 500) }, loans };
   }
 
-  const scenarios = f.scenarios.map((s) => ({ ...s, name: cleanText(s.name, 120) })) as ScenarioInput[];
+  // Scenarios from a compatible older model keep every assumption and are re-labeled for recalculation with this model;
+  // scenarios on a rebuilt preset point to the rebuilt portfolio.
+  const scenarios = f.scenarios.map((s) => ({
+    ...s,
+    name: cleanText(s.name, 120),
+    modelVersion: legacyNote && s.modelVersion === obj.modelVersion ? MODEL_VERSION : s.modelVersion,
+    portfolioHash: presetRebuiltFrom && s.portfolioHash === presetRebuiltFrom ? portfolio.meta.hash : s.portfolioHash,
+  })) as ScenarioInput[];
+  const recalcNotes = [
+    ...(legacy ? [legacy.note] : []),
+    ...(presetRebuiltFrom ? [`The file’s synthetic portfolio fingerprint (${presetRebuiltFrom.slice(0, 12)}…) differs from this version’s ${portfolio.meta.name} (${portfolio.meta.hash.slice(0, 12)}…). Earlier builds produced last-digit differences in loan amounts between browsers; this version rounds amounts to cents so every browser builds the same loans. The preset was rebuilt here, so saved numbers can differ slightly and are not checked as a reproduction.`] : []),
+  ];
   const ids = new Set(scenarios.map((s) => s.scenarioId));
   if (ids.size !== scenarios.length) throw new ImportError('Scenario identifiers must be unique.');
   if (!ids.has(f.baselineId)) throw new ImportError('The baseline scenario is missing from the file.');
@@ -169,5 +193,6 @@ export function parseScenarioFile(text: string): ImportResult {
   return {
     workspace: { portfolio, baselineId: f.baselineId, scenarios, filter: f.filter as PopulationFilter, notes },
     savedResults: f.results,
+    legacy: recalcNotes.length ? { fromVersion: obj.modelVersion as string, note: recalcNotes.join(' ') } : null,
   };
 }

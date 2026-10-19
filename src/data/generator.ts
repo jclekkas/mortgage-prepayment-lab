@@ -87,6 +87,8 @@ function allocate(total: number, weights: readonly number[]): number[] {
   return out;
 }
 
+const toCents = (v: number) => Math.round(v * 100) / 100;
+
 export function portfolioHash(loans: readonly Loan[], asOfMonth: string, seed: number, generatorVersion: string): string {
   return hashValue({ loans, asOfMonth, seed, generatorVersion });
 }
@@ -107,8 +109,10 @@ export function generatePortfolio(partial: Partial<GeneratorConfig> = {}): Portf
       const z = cfg.balanceSigma > 0 ? draw : 0;
       const orig = Math.min(1_200_000, Math.max(60_000, Math.round((cfg.medianOriginalBalance * Math.exp(cfg.balanceSigma * z)) / 1000) * 1000));
       const term = 360;
-      const payment = levelPayment(orig, rate, term);
-      const current = balanceAfter(orig, rate, payment, age);
+      // Amounts are rounded to cents, as real loan records are. Unrounded, Math.pow's last digit differs
+      // between JavaScript engines, so different browsers built different loans and fingerprints.
+      const payment = toCents(levelPayment(orig, rate, term));
+      const current = toCents(balanceAfter(orig, rate, payment, age));
       loans.push({
         id: `SYN-${String(cfg.seed).padStart(4, '0')}-${String(seq).padStart(5, '0')}`,
         asOfMonth: cfg.asOfMonth,

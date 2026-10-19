@@ -42,7 +42,7 @@ describe('scenario files', () => {
   it('rejects an unsupported model version', () => {
     const f = JSON.parse(fileText());
     f.modelVersion = 'mpl-engine-0.9.0';
-    expectImportError(JSON.stringify(f), /will not reinterpret/);
+    expectImportError(JSON.stringify(f), /does not know how that version’s assumptions map/);
   });
   it('rejects malformed JSON, unexpected fields and out-of-bounds numbers', () => {
     expectImportError('{not json', /not valid JavaScript Object Notation/);
@@ -71,10 +71,14 @@ describe('scenario files', () => {
     tampered.portfolio.loans[1].refiPropensity = 1.4;
     expectImportError(JSON.stringify(tampered), /hash/);
   });
-  it('a preset hash mismatch is rejected', () => {
+  it('a preset fingerprint mismatch rebuilds the preset explicitly, re-points scenarios and says it is not a reproduction', () => {
     const f = JSON.parse(fileText());
-    f.portfolio.hash = '0'.repeat(64);
-    expectImportError(JSON.stringify(f), /hash mismatch/);
+    const old = '0'.repeat(64);
+    f.portfolio.hash = old;
+    for (const s of f.scenarios) s.portfolioHash = old;
+    const r = parseScenarioFile(JSON.stringify(f));
+    expect(r.legacy?.note).toContain('not checked as a reproduction');
+    expect(r.workspace.scenarios.every((s) => s.portfolioHash === r.workspace.portfolio.meta.hash)).toBe(true);
   });
 });
 

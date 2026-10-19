@@ -23,6 +23,7 @@
     "vitest.config.ts",
     "playwright.config.ts",
     "tests",
-    "playwright.preview.config.ts"
+    "playwright.preview.config.ts",
+    "src/build-info.d.ts"
   ]
 }
