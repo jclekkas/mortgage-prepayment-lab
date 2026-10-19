@@ -57,6 +57,10 @@ The expected results below were derived by hand or by closed-form formulas. They
 | "Rates down, value down" is not forced | `invariants.test.ts` covers three cases: standard book falls; zero-fee book rises and stays a loss; a rate rise raises value. `tests/unit/trend.test.ts` checks the labels. |
 | Cross-engine determinism of the synthetic data | `tests/unit/generator-determinism.test.ts` (pinned preset fingerprints; verified identical in V8, Chromium and JavaScriptCore) |
 
+## Acceptance review
+
+`docs/ACCEPTANCE_REVIEW.md` separates what is checked (arithmetic), what is supported by retrieved sources (nothing yet), what is illustrative, and what needs a reviewer. It lists the exact documents still missing and adds worked examples E1 to E6 (`tests/numerics/acceptance-review.test.ts`).
+
 ## What would close the open items
 
 1. Retrieve and read the source documents from a network that allows them, then confirm rows 1, 2, 3 and 7 against their actual text.
