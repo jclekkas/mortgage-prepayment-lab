@@ -6,6 +6,7 @@ import { defaultScenario, scenarioInputHash, validateScenario, type FieldError }
 import type { Portfolio, PopulationFilter, RunOutput, ScenarioInput } from '../domain/types';
 import { buildScenarioFile, parseScenarioFile, type DecisionNote, type Workspace } from '../storage/files';
 import { kv } from '../storage/idb';
+import { assessComparison, populationContext, type ComparisonAssessment, type PopulationContext } from '../domain/comparability';
 import { cleanText } from '../storage/sanitize';
 import { EngineClient, JobCancelled, JobError } from '../worker/client';
 
@@ -80,7 +81,7 @@ function freshSlots(p: Portfolio): { slots: Slot[]; baselineId: string; activeId
   };
 }
 
-function initialState(): AppState {
+export function initialState(): AppState {
   const portfolio = loadPreset('mixed');
   return {
     started: false,
@@ -99,7 +100,7 @@ function initialState(): AppState {
   };
 }
 
-type Action =
+export type Action =
   | { type: 'start'; goal: Lens; role: Role; portfolio: Portfolio }
   | { type: 'setGoal'; goal: Lens }
   | { type: 'setRole'; role: Role }
@@ -130,7 +131,7 @@ type Action =
 
 const mapSlot = (s: AppState, id: string, fn: (x: Slot) => Slot): Slot[] => s.slots.map((x) => (x.draft.scenarioId === id ? fn(x) : x));
 
-function reducer(s: AppState, a: Action): AppState {
+export function reducer(s: AppState, a: Action): AppState {
   switch (a.type) {
     case 'start':
       return { ...s, started: true, goal: a.goal, role: a.role, ...(a.portfolio.meta.hash !== s.portfolio.meta.hash ? { portfolio: a.portfolio, ...freshSlots(a.portfolio), filter: {}, notes: {} } : {}) };
@@ -199,7 +200,8 @@ function reducer(s: AppState, a: Action): AppState {
     case 'runFail':
       return { ...s, slots: mapSlot(s, a.id, (x) => ({ ...x, run: { ...x.run, status: 'error', error: a.error, fields: a.fields, isLastGood: !!x.run.output } })) };
     case 'runCancelled':
-      return { ...s, slots: mapSlot(s, a.id, (x) => ({ ...x, run: { ...x.run, status: x.run.output ? 'done' : 'cancelled', progress: 0 } })) };
+      // Stays 'cancelled' even when an older result is kept: that result may be for another population.
+      return { ...s, slots: mapSlot(s, a.id, (x) => ({ ...x, run: { ...x.run, status: 'cancelled', progress: 0, isLastGood: !!x.run.output } })) };
     case 'setFilter':
       return { ...s, filter: a.filter };
     case 'selectMonth':
@@ -234,6 +236,24 @@ function reducer(s: AppState, a: Action): AppState {
     case 'announce':
       return { ...s, announcement: a.text };
   }
+}
+
+/** Population context for the current workspace. */
+export function currentContext(s: AppState): PopulationContext {
+  return populationContext(s.portfolio, s.filter);
+}
+
+export function slotLabel(s: AppState, slot: Slot): string {
+  if (slot.draft.scenarioId !== s.baselineId) return slot.draft.name;
+  return slot.draft.name.toLowerCase().startsWith('baseline') ? slot.draft.name : `Baseline: ${slot.draft.name}`;
+}
+
+/** Whether every scenario's result belongs to the current population; the single gate for comparing, printing and exporting. */
+export function assessSlots(s: AppState, slots: Slot[] = s.slots): ComparisonAssessment {
+  return assessComparison(
+    slots.map((x) => ({ id: x.draft.scenarioId, label: slotLabel(s, x), output: x.run.output, phase: x.run.status })),
+    currentContext(s),
+  );
 }
 
 export function isDirty(slot: Slot): boolean {

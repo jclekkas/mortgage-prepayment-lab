@@ -23,15 +23,28 @@ export function GridPanel() {
     return () => handle.current?.cancel();
   }, [key]);
   if (!input) return null;
+  const cancelGrid = () => {
+    const h = handle.current;
+    handle.current = null; // detach first so late progress from this job is ignored
+    h?.cancel();
+    setProgress(null);
+  };
   const go = () => {
     handle.current?.cancel();
-    const h = client.request({ kind: 'grid', scenario: input, filter: state.filter }, (d, t) => setProgress(d / t));
+    let id = -1;
+    // Progress can still arrive after Cancel; only the live job may update the bar.
+    const h = client.request({ kind: 'grid', scenario: input, filter: state.filter }, (d, t) => { if (handle.current?.id === id) setProgress(d / t); });
+    id = h.id;
     handle.current = h;
     setProgress(0);
     setError(null);
     h.promise.then(
       ({ result }) => { if (handle.current?.id === h.id) { setGrid(result); setProgress(null); } },
-      (e: Error) => { if (handle.current?.id === h.id && !(e instanceof JobCancelled)) { setError(e.message); setProgress(null); } },
+      (e: Error) => {
+        if (handle.current?.id !== h.id) return;
+        setProgress(null);
+        if (!(e instanceof JobCancelled)) setError(e.message);
+      },
     );
   };
   const values = grid?.cells.map((c) => c.servicingNpv).filter((v): v is number => v !== null) ?? [];
@@ -57,7 +70,7 @@ export function GridPanel() {
         <div className="row">
           <span>Calculating grid…</span>
           <Progress value={progress} label="Grid progress" />
-          <button type="button" onClick={() => { handle.current?.cancel(); setProgress(null); }} data-testid="grid-cancel">Cancel</button>
+          <button type="button" onClick={cancelGrid} data-testid="grid-cancel">Cancel</button>
         </div>
       )}
       {error && <Notice kind="err">{error}</Notice>}

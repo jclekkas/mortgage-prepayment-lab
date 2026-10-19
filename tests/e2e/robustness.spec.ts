@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { generatePortfolio } from '../../src/data/generator';
+import { readFileSync } from 'node:fs';
+import { generatePortfolio, type GeneratorConfig } from '../../src/data/generator';
 import { defaultScenario } from '../../src/domain/scenario';
 import { buildScenarioFile } from '../../src/storage/files';
 import { setNumber, startFresh } from './fixtures';
 
-function bigFile(): Buffer {
-  const p = generatePortfolio({ loanCount: 10_000, presetId: 'big-test', name: 'Ten thousand loans', description: 'Large synthetic test book' });
+function bigFile(config: Partial<GeneratorConfig> = {}): Buffer {
+  const p = generatePortfolio({ loanCount: 10_000, presetId: 'big-test', name: 'Ten thousand loans', description: 'Large synthetic test book', ...config });
   const base = defaultScenario(p.meta.hash, p.meta.asOfMonth);
   const s1 = { ...structuredClone(base), scenarioId: 'scenario-1', name: 'Scenario 1', baselineId: 'baseline' };
   return Buffer.from(JSON.stringify(buildScenarioFile({ portfolio: p, baselineId: 'baseline', scenarios: [base, s1], filter: {}, notes: {} }, [])));
@@ -128,4 +129,66 @@ test('the validation hypothesis survives navigation and reload (D2)', async ({ p
   await page.waitForTimeout(1200); // debounced save
   await page.reload();
   await expect(page.getByTestId('hypothesis')).toHaveValue(text);
+});
+
+test('REGRESSION: after a filter change, a cancelled recalculation is never compared, printed or exported (issue 1)', async ({ page }) => {
+  await startFresh(page);
+  await page.goto('/#/decision');
+  // All high-coupon loans, so filtering to 7%+ keeps about three quarters of 10,000 loans:
+  // each recalculation takes long enough to cancel.
+  await page.getByTestId('import-input').setInputFiles({ name: 'big.json', mimeType: 'application/json', buffer: bigFile({ cohortWeights: [0, 0, 1] }) });
+  await page.goto('/#/lab');
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 30_000 });
+
+  await page.goto('/#/cohorts');
+  await page.getByTestId('filter-coupon-ge7').check();
+  await page.getByTestId('status-cancel').click(); // cancel Scenario 1's recalculation for the new population
+  await expect(page.getByTestId('run-status')).toContainText('Calculation cancelled.');
+  await expect(page.getByTestId('run-status')).toContainText('not shown, compared or exported');
+  await expect(page.getByTestId('results-blocked')).toBeVisible(); // cohort table withheld
+
+  // Decision room: the baseline recalculates; Scenario 1 keeps only an old-population result.
+  await page.goto('/#/decision');
+  const blocked = page.getByTestId('comparison-blocked');
+  await expect(blocked).toContainText('Scenario 1: The recalculation was cancelled', { timeout: 30_000 });
+  await expect(blocked).not.toContainText('Baseline:', { timeout: 30_000 });
+  await expect(page.getByTestId('compare-table')).toContainText('Not compared: different population');
+  await expect(page.getByTestId('export-json')).toBeDisabled();
+  await expect(page.getByTestId('open-brief')).toBeDisabled();
+  await expect(page.getByTestId('excluded-results')).toContainText('Scenario 1');
+
+  // The brief cannot be printed, even by direct link.
+  await page.goto('/#/brief');
+  await expect(page.getByTestId('brief-blocked')).toContainText('Scenario 1');
+  await expect(page.getByRole('button', { name: 'Print or save as PDF' })).toBeDisabled();
+
+  // The lab shows no ledger or CSV export for the retained result.
+  await page.goto('/#/lab');
+  await expect(page.getByTestId('no-current-result')).toBeVisible();
+  await expect(page.getByTestId('export-csv')).toHaveCount(0);
+  await expect(page.getByTestId('excluded-results')).toContainText('Scenario 1');
+
+  // Running Scenario 1 for the new population restores everything.
+  await page.getByTestId('run').click();
+  await expect(page.getByTestId('dirty-badge')).toHaveText('Results match inputs', { timeout: 30_000 });
+  await expect(page.getByTestId('export-csv')).toBeVisible();
+  await page.goto('/#/decision');
+  await expect(page.getByTestId('comparison-blocked')).toHaveCount(0);
+  await expect(page.getByTestId('export-json')).toBeEnabled();
+});
+
+test('REGRESSION: an import whose saved prepaid12 was altered does not verify (issue 3)', async ({ page }) => {
+  await startFresh(page);
+  await page.goto('/#/decision');
+  await expect(page.getByTestId('export-json')).toBeEnabled();
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);
+  const f = JSON.parse(readFileSync((await download.path())!, 'utf8'));
+  const npv = f.results[1].summary.servicingNpv;
+  f.results[1].summary.prepaid12 += 1000; // NPV and run key untouched
+  await page.getByTestId('import-input').setInputFiles({ name: 'tampered.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(f)) });
+  const msg = page.getByTestId('import-message');
+  await expect(msg).toContainText('Did not reproduce: 1 of 2 saved results differ');
+  await expect(msg).toContainText('Scenario 1: prepaid12 saved');
+  await expect(msg).not.toContainText('servicingNpv');
+  expect(f.results[1].summary.servicingNpv).toBe(npv);
 });

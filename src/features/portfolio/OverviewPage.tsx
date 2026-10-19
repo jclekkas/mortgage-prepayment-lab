@@ -5,7 +5,8 @@ import { pct, usd } from '../../domain/format';
 import { Explanation } from '../results/Explanation';
 import { KpiCards } from '../results/KpiCards';
 import { PopulationBadge, RunStatus } from '../results/RunStatus';
-import { entriesFor, NpvComparison } from '../results/ScenarioCharts';
+import { entriesFor, ExcludedNotice, NpvComparison } from '../results/ScenarioCharts';
+import { useComparison } from '../results/useComparison';
 
 export function OverviewPage() {
   const { state, active, applyAndRun, dispatch } = useStore();
@@ -25,8 +26,9 @@ export function OverviewPage() {
       {label}
     </button>
   );
-  const base = state.slots.find((s) => s.draft.scenarioId === state.baselineId)!;
-  const coupon = base.run.output?.cohorts.coupon ?? [];
+  const { baseOut } = useComparison();
+  const coupon = baseOut?.cohorts.coupon ?? [];
+  const npv = entriesFor(state);
   return (
     <div className="stack">
       <div>
@@ -52,7 +54,8 @@ export function OverviewPage() {
       <div className="two-col">
         <Explanation />
         <div className="stack">
-          <NpvComparison entries={entriesFor(state.slots, state.baselineId)} />
+          <ExcludedNotice excluded={npv.excluded} />
+          <NpvComparison entries={npv.entries} />
           {state.role !== 'gm' && coupon.length > 0 && (
             <section className="card">
               <h3>Baseline by note rate</h3>

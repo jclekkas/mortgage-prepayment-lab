@@ -10,7 +10,9 @@ const LEDGER_KEYS: [string, string][] = [
   ['end', 'endingUpb'],
   ['interest', 'noteInterest'],
   ['count', 'beginningLoans'],
-  ['refiN', 'refiPayoffs'],
+  ['volN', 'voluntaryPayoffs'],
+  ['refiN', 'refiPayoffs'], // null in fixed CPR and PSA modes: cause not identified
+  ['unclN', 'unclassifiedPayoffs'],
   ['fee', 'grossFee'],
   ['cost', 'operatingCost'],
   ['net', 'netServicing'],

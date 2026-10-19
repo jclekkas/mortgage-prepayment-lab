@@ -1,5 +1,5 @@
 import { slotColor } from '../../app/palette';
-import { useStore, type Slot } from '../../app/store';
+import { assessSlots, useStore, type AppState, type Slot } from '../../app/store';
 import { formatMonth } from '../../domain/calendar';
 import { pct, usd } from '../../domain/format';
 import type { RunOutput } from '../../domain/types';
@@ -12,12 +12,30 @@ export interface ChartEntry {
   isBaseline: boolean;
 }
 
-/** Entries for the given slots that have results, in slot order. */
-export function entriesFor(slots: Slot[], baselineId: string): ChartEntry[] {
-  return slots
-    .map((s, i) => ({ s, i }))
-    .filter(({ s }) => s.run.output)
-    .map(({ s, i }) => ({ label: s.draft.scenarioId === baselineId ? (s.draft.name.toLowerCase().startsWith('baseline') ? s.draft.name : `Baseline: ${s.draft.name}`) : s.draft.name, output: s.run.output!, index: i, isBaseline: s.draft.scenarioId === baselineId }));
+/**
+ * Chart entries for slots whose results belong to the current population, in slot order.
+ * Results kept from another population (after a cancelled or failed recalculation, or
+ * while one runs) are listed in `excluded` and never drawn next to current ones.
+ */
+export function entriesFor(state: AppState, slots: Slot[] = state.slots): { entries: ChartEntry[]; excluded: string[] } {
+  const a = assessSlots(state, slots);
+  const entries: ChartEntry[] = [];
+  a.items.forEach((item) => {
+    const i = state.slots.findIndex((s) => s.draft.scenarioId === item.id);
+    if (item.current && item.output) entries.push({ label: item.label, output: item.output, index: i, isBaseline: item.id === state.baselineId });
+  });
+  return { entries, excluded: a.items.filter((x) => !x.current && x.output).map((x) => `${x.label}: ${x.reason}`) };
+}
+
+/** Explains which retained results are left out of a comparison. */
+export function ExcludedNotice({ excluded }: { excluded: string[] }) {
+  if (excluded.length === 0) return null;
+  return (
+    <div className="notice warn" role="status" data-testid="excluded-results">
+      <strong>Not shown, because these results are for a different population:</strong>
+      <ul style={{ margin: '0.25rem 0 0' }}>{excluded.map((e) => <li key={e}>{e}</li>)}</ul>
+    </div>
+  );
 }
 
 function seriesOf(entries: ChartEntry[], horizon: number, pick: (m: RunOutput['ledger'][number]) => number | null): Series[] {

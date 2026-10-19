@@ -47,7 +47,7 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   const text = readFileSync(path!, 'utf8');
   expect(JSON.parse(text).fileType).toBe('mortgage-prepayment-lab/scenarios');
   await page.getByTestId('import-input').setInputFiles({ name: 'scenarios.json', mimeType: 'application/json', buffer: Buffer.from(text) });
-  await expect(page.getByTestId('import-message')).toContainText(/Reproduced (\d+) of \1 saved results exactly/);
+  await expect(page.getByTestId('import-message')).toContainText(/Reproduced (\d+) of \1 saved results: run keys, input hashes and all \d+ summary metrics match/);
 
   // CSV export has no NaN/Infinity.
   await page.goto('/#/lab');
@@ -78,6 +78,24 @@ test('fixed CPR mode disables rate and recapture controls and ignores rates', as
   await expect(page.getByTestId('ctl-shock').locator('input[type=number]')).toBeDisabled();
   await expect(page.getByTestId('ctl-recapture')).toContainText('Disabled');
   await expect(page.getByTestId('recapture-panel')).toContainText('Not available');
+
+  // Issue 2: fixed CPR gives a speed, not a cause, so the cause split is not applicable.
+  const ledger = page.getByTestId('month-ledger');
+  await expect(ledger.getByText('Not applicable: this mode does not identify payoff causes')).toHaveCount(2);
+  await expect(ledger.getByRole('row', { name: /of which unclassified/ })).not.toContainText('Not applicable');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-csv').click()]);
+  const [header, ...rows] = readFileSync((await dl.path())!, 'utf8').trim().split('\r\n').map((l) => l.split(','));
+  const col = (name: string) => header.indexOf(name);
+  for (const name of ['expected_refinance_payoffs', 'expected_turnover_payoffs', 'refinance_prepaid_principal', 'turnover_prepaid_principal']) {
+    expect(rows.every((r) => r[col(name)] === 'not applicable'), name).toBe(true);
+  }
+  // Total prepayment is preserved: every prepaid dollar is unclassified, none is called turnover.
+  for (const r of rows) {
+    expect(Number(r[col('unclassified_prepaid_principal')])).toBeCloseTo(Number(r[col('prepaid_principal')]), 6);
+    expect(Number(r[col('expected_unclassified_payoffs')])).toBeCloseTo(Number(r[col('expected_voluntary_payoffs')]), 9);
+  }
+  expect(rows.some((r) => Number(r[col('prepaid_principal')]) > 0)).toBe(true);
+
   await setNumber(page, 'ctl-cpr', '12');
   await page.getByTestId('run').click();
   await expect(page.getByTestId('kpi-npv-value')).not.toHaveText(npv!);

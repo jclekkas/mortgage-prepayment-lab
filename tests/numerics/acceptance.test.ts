@@ -113,7 +113,9 @@ describe('N05 zero prepayment', () => {
     const last = out.ledger[out.ledger.length - 1];
     expect(last.endingUpb).toBe(0);
     expect(out.ledger.reduce((a, m) => a + m.maturedLoans, 0)).toBeCloseTo(mixed.loans.length, 9);
-    expect(out.ledger.every((m) => m.refiPayoffs === 0 && m.turnoverPayoffs === 0)).toBe(true);
+    expect(out.ledger.every((m) => m.voluntaryPayoffs === 0 && m.unclassifiedPayoffs === 0)).toBe(true);
+    // Fixed CPR identifies no payoff cause, so the split is not applicable rather than zero.
+    expect(out.ledger.every((m) => m.refiPayoffs === null && m.turnoverPayoffs === null)).toBe(true);
   });
   it('maturity month has zero voluntary payoff even when speeds are high', () => {
     const p = makePortfolio([simpleLoan({ id: 'm', ageMonths: 350 })]);
@@ -216,22 +218,56 @@ describe('N10 cause split and survival', () => {
     for (const loan of mixed.loans.slice(0, 200)) {
       let prevW = 1, prevQ = 0;
       simulateLoan(loan, ctx, (m) => {
-        expect(Math.abs(m.refiProbability + m.turnoverProbability - m.payoffProbability)).toBeLessThanOrEqual(1e-15);
+        expect(Math.abs(m.refiProbability! + m.turnoverProbability! - m.payoffProbability)).toBeLessThanOrEqual(1e-15);
+        expect(m.unclassifiedProbability).toBe(0);
         if (m.t > 1) expect(Math.abs(m.survival - prevW * (1 - prevQ))).toBeLessThan(1e-14);
-        expect(Math.abs(m.refiPayoffs + m.turnoverPayoffs - m.survival * m.payoffProbability)).toBeLessThan(1e-14);
+        expect(Math.abs(m.refiPayoffs! + m.turnoverPayoffs! - m.survival * m.payoffProbability)).toBeLessThan(1e-14);
+        expect(m.voluntaryPayoffs).toBeCloseTo(m.survival * m.payoffProbability, 15);
         prevW = m.survival;
         prevQ = m.payoffProbability;
       });
     }
   });
-  it('expected loan count falls exactly by expected payoffs', () => {
+  for (const mode of ['behavioral', 'fixedCpr', 'psa'] as const) {
+    it(`${mode}: expected loan count falls exactly by voluntary payoffs and maturities`, () => {
+      const out = runScenario(mixed, base({ mode }));
+      for (let i = 1; i < out.ledger.length; i++) {
+        const p = out.ledger[i - 1];
+        const expected = p.beginningLoans - p.voluntaryPayoffs - p.maturedLoans;
+        expect(Math.abs(out.ledger[i].beginningLoans - expected)).toBeLessThan(1e-9);
+      }
+    });
+  }
+  it('behavioral: refinance + turnover payoffs and principal equal the totals; nothing is unclassified', () => {
     const out = runScenario(mixed, base());
-    for (let i = 1; i < out.ledger.length; i++) {
-      const p = out.ledger[i - 1];
-      const expected = p.beginningLoans - p.refiPayoffs - p.turnoverPayoffs - p.maturedLoans;
-      expect(Math.abs(out.ledger[i].beginningLoans - expected)).toBeLessThan(1e-9);
+    for (const m of out.ledger) {
+      expect(Math.abs(m.refiPayoffs! + m.turnoverPayoffs! - m.voluntaryPayoffs)).toBeLessThan(1e-9);
+      expect(Math.abs(m.refiPrepaidPrincipal! + m.turnoverPrepaidPrincipal! - m.prepaidPrincipal)).toBeLessThan(1e-6);
+      expect(m.unclassifiedPayoffs).toBe(0);
+      expect(m.unclassifiedPrepaidPrincipal).toBe(0);
     }
   });
+  for (const mode of ['fixedCpr', 'psa'] as const) {
+    it(`${mode}: causes are unidentified, so every payoff is unclassified and the split is not applicable`, () => {
+      const out = runScenario(mixed, base({ mode }));
+      expect(out.ledger.some((m) => m.voluntaryPayoffs > 0)).toBe(true);
+      for (const m of out.ledger) {
+        expect(m.refiPayoffs).toBeNull();
+        expect(m.turnoverPayoffs).toBeNull();
+        expect(m.refiPrepaidPrincipal).toBeNull();
+        expect(m.turnoverPrepaidPrincipal).toBeNull();
+        expect(m.unclassifiedPayoffs).toBe(m.voluntaryPayoffs);
+        // Total prepayment dollars are unchanged: all of them are unclassified.
+        expect(Math.abs(m.unclassifiedPrepaidPrincipal - m.prepaidPrincipal)).toBeLessThan(1e-6);
+        expect(m.recapturedLoans).toBeNull();
+      }
+      const loan = loanLedger(mixed, base({ mode }), mixed.loans[0].id)[0];
+      expect(loan.refiProbability).toBeNull();
+      expect(loan.turnoverProbability).toBeNull();
+      expect(loan.unclassifiedProbability).toBe(loan.payoffProbability);
+      expect(out.summary.recapturePv).toBeNull();
+    });
+  }
 });
 
 describe('N11 rate-insensitive modes', () => {

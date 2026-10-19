@@ -75,6 +75,23 @@ the monthly ledger, never CPR x initial UPB.
 Every loan, every month: q = SMM(CPR). Rate, behavior and recapture inputs are excluded
 from the effective input and the hash.
 
+## Payoff causes
+
+Only behavioral mode identifies why a loan pays off (refinance or turnover). Fixed CPR and
+PSA give a speed, not a reason, so their payoffs are **unclassified voluntary payoffs**:
+
+```
+voluntary payoffs_t     = sum of w q                       (every mode)
+unclassified payoffs_t  = voluntary payoffs_t, unclassified prepaid = prepaid principal   (fixed CPR, PSA)
+refinance / turnover    = not applicable (null)                                           (fixed CPR, PSA)
+unclassified            = 0; refinance + turnover = voluntary                             (behavioral)
+```
+
+Total prepaid principal is identical either way; only the labeling differs. The ledger,
+CSV and per-loan drill-down show the refinance and turnover split as "not applicable"
+outside behavioral mode, and recapture stays disabled there because it needs refinance
+payoffs.
+
 ## PSA mode
 
 ```
@@ -82,7 +99,8 @@ from the effective input and the hash.
 loan CPR = min(1, that x PSA% / 100), converted to SMM, using each loan's own age
 ```
 
-PSA is an age-based benchmark, not a rate-responsive forecast. [S2]
+PSA is an age-based benchmark, not a rate-responsive forecast. Its payoffs are
+unclassified (see Payoff causes). [S2]
 
 ## Behavioral mode
 
@@ -183,6 +201,23 @@ as an error in that cell; a cancel stops the whole job. Tested in
 - The brief's reproducibility hash covers every scenario's run key.
 - SHA-256 is implemented in `src/domain/hash.ts` so hashes are identical in Node, the
   worker and the page (no dependency on `crypto.subtle` or a secure context).
+
+**Comparing only like with like.** Every result records its portfolio hash, valuation
+month and normalized population filter. A result is *current* only when all three match
+the workspace (`src/domain/comparability.ts`). Headline cards, explanations, charts, the
+cohort table, the decision room, the brief and both exports use only current results.
+A result kept after a cancelled or failed recalculation, or while one runs for a new
+population, is labeled and excluded, never compared, printed or exported.
+`buildScenarioFile` itself refuses a result for another population, and every CSV row
+states its valuation month and population.
+
+**Import reproduction check.** After an import, every scenario is re-run and compared
+with the results saved in the file (`src/storage/verify.ts`). Input hash and run key must
+match exactly. Every summary metric is compared, with a missing or extra metric reported.
+A null ("not applicable") matches only null. Numbers match when
+`|re-run - saved| <= max(1e-6, 1e-9 x max(|re-run|, |saved|))`. The engine is
+deterministic, so this tolerance only absorbs floating-point differences between
+JavaScript engines. Every differing metric is listed by name.
 
 ## Validation lab (synthetic)
 

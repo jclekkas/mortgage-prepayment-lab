@@ -50,17 +50,24 @@ export interface LoanMonth {
   scheduledPrincipal: number;
   prepaidPrincipal: number;
   endingBalance: number;
-  refiPayoffs: number;
-  turnoverPayoffs: number;
-  refiPrepaidPrincipal: number;
-  turnoverPrepaidPrincipal: number;
+  /** Expected full voluntary payoffs, all causes (survival weight x payoff probability). */
+  voluntaryPayoffs: number;
+  /** Cause split. null in fixed CPR and PSA modes, which do not identify why a loan pays off. */
+  refiPayoffs: number | null;
+  turnoverPayoffs: number | null;
+  refiPrepaidPrincipal: number | null;
+  turnoverPrepaidPrincipal: number | null;
+  /** Voluntary payoffs with no identified cause: all of them in fixed CPR and PSA modes, 0 in behavioral mode. */
+  unclassifiedPayoffs: number;
+  unclassifiedPrepaidPrincipal: number;
   matured: number;
   grossFee: number;
   operatingCost: number;
   /** Unweighted monthly probabilities. */
   payoffProbability: number;
-  refiProbability: number;
-  turnoverProbability: number;
+  refiProbability: number | null;
+  turnoverProbability: number | null;
+  unclassifiedProbability: number;
   /** Behavioral detail (null in other modes). */
   offerRate: number | null;
   incentiveBps: number | null;
@@ -112,9 +119,10 @@ export function simulateLoan(loan: Loan, ctx: RunContext, sink: (m: LoanMonth) =
   const behavioral = s.mode === 'behavioral';
   const m: LoanMonth = {
     t: 0, survival: 0, contractualBalance: 0, contractualPayment: A, beginningBalance: 0, interest: 0,
-    scheduledPrincipal: 0, prepaidPrincipal: 0, endingBalance: 0, refiPayoffs: 0, turnoverPayoffs: 0,
-    refiPrepaidPrincipal: 0, turnoverPrepaidPrincipal: 0, matured: 0, grossFee: 0, operatingCost: 0,
-    payoffProbability: 0, refiProbability: 0, turnoverProbability: 0, offerRate: null, incentiveBps: null,
+    scheduledPrincipal: 0, prepaidPrincipal: 0, endingBalance: 0, voluntaryPayoffs: 0, refiPayoffs: null, turnoverPayoffs: null,
+    refiPrepaidPrincipal: null, turnoverPrepaidPrincipal: null, unclassifiedPayoffs: 0, unclassifiedPrepaidPrincipal: 0,
+    matured: 0, grossFee: 0, operatingCost: 0,
+    payoffProbability: 0, refiProbability: null, turnoverProbability: null, unclassifiedProbability: 0, offerRate: null, incentiveBps: null,
     refiHazard: null, turnoverHazard: null, burnoutFactor: null, burnoutMonths: null,
   };
   let w = 1;
@@ -128,15 +136,11 @@ export function simulateLoan(loan: Loan, ctx: RunContext, sink: (m: LoanMonth) =
     const S = final ? B : Math.min(B, Math.max(0, A - interest));
     const R = B - S;
 
-    let q = 0, qRefi = 0, qMove = 0;
+    let q = 0, qRefi = 0, qMove = 0; // qRefi/qMove are set only in behavioral mode
     if (!final) {
-      if (s.mode === 'fixedCpr') {
-        q = ctx.fixedSmm;
-        qMove = q;
-      } else if (s.mode === 'psa') {
-        q = cprToSmm(psaCpr(age, s.prepaymentParameters.psaPercent));
-        qMove = q;
-      }
+      // Fixed CPR and PSA give a speed but no cause, so q stays unclassified (no qRefi/qMove).
+      if (s.mode === 'fixedCpr') q = ctx.fixedSmm;
+      else if (s.mode === 'psa') q = cprToSmm(psaCpr(age, s.prepaymentParameters.psaPercent));
     }
     if (behavioral) {
       const offer = ctx.offer![i];
@@ -169,16 +173,20 @@ export function simulateLoan(loan: Loan, ctx: RunContext, sink: (m: LoanMonth) =
     m.scheduledPrincipal = w * S;
     m.prepaidPrincipal = w * R * q;
     m.endingBalance = w * R * (1 - q);
-    m.refiPayoffs = behavioral ? w * qRefi : 0;
-    m.turnoverPayoffs = w * qMove;
-    m.refiPrepaidPrincipal = behavioral ? w * R * qRefi : 0;
-    m.turnoverPrepaidPrincipal = w * R * qMove;
+    m.voluntaryPayoffs = w * q;
+    m.refiPayoffs = behavioral ? w * qRefi : null;
+    m.turnoverPayoffs = behavioral ? w * qMove : null;
+    m.refiPrepaidPrincipal = behavioral ? w * R * qRefi : null;
+    m.turnoverPrepaidPrincipal = behavioral ? w * R * qMove : null;
+    m.unclassifiedPayoffs = behavioral ? 0 : w * q;
+    m.unclassifiedPrepaidPrincipal = behavioral ? 0 : w * R * q;
     m.matured = final ? w : 0;
     m.grossFee = (m.beginningBalance * feeBps) / 10_000 / 12;
     m.operatingCost = (w * annualCost) / 12;
     m.payoffProbability = q;
-    m.refiProbability = qRefi;
-    m.turnoverProbability = qMove;
+    m.refiProbability = behavioral ? qRefi : null;
+    m.turnoverProbability = behavioral ? qMove : null;
+    m.unclassifiedProbability = behavioral ? 0 : q;
     sink(m);
 
     w = final ? 0 : w * (1 - q);
@@ -195,7 +203,7 @@ export interface Accumulator {
   population: Loan[];
   filter: PopulationFilter;
   cols: Record<
-    | 'beg' | 'sched' | 'prep' | 'end' | 'interest' | 'count' | 'refiN' | 'moveN' | 'refiP' | 'moveP'
+    | 'beg' | 'sched' | 'prep' | 'end' | 'interest' | 'count' | 'volN' | 'refiN' | 'moveN' | 'refiP' | 'moveP' | 'unclN' | 'unclP'
     | 'matured' | 'fee' | 'cost' | 'recap',
     Float64Array
   >;
@@ -240,8 +248,8 @@ export function createAccumulator(portfolio: Portfolio, scenario: ScenarioInput,
     population,
     filter: nf,
     cols: {
-      beg: col(), sched: col(), prep: col(), end: col(), interest: col(), count: col(), refiN: col(), moveN: col(),
-      refiP: col(), moveP: col(), matured: col(), fee: col(), cost: col(), recap: col(),
+      beg: col(), sched: col(), prep: col(), end: col(), interest: col(), count: col(), volN: col(), refiN: col(), moveN: col(),
+      refiP: col(), moveP: col(), unclN: col(), unclP: col(), matured: col(), fee: col(), cost: col(), recap: col(),
     },
     loanUpb: new Float64Array(n),
     loanSched12: new Float64Array(n),
@@ -271,14 +279,17 @@ export function accumulate(acc: Accumulator, start: number, end: number): number
       cols.end[i] += m.endingBalance;
       cols.interest[i] += m.interest;
       cols.count[i] += m.survival;
-      cols.refiN[i] += m.refiPayoffs;
-      cols.moveN[i] += m.turnoverPayoffs;
-      cols.refiP[i] += m.refiPrepaidPrincipal;
-      cols.moveP[i] += m.turnoverPrepaidPrincipal;
+      cols.volN[i] += m.voluntaryPayoffs;
+      cols.refiN[i] += m.refiPayoffs ?? 0;
+      cols.moveN[i] += m.turnoverPayoffs ?? 0;
+      cols.refiP[i] += m.refiPrepaidPrincipal ?? 0;
+      cols.moveP[i] += m.turnoverPrepaidPrincipal ?? 0;
+      cols.unclN[i] += m.unclassifiedPayoffs;
+      cols.unclP[i] += m.unclassifiedPrepaidPrincipal;
       cols.matured[i] += m.matured;
       cols.fee[i] += m.grossFee;
       cols.cost[i] += m.operatingCost;
-      cols.recap[i] += m.refiPayoffs;
+      cols.recap[i] += m.refiPayoffs ?? 0;
       const net = m.grossFee - m.operatingCost;
       npv += net * ctx.discount[i];
       if (m.t <= COHORT_MONTHS) {
@@ -373,10 +384,13 @@ export function finalize(acc: Accumulator): RunOutput {
       endingUpb: cols.end[i],
       noteInterest: cols.interest[i],
       beginningLoans: cols.count[i],
-      refiPayoffs: cols.refiN[i],
-      turnoverPayoffs: cols.moveN[i],
-      refiPrepaidPrincipal: cols.refiP[i],
-      turnoverPrepaidPrincipal: cols.moveP[i],
+      voluntaryPayoffs: cols.volN[i],
+      refiPayoffs: behavioral ? cols.refiN[i] : null,
+      turnoverPayoffs: behavioral ? cols.moveN[i] : null,
+      refiPrepaidPrincipal: behavioral ? cols.refiP[i] : null,
+      turnoverPrepaidPrincipal: behavioral ? cols.moveP[i] : null,
+      unclassifiedPayoffs: cols.unclN[i],
+      unclassifiedPrepaidPrincipal: cols.unclP[i],
       maturedLoans: cols.matured[i],
       smm,
       cpr: smm === null ? null : smmToCpr(smm),
@@ -399,6 +413,7 @@ export function finalize(acc: Accumulator): RunOutput {
     runKey: hashValue({ inputHash, filter: acc.filter }),
     modelVersion: MODEL_VERSION,
     portfolioHash: portfolio.meta.hash,
+    valuationMonth: s.valuationMonth,
     scenarioId: s.scenarioId,
     mode: s.mode,
     population: {

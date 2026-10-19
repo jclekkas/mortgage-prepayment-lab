@@ -1,5 +1,5 @@
 import { href } from '../../app/router';
-import { useStore } from '../../app/store';
+import { assessSlots, useStore } from '../../app/store';
 import { formatMonth } from '../../domain/calendar';
 import { diffInputs } from '../../domain/diff';
 import { pct, usd, years } from '../../domain/format';
@@ -12,8 +12,10 @@ import { MODEL_VERSION } from '../../domain/version';
 /** One-page printable scenario brief. */
 export function BriefPage() {
   const { state, baseline } = useStore();
-  const slots = state.slots.filter((s) => s.run.output && s.run.outputInput);
-  const ready = slots.length === state.slots.length && baseline.run.output;
+  // The brief prints only when every scenario has a result for the current population.
+  const assessment = assessSlots(state);
+  const ready = assessment.comparable && state.slots.every((s) => s.run.outputInput && s.run.status !== 'running');
+  const slots = ready ? state.slots : [];
   const reproHash = ready ? hashValue(slots.map((s) => s.run.output!.runKey)) : null;
   const p = state.portfolio.meta;
   return (
@@ -29,7 +31,12 @@ export function BriefPage() {
         </p>
         <p><strong>Reproducibility hash:</strong> <code data-testid="repro-hash">{reproHash ?? 'waiting for all runs'}</code> (portfolio {p.hash.slice(0, 12)}…)</p>
       </header>
-      {!ready && <p className="notice warn">Some scenarios have not finished calculating.</p>}
+      {!ready && (
+        <div className="notice warn" role="status" data-testid="brief-blocked">
+          <strong>The brief is unavailable until every scenario has a result for the current population.</strong>
+          <ul style={{ margin: '0.25rem 0 0' }}>{assessment.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
+        </div>
+      )}
       {ready && (
         <>
           <section className="card">

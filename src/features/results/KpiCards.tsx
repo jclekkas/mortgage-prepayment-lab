@@ -5,6 +5,7 @@ import { explainMetric, type MetricId } from '../../domain/narrative';
 import type { SummaryMetrics } from '../../domain/types';
 import { useStore } from '../../app/store';
 import { useComparison } from './useComparison';
+import { BlockedNotice } from './BlockedNotice';
 
 interface CardDef {
   id: MetricId;
@@ -28,8 +29,8 @@ const WAL: CardDef = { id: 'wal', label: 'Loan principal weighted-average life',
 
 export function KpiCards() {
   const { state } = useStore();
-  const { actInput, ready, isBaseline } = useComparison();
-  if (!ready) return <p className="muted">Calculating headline measures…</p>;
+  const { actInput, ready, isBaseline, blockers } = useComparison();
+  if (!ready) return <BlockedNotice what="Headline measures" blockers={blockers} />;
   const asOf = state.portfolio.meta.asOfMonth;
   const cards = state.goal === 'investor' ? [...CARDS.slice(0, 3), WAL, ...CARDS.slice(3)] : CARDS;
   return (

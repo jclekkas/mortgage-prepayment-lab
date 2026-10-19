@@ -1,11 +1,12 @@
 import { useStore } from '../../app/store';
 import { explainComparison } from '../../domain/narrative';
 import { useComparison } from './useComparison';
+import { BlockedNotice } from './BlockedNotice';
 
 export function Explanation() {
   const { state } = useStore();
-  const { baseOut, actOut, baseInput, actInput, ready, isBaseline } = useComparison();
-  if (!ready) return <section className="card"><h2>What changed</h2><p className="muted">Waiting for results…</p></section>;
+  const { baseOut, actOut, baseInput, actInput, ready, isBaseline, blockers } = useComparison();
+  if (!ready) return <section className="card"><h2>What changed, in plain English</h2><BlockedNotice what="The explanation" blockers={blockers} /></section>;
   const groups: Record<string, string> = { market: 'Market conditions', behavior: 'Borrower behavior', business: 'Business decisions', model: 'Modeling assumptions' };
   const n = explainComparison(baseInput!, baseOut!, actInput!, actOut!, state.goal);
   return (

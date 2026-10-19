@@ -100,7 +100,10 @@ def project_loan(loan, sc):
             "end": w * rem * (1 - q),
             "interest": w * interest,
             "count": w,
-            "refiN": w * q_refi if sc["mode"] == "behavioral" else 0.0,
+            # Only behavioral mode identifies causes; fixed CPR and PSA payoffs are unclassified.
+            "volN": w * q,
+            "refiN": w * q_refi if sc["mode"] == "behavioral" else None,
+            "unclN": 0.0 if sc["mode"] == "behavioral" else w * q,
             "fee": w * bal * fee_bps / 10000.0 / 12.0,
             "cost": w * cost / 12.0,
         })
@@ -111,12 +114,15 @@ def project_loan(loan, sc):
 
 def project_portfolio(loans, sc):
     horizon = max(l["remainingTerm"] for l in loans)
-    keys = ["beg", "sched", "prep", "end", "interest", "count", "refiN", "fee", "cost"]
+    keys = ["beg", "sched", "prep", "end", "interest", "count", "volN", "refiN", "unclN", "fee", "cost"]
     tot = [{k: 0.0 for k in keys} for _ in range(horizon)]
     for loan in loans:
         for row in project_loan(loan, sc):
             for k in keys:
-                tot[row["t"] - 1][k] += row[k]
+                if row[k] is None:
+                    tot[row["t"] - 1][k] = None
+                else:
+                    tot[row["t"] - 1][k] += row[k]
     d = sc["discountRate"]
     ledger, npv, wal_num = [], 0.0, 0.0
     recap_pv = 0.0

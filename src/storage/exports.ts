@@ -1,3 +1,4 @@
+import { describeFilter } from '../domain/segments';
 import type { RunOutput } from '../domain/types';
 import { toCsv } from './sanitize';
 
@@ -11,8 +12,14 @@ const COLUMNS: [string, (m: RunOutput['ledger'][number]) => number | string | nu
   ['note_interest', (m) => m.noteInterest],
   ['owner_net_interest', (m) => m.ownerNetInterest],
   ['expected_beginning_loans', (m) => m.beginningLoans],
+  ['expected_voluntary_payoffs', (m) => m.voluntaryPayoffs],
+  // Cause columns are "not applicable" in fixed CPR and PSA modes, which do not identify causes.
   ['expected_refinance_payoffs', (m) => m.refiPayoffs],
   ['expected_turnover_payoffs', (m) => m.turnoverPayoffs],
+  ['expected_unclassified_payoffs', (m) => m.unclassifiedPayoffs],
+  ['refinance_prepaid_principal', (m) => m.refiPrepaidPrincipal],
+  ['turnover_prepaid_principal', (m) => m.turnoverPrepaidPrincipal],
+  ['unclassified_prepaid_principal', (m) => m.unclassifiedPrepaidPrincipal],
   ['expected_matured_loans', (m) => m.maturedLoans],
   ['smm', (m) => m.smm],
   ['cpr_annualized', (m) => m.cpr],
@@ -28,8 +35,10 @@ const COLUMNS: [string, (m: RunOutput['ledger'][number]) => number | string | nu
 
 /** Monthly cash-flow ledger as CSV. Null values export as "not applicable", never blank, NaN or Infinity. */
 export function ledgerCsv(out: RunOutput, scenarioName: string): string {
-  const header = ['scenario', 'run_key', 'model_version', ...COLUMNS.map((c) => c[0])];
-  const rows = out.ledger.map((m) => [scenarioName, out.runKey, out.modelVersion, ...COLUMNS.map((c) => c[1](m))]);
+  const header = ['scenario', 'run_key', 'model_version', 'valuation_month', 'population', ...COLUMNS.map((c) => c[0])];
+  // Every row states the population the numbers were calculated for.
+  const population = describeFilter(out.population.filter);
+  const rows = out.ledger.map((m) => [scenarioName, out.runKey, out.modelVersion, out.valuationMonth, population, ...COLUMNS.map((c) => c[1](m))]);
   return toCsv(header, rows);
 }
 

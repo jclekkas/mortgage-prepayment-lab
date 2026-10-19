@@ -5,10 +5,11 @@ import { DIMENSION_LABELS, DIMENSIONS, segmentOptions } from '../../domain/segme
 import type { CohortRow, PopulationFilter, SegmentDimension } from '../../domain/types';
 import { PopulationBadge, RunStatus } from '../results/RunStatus';
 import { useComparison } from '../results/useComparison';
+import { BlockedNotice } from '../results/BlockedNotice';
 
 export function CohortsPage() {
   const { state, dispatch } = useStore();
-  const { baseOut, actOut, isBaseline, actSlot } = useComparison();
+  const { baseOut, actOut, isBaseline, actSlot, blockers } = useComparison();
   const [dim, setDim] = useState<SegmentDimension>('coupon');
   const filter = state.filter;
   const toggle = (d: SegmentDimension, key: string) => {
@@ -32,6 +33,7 @@ export function CohortsPage() {
       </p>
       <PopulationBadge />
       <RunStatus />
+      {!actOut && <BlockedNotice what="Segment results" blockers={blockers} />}
       {actOut && actOut.population.loanCount === 0 && (
         <p className="notice warn" role="status">No loans match these filters. Clear a filter to see results.</p>
       )}

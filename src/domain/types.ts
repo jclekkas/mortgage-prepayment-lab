@@ -118,11 +118,19 @@ export interface LedgerMonth {
   /** Note interest paid by borrowers (gross of servicing fee). */
   noteInterest: number;
   beginningLoans: number;
-  refiPayoffs: number;
-  turnoverPayoffs: number;
-  /** Prepaid principal from refinance payoffs (behavioral mode); 0 otherwise. */
-  refiPrepaidPrincipal: number;
-  turnoverPrepaidPrincipal: number;
+  /** Expected full voluntary payoffs (loan count), all causes. Maturities are separate. */
+  voluntaryPayoffs: number;
+  /**
+   * Cause split of voluntary payoffs. Only behavioral mode identifies causes; in fixed CPR
+   * and PSA modes these are null ("not applicable") and every payoff is unclassified.
+   */
+  refiPayoffs: number | null;
+  turnoverPayoffs: number | null;
+  refiPrepaidPrincipal: number | null;
+  turnoverPrepaidPrincipal: number | null;
+  /** Voluntary payoffs with no identified cause: all of them in fixed CPR and PSA modes, 0 in behavioral mode. */
+  unclassifiedPayoffs: number;
+  unclassifiedPrepaidPrincipal: number;
   maturedLoans: number;
   /** null when eligible balance is zero. */
   smm: number | null;
@@ -204,6 +212,8 @@ export interface RunOutput {
   runKey: string;
   modelVersion: string;
   portfolioHash: string;
+  /** 'YYYY-MM' valuation month the run used; must match the portfolio as-of month. */
+  valuationMonth: string;
   scenarioId: string;
   mode: ModelMode;
   population: PopulationInfo;

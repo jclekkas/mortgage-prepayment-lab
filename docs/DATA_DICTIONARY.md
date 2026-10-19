@@ -56,20 +56,32 @@ Bounds are in `src/domain/config.ts` (`BOUNDS`) and shared by the UI, the engine
 
 ## Run output (`RunOutput`)
 
-`inputHash`, `runKey`, `modelVersion`, `portfolioHash`, `scenarioId`, `mode`,
+`inputHash`, `runKey`, `modelVersion`, `portfolioHash`, `valuationMonth`, `scenarioId`, `mode`,
 `population` (filter, counts, UPB), `ledger` (one `LedgerMonth` per month to the last
 maturity), `cohorts` (per segment dimension), `summary` (`SummaryMetrics`), `warnings`,
 `durationMs`. Per-loan monthly drill-down is computed on demand (`loanLedger`).
 
+Ledger payoff fields: `voluntaryPayoffs` (all causes); `refiPayoffs`, `turnoverPayoffs`,
+`refiPrepaidPrincipal`, `turnoverPrepaidPrincipal` (behavioral mode, otherwise `null`);
+`unclassifiedPayoffs`, `unclassifiedPrepaidPrincipal` (fixed CPR and PSA, 0 in behavioral
+mode); `maturedLoans` (never voluntary).
+
 ## Cash-flow CSV columns
 
-`scenario, run_key, model_version, month_index, month, beginning_upb,
-scheduled_principal, prepaid_principal, ending_upb, note_interest, owner_net_interest,
-expected_beginning_loans, expected_refinance_payoffs, expected_turnover_payoffs,
+`scenario, run_key, model_version, valuation_month, population, month_index, month,
+beginning_upb, scheduled_principal, prepaid_principal, ending_upb, note_interest,
+owner_net_interest, expected_beginning_loans, expected_voluntary_payoffs,
+expected_refinance_payoffs, expected_turnover_payoffs, expected_unclassified_payoffs,
+refinance_prepaid_principal, turnover_prepaid_principal, unclassified_prepaid_principal,
 expected_matured_loans, smm, cpr_annualized, gross_servicing_fee, operating_cost,
 net_servicing_cash_flow, discount_factor, pv_net_servicing, offer_rate,
-expected_recaptured_loans, recapture_contribution`. Missing values export as
-`not applicable`. Text beginning with `= + - @`, tab or CR is prefixed with `'`.
+expected_recaptured_loans, recapture_contribution`.
+
+`population` describes the filter the numbers were calculated for (for example "Whole
+portfolio"). In fixed CPR and PSA modes the refinance and turnover columns are
+`not applicable` and every payoff is in the unclassified columns; in behavioral mode the
+unclassified columns are 0. Missing values export as `not applicable`. Text beginning with
+`= + - @`, tab or CR is prefixed with `'`.
 
 ## Scenario file (`mortgage-prepayment-lab/scenarios`, schema 1)
 

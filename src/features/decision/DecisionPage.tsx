@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { href } from '../../app/router';
-import { useStore } from '../../app/store';
+import { assessSlots, slotLabel, useStore } from '../../app/store';
 import { formatMonth } from '../../domain/calendar';
 import { pct, usd, years } from '../../domain/format';
 import { MODE_LABELS } from '../../domain/scenario';
 import type { SummaryMetrics } from '../../domain/types';
-import { buildScenarioFile, ImportError, parseScenarioFile, readFileText, type DecisionNote } from '../../storage/files';
+import { buildScenarioFile, ImportError, parseScenarioFile, PopulationMismatchError, readFileText, type DecisionNote } from '../../storage/files';
+import { verifyReproduction, type MetricDifference } from '../../storage/verify';
 import { downloadText, safeFileName } from '../../storage/exports';
 import type { ScenarioFile } from '../../storage/schema';
 import { Notice } from '../../ui/misc';
 import { PopulationBadge } from '../results/RunStatus';
-import { entriesFor, ScenarioCharts } from '../results/ScenarioCharts';
+import { entriesFor, ExcludedNotice, ScenarioCharts } from '../results/ScenarioCharts';
 import { GridPanel } from './GridPanel';
 
 const METRICS: [string, (s: SummaryMetrics) => string][] = [
@@ -26,24 +27,52 @@ const METRICS: [string, (s: SummaryMetrics) => string][] = [
   ['Principal weighted-average life', (s) => years(s.wal)],
 ];
 
+function fmtMetric(v: MetricDifference['saved']): string {
+  if (v === 'missing') return 'missing';
+  if (v === null) return 'not applicable';
+  return String(v);
+}
+
 export function DecisionPage() {
   const { state, dispatch, importWorkspace, clearSaved } = useStore();
   const [importMsg, setImportMsg] = useState<{ kind: 'ok' | 'err'; text: string; details?: string[] } | null>(null);
   const [saved, setSaved] = useState<ScenarioFile['results'] | null>(null);
-  const entries = entriesFor(state.slots, state.baselineId);
-  const allDone = state.slots.every((s) => s.run.status === 'done' && s.run.output);
+  // One gate for comparing, printing and exporting: every result must be for the current population.
+  const assessment = assessSlots(state);
+  const { entries, excluded } = entriesFor(state);
+  const anyRunning = state.slots.some((s) => s.run.status === 'running');
+  const settled = assessment.comparable && !anyRunning;
 
-  // After an import, compare re-run results with the results stored in the file.
+  // After an import, compare every saved metric with the re-run results once all are current.
   useEffect(() => {
-    if (!saved || !allDone) return;
-    const matched = saved.filter((r) => state.slots.some((s) => s.run.output?.scenarioId === r.scenarioId && s.run.output.runKey === r.runKey && s.run.output.summary.servicingNpv === r.summary.servicingNpv)).length;
-    setImportMsg({ kind: matched === saved.length ? 'ok' : 'err', text: saved.length === 0 ? 'Imported. The file had no saved results to compare.' : `Reproduced ${matched} of ${saved.length} saved results exactly (same run key and NPV).` });
+    if (!saved || !settled) return;
+    if (saved.length === 0) {
+      setImportMsg({ kind: 'ok', text: 'Imported. The file had no saved results to compare.' });
+    } else {
+      const report = verifyReproduction(saved, state.slots.map((s) => s.run.output!));
+      const name = (id: string) => state.slots.find((s) => s.draft.scenarioId === id)?.draft.name ?? id;
+      const details = report.scenarios.filter((v) => !v.ok).flatMap((v) => [
+        ...v.problems.map((p) => `${name(v.scenarioId)}: ${p}`),
+        ...v.differences.map((d) => `${name(v.scenarioId)}: ${d.metric} saved ${fmtMetric(d.saved)}, re-run ${fmtMetric(d.actual)}`),
+      ]);
+      setImportMsg({
+        kind: report.matched === report.total ? 'ok' : 'err',
+        text: report.matched === report.total
+          ? `Reproduced ${report.matched} of ${report.total} saved results: run keys, input hashes and all ${Object.keys(saved[0].summary).length} summary metrics match within tolerance.`
+          : `Did not reproduce: ${report.total - report.matched} of ${report.total} saved results differ from the re-run.`,
+        details,
+      });
+    }
     setSaved(null);
-  }, [saved, allDone, state.slots]);
+  }, [saved, settled, state.slots]);
 
   const exportJson = () => {
-    const file = buildScenarioFile({ portfolio: state.portfolio, baselineId: state.baselineId, scenarios: state.slots.map((s) => s.run.outputInput ?? s.draft), filter: state.filter, notes: state.notes }, state.slots.map((s) => s.run.output!).filter(Boolean));
-    downloadText(`${safeFileName(state.portfolio.meta.name)}-scenarios.json`, JSON.stringify(file, null, 1), 'application/json');
+    try {
+      const file = buildScenarioFile({ portfolio: state.portfolio, baselineId: state.baselineId, scenarios: state.slots.map((s) => s.run.outputInput ?? s.draft), filter: state.filter, notes: state.notes }, state.slots.map((s) => s.run.output!));
+      downloadText(`${safeFileName(state.portfolio.meta.name)}-scenarios.json`, JSON.stringify(file, null, 1), 'application/json');
+    } catch (e) {
+      setImportMsg({ kind: 'err', text: (e as Error).message, details: e instanceof PopulationMismatchError ? e.problems : undefined });
+    }
   };
   const onImport = async (f: File | undefined) => {
     if (!f) return;
@@ -62,11 +91,24 @@ export function DecisionPage() {
     dispatch({ type: 'setNote', id, note: { ...cur, [field]: text.slice(0, 4000) } });
   };
   const focus = entries.find((e) => !e.isBaseline) ?? entries[0];
+  const cell = (id: string, f: (s: SummaryMetrics) => string) => {
+    const item = assessment.items.find((x) => x.id === id)!;
+    if (item.current && item.output) return f(item.output.summary);
+    if (item.phase === 'running') return 'Calculating…';
+    if (!item.output) return 'Not run';
+    return 'Not compared: different population';
+  };
   return (
     <div className="stack">
       <h1>Decision room</h1>
       <p className="muted">Up to four scenarios, including the frozen baseline, on the same valuation date ({formatMonth(state.portfolio.meta.asOfMonth)}) and the same population.</p>
       <PopulationBadge />
+      {!assessment.comparable && (
+        <div className="notice warn" role="status" data-testid="comparison-blocked">
+          <strong>{anyRunning ? 'Recalculating for the current population.' : 'Comparison, brief and export are unavailable until every scenario has a result for the current population.'}</strong>
+          <ul style={{ margin: '0.25rem 0 0' }}>{assessment.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
+        </div>
+      )}
       <section className="card" aria-labelledby="cmp-h">
         <h2 id="cmp-h">Scenario comparison</h2>
         <div className="table-wrap">
@@ -75,7 +117,7 @@ export function DecisionPage() {
             <thead>
               <tr>
                 <th scope="col">Measure</th>
-                {state.slots.map((s) => <th scope="col" key={s.draft.scenarioId}>{s.draft.scenarioId === state.baselineId && !s.draft.name.toLowerCase().startsWith('baseline') ? `Baseline: ${s.draft.name}` : s.draft.name}</th>)}
+                {state.slots.map((s) => <th scope="col" key={s.draft.scenarioId}>{slotLabel(state, s)}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -86,13 +128,14 @@ export function DecisionPage() {
               {METRICS.map(([label, f]) => (
                 <tr key={label}>
                   <th scope="row">{label}</th>
-                  {state.slots.map((s) => <td key={s.draft.scenarioId}>{s.run.output ? f(s.run.output.summary) : s.run.status === 'running' ? 'Calculating…' : 'Not run'}</td>)}
+                  {state.slots.map((s) => <td key={s.draft.scenarioId}>{cell(s.draft.scenarioId, f)}</td>)}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </section>
+      <ExcludedNotice excluded={excluded} />
       {focus && <ScenarioCharts entries={entries} focus={focus} />}
       <section className="card" aria-labelledby="notes-h">
         <h2 id="notes-h">Your reasoning</h2>
@@ -119,8 +162,8 @@ export function DecisionPage() {
       <section className="card" aria-labelledby="files-h">
         <h2 id="files-h">Brief, files and local data</h2>
         <div className="row">
-          <a className="button" href={href('brief')} data-testid="open-brief">Open one-page brief</a>
-          <button type="button" onClick={exportJson} disabled={!allDone} data-testid="export-json">Export scenarios (JSON)</button>
+          {settled ? <a className="button" href={href('brief')} data-testid="open-brief">Open one-page brief</a> : <button type="button" disabled data-testid="open-brief">Open one-page brief</button>}
+          <button type="button" onClick={exportJson} disabled={!settled} data-testid="export-json">Export scenarios (JSON)</button>
           <label className="button" style={{ fontWeight: 400 }}>
             Import scenarios (JSON)
             <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => { void onImport(e.target.files?.[0]); e.target.value = ''; }} data-testid="import-input" />

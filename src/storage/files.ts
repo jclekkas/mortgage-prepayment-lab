@@ -4,6 +4,7 @@
  */
 import { portfolioHash } from '../data/generator';
 import { PRESETS, loadPreset } from '../data/presets';
+import { populationContext, stalenessReason } from '../domain/comparability';
 import { IMPORT_LIMITS } from '../domain/config';
 import { levelPayment } from '../domain/math';
 import { validateScenario } from '../domain/scenario';
@@ -26,7 +27,21 @@ export interface Workspace {
   notes: Record<string, DecisionNote>;
 }
 
+/** Raised when an export would label a result with a population it was not calculated for. */
+export class PopulationMismatchError extends Error {
+  constructor(public readonly problems: string[]) {
+    super(`Not exported: ${problems.length} result(s) do not match the current portfolio, valuation month and population.`);
+    this.name = 'PopulationMismatchError';
+  }
+}
+
 export function buildScenarioFile(ws: Workspace, results: RunOutput[], exportedAt = new Date().toISOString()): ScenarioFile {
+  const ctx = populationContext(ws.portfolio, ws.filter);
+  const problems = results.flatMap((r) => {
+    const why = stalenessReason(r, ctx);
+    return why ? [`${r.scenarioId}: ${why}`] : [];
+  });
+  if (problems.length) throw new PopulationMismatchError(problems);
   const isPreset = PRESETS.some((p) => p.id === ws.portfolio.meta.presetId) && loadPreset(ws.portfolio.meta.presetId).meta.hash === ws.portfolio.meta.hash;
   return {
     fileType: 'mortgage-prepayment-lab/scenarios',

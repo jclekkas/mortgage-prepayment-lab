@@ -7,7 +7,7 @@ import { KpiCards } from '../results/KpiCards';
 import { FullLedger, MonthLedger } from '../results/LedgerPanel';
 import { RecapturePanel } from '../results/RecapturePanel';
 import { PopulationBadge, RunStatus } from '../results/RunStatus';
-import { entriesFor, ScenarioCharts } from '../results/ScenarioCharts';
+import { entriesFor, ExcludedNotice, ScenarioCharts } from '../results/ScenarioCharts';
 import { SensitivityPanel } from '../results/SensitivityPanel';
 import { Controls } from './Controls';
 import { RunBar } from './RunBar';
@@ -15,11 +15,11 @@ import { RunBar } from './RunBar';
 export function LabPage() {
   const { state, active, baseline } = useStore();
   const [lens, setLens] = useState<'servicing' | 'investor'>(state.goal === 'investor' ? 'investor' : 'servicing');
-  const allEntries = entriesFor(state.slots, state.baselineId);
-  const entries = allEntries.filter((e) => e.isBaseline || e.output.scenarioId === active.draft.scenarioId);
-  const focus = entries.find((e) => e.output.scenarioId === active.draft.scenarioId) ?? entries[0];
-  const out = active.run.output;
-  const input = active.run.outputInput;
+  const { entries, excluded } = entriesFor(state, state.slots.filter((s) => s === baseline || s === active));
+  const focus = entries.find((e) => e.output.scenarioId === active.draft.scenarioId);
+  // Only a result for the current population is shown in detail or exported.
+  const out = focus ? active.run.output : null;
+  const input = focus ? active.run.outputInput : null;
   return (
     <div className="stack">
       <div className="row" style={{ justifyContent: 'space-between' }}>
@@ -45,6 +45,7 @@ export function LabPage() {
             <button role="tab" type="button" className="chip" aria-selected={lens === 'servicing'} onClick={() => setLens('servicing')}>Servicing economics</button>
             <button role="tab" type="button" className="chip" aria-selected={lens === 'investor'} onClick={() => setLens('investor')} data-testid="lens-investor">Loan owner cash flows</button>
           </div>
+          <ExcludedNotice excluded={excluded} />
           {focus && out && input ? (
             lens === 'servicing' ? (
               <>
@@ -65,7 +66,7 @@ export function LabPage() {
               </>
             )
           ) : (
-            <p className="muted">Run the scenario to see results.</p>
+            <p className="muted" data-testid="no-current-result">{active.run.status === 'running' ? 'Calculating for the current population…' : 'No result for the current population yet. Run the scenario to see results.'}</p>
           )}
           {state.role === 'gm' && out && input && lens === 'servicing' && (
             <details className="drawer">

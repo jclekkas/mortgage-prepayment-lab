@@ -6,6 +6,9 @@ import { downloadText, ledgerCsv, safeFileName } from '../../storage/exports';
 
 type Row = [string, (m: LedgerMonth) => string, string];
 
+/** A cause count, or why it is not available. */
+const cause = (v: number | null) => (v === null ? 'Not applicable: this mode does not identify payoff causes' : num(v, 3));
+
 const ROWS: Row[] = [
   ['Beginning UPB', (m) => usdExact(m.beginningUpb), 'Expected balance at the start of the month: sum over loans of survival weight × contractual balance.'],
   ['Scheduled principal', (m) => usdExact(m.scheduledPrincipal), 'Contractual payment minus interest, for surviving loans. Goes to the loan owner.'],
@@ -14,8 +17,10 @@ const ROWS: Row[] = [
   ['SMM (monthly)', (m) => pct(m.smm, 4), 'Prepaid principal ÷ (beginning UPB − scheduled principal).'],
   ['CPR (annualized)', (m) => pct(m.cpr, 3), '1 − (1 − SMM)^12.'],
   ['Expected active loans', (m) => num(m.beginningLoans, 2), 'Sum of survival weights. Fractional counts are intentional.'],
-  ['Expected refinance payoffs', (m) => num(m.refiPayoffs, 3), 'Behavioral mode only; 0 in fixed CPR and PSA modes.'],
-  ['Expected move / turnover payoffs', (m) => num(m.turnoverPayoffs, 3), 'In fixed CPR and PSA modes every payoff is counted here because the cause is undefined.'],
+  ['Expected voluntary payoffs (all causes)', (m) => num(m.voluntaryPayoffs, 3), 'Survival weight × payoff probability, summed by loan. Maturities are counted separately.'],
+  ['… of which refinance', (m) => cause(m.refiPayoffs), 'Identified only in behavioral mode.'],
+  ['… of which move / turnover', (m) => cause(m.turnoverPayoffs), 'Identified only in behavioral mode.'],
+  ['… of which unclassified', (m) => num(m.unclassifiedPayoffs, 3), 'Fixed CPR and PSA give a speed, not a reason, so all their payoffs are unclassified. Always 0 in behavioral mode.'],
   ['Loans reaching maturity', (m) => num(m.maturedLoans, 3), 'Final contractual payment. Never counted as a voluntary payoff.'],
   ['Note interest paid by borrowers', (m) => usdExact(m.noteInterest), 'Survival-weighted balance × note rate ÷ 12. Belongs to the loan owner, less the servicing fee.'],
   ['Gross servicing fee', (m) => usdExact(m.grossFee), 'Beginning UPB × annual fee ÷ 12, summed by loan.'],
