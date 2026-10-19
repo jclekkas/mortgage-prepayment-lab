@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { href } from '../../app/router';
 import { useStore } from '../../app/store';
 import { Notice } from '../../ui/misc';
@@ -11,7 +11,8 @@ const LEARN_TERMS: TermId[] = ['cpr', 'smm', 'psa', 'bp', 'upb', 'npv', 'pv', 'm
 export function LearnPage({ sub }: { sub: string | null }) {
   const { state } = useStore();
   const lesson = LESSONS.find((l) => l.id === sub);
-  if (lesson) return <LessonView lesson={lesson} />;
+  // Keyed by lesson so each lesson starts with fresh answer and result state.
+  if (lesson) return <LessonView key={lesson.id} lesson={lesson} />;
   const done = LESSONS.filter((l) => state.exercises[l.id]?.done).length;
   return (
     <div className="stack" style={{ maxWidth: 900 }}>
@@ -42,19 +43,23 @@ function LessonView({ lesson }: { lesson: Lesson }) {
   const [err, setErr] = useState<string | null>(null);
   const idx = LESSONS.indexOf(lesson);
   const next = LESSONS[idx + 1];
+  // A calculation that finishes after the learner has left this lesson must not publish its answer.
+  const live = useRef(true);
+  useEffect(() => () => { live.current = false; }, []);
   const check = async () => {
     if (!choice) return;
     setBusy(true);
     setErr(null);
     try {
       const o = await lesson.compute(ctx);
+      if (!live.current) return;
       setOutcome(o);
       dispatch({ type: 'exercise', id: lesson.id, record: { done: true, prediction: choice, correct: o.correctId === choice } });
       dispatch({ type: 'announce', text: o.correctId === choice ? 'Your prediction matches the calculation.' : 'Your prediction differs from the calculation. See the explanation.' });
     } catch (e) {
-      setErr((e as Error).message);
+      if (live.current) setErr((e as Error).message);
     } finally {
-      setBusy(false);
+      if (live.current) setBusy(false);
     }
   };
   const correct = outcome && choice === outcome.correctId;
@@ -85,7 +90,7 @@ function LessonView({ lesson }: { lesson: Lesson }) {
           <p>
             <strong>Calculated answer:</strong> {options.find((o) => o.id === outcome.correctId)?.label}. {correct ? '' : `You predicted: ${options.find((o) => o.id === choice)?.label}.`}
           </p>
-          {!correct && <p>{outcome.ifWrong}</p>}
+          <p data-testid="lesson-explanation"><strong>Why:</strong> {outcome.explanation}</p>
           {outcome.reveal}
           <div className="row">
             <button type="button" onClick={() => { setOutcome(null); setChoice(null); }}>Try again</button>
