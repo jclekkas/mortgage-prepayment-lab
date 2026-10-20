@@ -50,7 +50,7 @@ test('phone navigation always exposes Home and Share without opening the menu', 
   await expect(page.getByRole('link', { name: 'Home — Prepayment Lab' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Share', exact: true })).toBeVisible();
   await page.getByRole('link', { name: 'Home — Prepayment Lab' }).click();
-  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What happens when borrowers pay their mortgages off early?', exact: true })).toBeVisible();
   const width = await page.evaluate(() => ({ page: document.documentElement.scrollWidth, viewport: innerWidth }));
   expect(width.page).toBeLessThanOrEqual(width.viewport + 1);
 });

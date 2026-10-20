@@ -147,6 +147,27 @@ export function CreditPage() {
         </p>
       </section>
 
+      <section className="card" aria-labelledby="credit-refresh-h" data-testid="credit-refresh">
+        <h2 id="credit-refresh-h">Refresh (synthetic)</h2>
+        <p className="muted">
+          Simulating shows what the newest synthetic snapshot ({newer.observedLabel}) would add. It does not draw new random numbers: the same portfolio, snapshot and settings always give the same records.
+          Nothing changes until you apply it, and applying it changes only this page’s educational analysis.
+        </p>
+        <div className="row">
+          {!preview && !refreshApplied && <button type="button" className="primary" onClick={() => dispatch({ type: 'creditSimulate' })} data-testid="credit-simulate">Simulate score refresh (synthetic)</button>}
+          {preview && (
+            <>
+              <button type="button" className="primary" onClick={() => dispatch({ type: 'creditApply' })} data-testid="credit-apply">Apply to the educational analysis</button>
+              <button type="button" onClick={() => dispatch({ type: 'creditDiscard' })} data-testid="credit-discard">Discard preview</button>
+            </>
+          )}
+          {refreshApplied && <button type="button" onClick={() => dispatch({ type: 'creditRevert' })} data-testid="credit-revert">Revert to the earlier information</button>}
+          <button type="button" onClick={exportCsv} data-testid="credit-export-csv">Download score records in use (CSV)</button>
+        </div>
+        {preview && <Notice kind="info" role="status"><span data-testid="credit-preview-notice"><strong>Preview, not applied.</strong> Tab A compares the earlier information with the newest synthetic snapshot. Apply it to make it the information in use, or discard it.</span></Notice>}
+        {refreshApplied && <Notice kind="info" role="status"><span data-testid="credit-applied-notice"><strong>Applied.</strong> The comparison with the earlier information is kept in tab A. Prepayment and servicing results did not change (tab B).</span></Notice>}
+      </section>
+
       <section className="card" aria-labelledby="credit-context-h" data-testid="credit-context">
         <h2 id="credit-context-h">What the analysis uses</h2>
         <ScrollTable label="Analysis context">
@@ -170,27 +191,6 @@ export function CreditPage() {
           <CoverageTable s={current} caption="Coverage of the information in use" testId="credit-coverage" />
           <AgeTable s={current} caption="Age of the score in use" testId="credit-age" />
         </div>
-      </section>
-
-      <section className="card" aria-labelledby="credit-refresh-h" data-testid="credit-refresh">
-        <h2 id="credit-refresh-h">Refresh (synthetic)</h2>
-        <p className="muted">
-          Simulating shows what the newest synthetic snapshot ({newer.observedLabel}) would add. It does not draw new random numbers: the same portfolio, snapshot and settings always give the same records.
-          Nothing changes until you apply it, and applying it changes only this page’s educational analysis.
-        </p>
-        <div className="row">
-          {!preview && !refreshApplied && <button type="button" className="primary" onClick={() => dispatch({ type: 'creditSimulate' })} data-testid="credit-simulate">Simulate score refresh (synthetic)</button>}
-          {preview && (
-            <>
-              <button type="button" className="primary" onClick={() => dispatch({ type: 'creditApply' })} data-testid="credit-apply">Apply to the educational analysis</button>
-              <button type="button" onClick={() => dispatch({ type: 'creditDiscard' })} data-testid="credit-discard">Discard preview</button>
-            </>
-          )}
-          {refreshApplied && <button type="button" onClick={() => dispatch({ type: 'creditRevert' })} data-testid="credit-revert">Revert to the earlier information</button>}
-          <button type="button" onClick={exportCsv} data-testid="credit-export-csv">Download score records in use (CSV)</button>
-        </div>
-        {preview && <Notice kind="info" role="status"><span data-testid="credit-preview-notice"><strong>Preview, not applied.</strong> Tab A compares the earlier information with the newest synthetic snapshot. Apply it to make it the information in use, or discard it.</span></Notice>}
-        {refreshApplied && <Notice kind="info" role="status"><span data-testid="credit-applied-notice"><strong>Applied.</strong> The comparison with the earlier information is kept in tab A. Prepayment and servicing results did not change (tab B).</span></Notice>}
       </section>
 
       <Tabs tabs={TABS} selected={tab} onSelect={setTab} label="Credit score refresh sections" testId="credit-tabs">

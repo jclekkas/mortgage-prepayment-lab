@@ -6,13 +6,13 @@ export function HomePage() {
   const { state } = useStore();
   return <div className="stack welcome">
     <p className="kicker">Learn by changing one thing at a time</p>
-    <h2>What happens when borrowers pay their mortgages off early?</h2>
+    <h1 id="page-title">What happens when borrowers pay their mortgages off early?</h1>
     <p>Explore how early payoffs change fee income, costs and the timing of money coming back. This is a teaching tool with made-up loans, not a forecast of a real portfolio.</p>
-    {state.started && <section className="card"><h3>Your workspace is still here</h3><p>{state.portfolio.meta.name} · {state.slots.length} scenarios. Going Home does not reset your work.</p><a href={href('overview')}>Resume workspace →</a></section>}
+    {state.started && <section className="card"><h2>Your workspace is still here</h2><p>{state.portfolio.meta.name} · {state.slots.length} scenarios. Going Home does not reset your work.</p><a href={href('overview')}>Resume workspace →</a></section>}
     <div className="home-steps">
-      <section className="card"><p className="kicker">1 · Learn</p><h3>New to mortgages?</h3><p>A short guided experiment explains who earns what, asks for your prediction, then shows a rate cut alongside an unchanged baseline.</p><a href={href(state.started ? 'guided' : 'start')}>Start the guided experience →</a></section>
-      <section className="card"><p className="kicker">2 · Experiment</p><h3>Change an assumption</h3><p>Choose a scenario, edit one number, then press Run. The baseline stays fixed so you can see the difference.</p><a href={href(state.started ? 'lab' : 'start')}>Open the scenario lab →</a></section>
-      <section className="card"><p className="kicker">3 · Explain and share</p><h3>Show someone what you learned</h3><p>Compare results, write your explanation and save a brief or a reproducible scenario file.</p><a href={href('share')}>Share and save →</a></section>
+      <section className="card"><p className="kicker">1 · Learn</p><h2>New to mortgages?</h2><p>A short guided experiment explains who earns what, asks for your prediction, then shows a rate cut alongside an unchanged baseline.</p><a href={href(state.started ? 'guided' : 'start')}>Start the guided experience →</a></section>
+      <section className="card"><p className="kicker">2 · Experiment</p><h2>Change an assumption</h2><p>Choose a scenario, edit one number, then press Run. The baseline stays fixed so you can see the difference.</p><a href={href(state.started ? 'lab' : 'start')}>Open the scenario lab →</a></section>
+      <section className="card"><p className="kicker">3 · Explain and share</p><h2>Show someone what you learned</h2><p>Compare results, write your explanation and save a brief or a reproducible scenario file.</p><a href={href('share')}>Share and save →</a></section>
     </div>
     <details><summary>Where should I go next?</summary><ul>
       <li><a href={href('cohorts')}>Loan groups</a>: see which kinds of loans account for the results.</li>

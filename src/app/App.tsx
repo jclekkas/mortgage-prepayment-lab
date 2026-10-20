@@ -89,7 +89,7 @@ function Routes() {
     </p>
   );
   const announcer = <div className="sr-only" role="status" aria-live="polite" data-testid="announcer">{state.announcement}</div>;
-  if (route === 'start') {
+  if (route === 'start' || route === 'home') {
     return (
       <>
         {skip}
