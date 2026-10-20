@@ -1,5 +1,21 @@
 # Release notes
 
+
+## Proposed 1.2.0 — October 20 mortgage-domain audit
+
+Audited formula base: `e185339` (1.1.0); integrated onto usability commit `c2a43c8` without conflicts. Typecheck and build also pass after integration. This is a separate draft review branch; it does not deploy the demonstration or merge PR #1.
+
+- Correct aggregate period CPR to the SIFMA endpoint-balance definition in portfolio/cohort summaries and the synthetic 24-month cohort comparison. Individual monthly cash flows are unchanged.
+- Stabilize level payments at very small positive interest rates; prevent infinite comparisons from bypassing payment consistency checks.
+- Correct the visible source-review claim, update the evidence register, and add `DOMAIN_AUDIT.md` with primary references, economic gaps and V01–V12 acceptance gates.
+- Model 1.2.0 registers 1.1.0 and 1.0.0 for explicit recalculation. A real pre-change 1.1.0 export is retained for migration regression. Credit refresh remains synthetic and score-blind; it was not extended.
+- D01–D08: eight focused domain checks, including SIFMA's published cash-flow, average-life and six-month CPR examples. D01/D02 were demonstrated failing before edits; D03 already passed. All eight now pass.
+- Targeted numerical/reference, migration, generator, synthetic-validation, invariant, worker, sensitivity and credit tests pass. Typecheck, lint and production build pass. The build retains a large-bundle advisory; this audit does not address performance packaging.
+- Six before/after preset cases (three books, base and -100 bps) retain identical fingerprints and monthly ledgers; NPV and WAL are identical. Mixed CPR12 changes 8.894856% -> 8.910742%. Three Python fixture values change, all `cpr12`; fixtures reproduce after regeneration.
+- Existing 103 release browser tests and eight hosted checks are prior evidence, not a claim of new-release browser verification. This audit did not manually repeat the browser suite. Any automatic PR CI result is recorded on the PR.
+
+Professional review, calibration, market valuation and outcome validation remain open. See `DOMAIN_AUDIT.md`; source verification alone is not investment readiness.
+
 ## Model 1.1.0, priority-0 (P0) educational build, preview only
 
 Status: published as a preview at https://jclekkas.github.io/mortgage-prepayment-lab/ from

@@ -83,7 +83,7 @@ test('start, guided experiment, edit without running, run, compare, perspective,
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);
   const text = readFileSync((await download.path())!, 'utf8');
   const file = JSON.parse(text);
-  expect(file.modelVersion).toBe('mpl-engine-1.1.0');
+  expect(file.modelVersion).toBe('mpl-engine-1.2.0');
   expect(file.appBuild).toBe(process.env.EXPECTED_COMMIT ?? file.appBuild);
   await page.getByTestId('import-input').setInputFiles({ name: 'scenarios.json', mimeType: 'application/json', buffer: Buffer.from(text) });
   await expect(page.getByTestId('import-message')).toContainText(/Reproduced \d of \d saved results/);

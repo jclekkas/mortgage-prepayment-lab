@@ -24,7 +24,8 @@ export function FormulaDrawer({ out, input }: { out: RunOutput; input: ScenarioI
         </div>
         <div>
           <strong>Twelve-month conditional prepayment rate</strong>
-          <div className="formula">1 − [∏(1 − SMM_t), t = 1..12]^(12/12) = {pct(s.cpr12, 3)}   (geometric annualization)</div>
+          <div className="formula">1 − (projected ending UPB / ending UPB with no prepayments) = {pct(s.cpr12, 3)}   (12-month balance-equivalent speed)</div>
+          <p>Both balances use the same starting loans and month-12 endpoint. Not applicable if all loans mature by then. This is not prepaid dollars divided by today’s balance.</p>
         </div>
         {input.mode === 'behavioral' && (
           <div>

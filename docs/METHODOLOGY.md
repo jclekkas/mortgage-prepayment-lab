@@ -1,6 +1,6 @@
 # Methodology
 
-Model `mpl-engine-1.1.0`, behavioral coefficients `behavioral-coeff-1.0.0`, scenario
+Model `mpl-engine-1.2.0`, behavioral coefficients `behavioral-coeff-1.0.0`, scenario
 schema 1, generator `synthetic-gen-1.1.0`. The version policy and history are in
 `src/domain/version.ts` and `docs/RELEASE_NOTES.md`; requirement-by-requirement evidence
 is in `docs/EVIDENCE.md`. Implemented in `src/domain/engine.ts`;
@@ -70,10 +70,12 @@ form, the conditional prepayment rate (CPR):
 ```
 SMM = prepaid principal / (beginning UPB - scheduled principal)
 CPR = 1 - (1 - SMM)^12        SMM = 1 - (1 - CPR)^(1/12)
-k-month CPR = 1 - [prod(1 - SMM_t)]^(12/k)    (geometric annualization)
+k-month aggregate CPR = 1 - (projected ending UPB / no-prepayment ending UPB)^(12/k)
 ```
 
-Conversions use `expm1`/`log1p` for precision. CPR is a conditional annualized speed, not
+The period measure uses the same starting loans and endpoint; its denominator amortizes every starting loan with no voluntary payoffs during the entire window. Loans matured by that endpoint contribute zero. A zero endpoint denominator gives null, without shortening the window. This corrects the prior geometric chaining of portfolio SMMs; see `DOMAIN_AUDIT.md` D1.
+
+Conversions use `expm1`/`log1p` for precision. The payment denominator also uses these functions to preserve its zero-rate limit (D2). CPR is a conditional annualized speed, not
 the share of today's book that prepays in a year. Twelve-month prepaid dollars come from
 the monthly ledger, never CPR x initial UPB.
 
@@ -254,13 +256,6 @@ unimplemented extension interface are in `docs/CREDIT_REFRESH.md`.
 - `tests/numerics/acceptance.test.ts`: PRD N01-N16 with expected values derived from first principles or quoted from the PRD.
 - `tests/numerics/reference.test.ts`: ledger and summary reconciliation (relative 1e-9) against six fixtures produced by `scripts/reference_model.py`, an independent Python implementation: single loan fixed and behavioral, six-loan multi-cohort with ramp shock, seasonality and burnout, custom rate path with cost override, PSA with fee override, and zero-rate plus one-month edge cases. A planted burnout bug fails this suite.
 
-## Sources (cited, not verified)
+## Source review (October 20, 2026)
 
-These are cited for context. As of October 19, 2026, none of them has been retrieved and read in this project's
-work sessions: the build environment's network policy denies these hosts. Treat every rule
-below that names a source as unconfirmed until it is checked; see `docs/EVIDENCE.md`.
-
-- **S0** SIFMA (formerly The Bond Market Association), *Uniform Practices*, Chapter SF, *Standard Formulas*: the expected source for SMM, CPR, PSA and WAL conventions. https://www.sifma.org/wp-content/uploads/2017/08/chsf.pdf
-- **S1** Office of the Comptroller of the Currency (OCC), Comptroller's Handbook, *Mortgage Banking*, servicing-asset and valuation sections (printed pages 67-72). Context only; not certification of this simulator. https://www.occ.treas.gov/publications-and-resources/publications/comptrollers-handbook/files/mortgage-banking/pub-ch-mortgage-banking.pdf
-- **S2** Oracle Financial Services, *PSA Method*. https://docs.oracle.com/en/industries/financial-services/ofs-analytical-applications/analytical-applications-infrastructure/812/almug/psa-method.html
-- **S3** Fannie Mae Single-Family Loan Performance Data: candidate for a licensed P1 adapter; terms restrict redistribution, and no records are bundled. https://capitalmarkets.fanniemae.com/credit-risk-transfer/fannie-mae-single-family-loan-performance-data
+Primary sources for the calculation checks have now been retrieved. `DOMAIN_AUDIT.md`, section 6, records the exact documents, dates, sections and limits; `EVIDENCE.md` maps them to tests. SIFMA B.1–3 and G.1.c, Fannie Mae servicing guidance and the OCC handbook substantiate specific conventions, not behavioral coefficients or market values. The earlier October 19 source-access failure remains part of the historical review record. Oracle is not counted as substantively verified. Professional domain approval and empirical validation remain open.

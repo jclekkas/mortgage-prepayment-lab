@@ -9,7 +9,7 @@
 import { addMonths, calendarMonthIndex } from './calendar';
 import { BEHAVIORAL_COEFFICIENTS as C, SEASONAL_TURNOVER_PRESET } from './config';
 import { hashValue } from './hash';
-import { cprToSmm, discountFactor, geometricAnnualCpr, psaCpr, ratio, sigmoid, smmToCpr } from './math';
+import { cprToSmm, discountFactor, periodCpr, psaCpr, ratio, sigmoid, smmToCpr } from './math';
 import { effectiveInput, offerRatePath, scenarioInputHash, validateScenario } from './scenario';
 import { DIMENSIONS, matchesFilter, normalizeFilter, isFilterEmpty, segmentKey, segmentLabel, segmentOptions } from './segments';
 import type {
@@ -51,6 +51,8 @@ export interface LoanMonth {
   survival: number;
   /** Contractual balance of a surviving borrower at the start of the month. */
   contractualBalance: number;
+  /** End balance without voluntary prepayment; not survival-weighted. */
+  contractualEndingBalance: number;
   contractualPayment: number;
   /** Expected values (survival-weighted). */
   beginningBalance: number;
@@ -126,7 +128,7 @@ export function simulateLoan(loan: Loan, ctx: RunContext, sink: (m: LoanMonth) =
   const bp = s.behavioralParameters;
   const behavioral = s.mode === 'behavioral';
   const m: LoanMonth = {
-    t: 0, survival: 0, contractualBalance: 0, contractualPayment: A, beginningBalance: 0, interest: 0,
+    t: 0, survival: 0, contractualBalance: 0, contractualEndingBalance: 0, contractualPayment: A, beginningBalance: 0, interest: 0,
     scheduledPrincipal: 0, prepaidPrincipal: 0, endingBalance: 0, voluntaryPayoffs: 0, refiPayoffs: null, turnoverPayoffs: null,
     refiPrepaidPrincipal: null, turnoverPrepaidPrincipal: null, unclassifiedPayoffs: 0, unclassifiedPrepaidPrincipal: 0,
     matured: 0, grossFee: 0, operatingCost: 0,
@@ -176,6 +178,7 @@ export function simulateLoan(loan: Loan, ctx: RunContext, sink: (m: LoanMonth) =
     m.t = t;
     m.survival = w;
     m.contractualBalance = B;
+    m.contractualEndingBalance = R;
     m.beginningBalance = w * B;
     m.interest = w * interest;
     m.scheduledPrincipal = w * S;
@@ -223,6 +226,8 @@ export interface Accumulator {
   loanNpv: Float64Array;
   loanElig: Float64Array; // population.length * 12
   loanPrepM: Float64Array; // population.length * 12
+  loanContractualEnd12: Float64Array;
+  loanExpectedEnd12: Float64Array;
   done: number;
   started: number;
 }
@@ -266,6 +271,8 @@ export function createAccumulator(portfolio: Portfolio, scenario: ScenarioInput,
     loanNpv: new Float64Array(n),
     loanElig: new Float64Array(n * COHORT_MONTHS),
     loanPrepM: new Float64Array(n * COHORT_MONTHS),
+    loanContractualEnd12: new Float64Array(n),
+    loanExpectedEnd12: new Float64Array(n),
     done: 0,
     started,
   };
@@ -307,6 +314,10 @@ export function accumulate(acc: Accumulator, start: number, end: number): number
         acc.loanElig[k * COHORT_MONTHS + i] = m.beginningBalance - m.scheduledPrincipal;
         acc.loanPrepM[k * COHORT_MONTHS + i] = m.prepaidPrincipal;
       }
+      if (m.t === COHORT_MONTHS) {
+        acc.loanContractualEnd12[k] = m.contractualEndingBalance;
+        acc.loanExpectedEnd12[k] = m.endingBalance;
+      }
     });
     acc.loanSched12[k] = s12;
     acc.loanPrep12[k] = p12;
@@ -333,7 +344,7 @@ function cohortTables(acc: Accumulator): Record<SegmentDimension, CohortRow[]> {
     for (const key of order) {
       const idx = groups.get(key);
       if (!idx) continue;
-      let upb = 0, s12 = 0, p12 = 0, n12 = 0, npv = 0;
+      let upb = 0, s12 = 0, p12 = 0, n12 = 0, npv = 0, scheduledEnd12 = 0, expectedEnd12 = 0;
       const elig = new Float64Array(COHORT_MONTHS);
       const prep = new Float64Array(COHORT_MONTHS);
       for (const k of idx) {
@@ -342,6 +353,8 @@ function cohortTables(acc: Accumulator): Record<SegmentDimension, CohortRow[]> {
         p12 += acc.loanPrep12[k];
         n12 += acc.loanNet12[k];
         npv += acc.loanNpv[k];
+        scheduledEnd12 += acc.loanContractualEnd12[k];
+        expectedEnd12 += acc.loanExpectedEnd12[k];
         for (let i = 0; i < COHORT_MONTHS; i++) {
           elig[i] += acc.loanElig[k * COHORT_MONTHS + i];
           prep[i] += acc.loanPrepM[k * COHORT_MONTHS + i];
@@ -356,7 +369,7 @@ function cohortTables(acc: Accumulator): Record<SegmentDimension, CohortRow[]> {
         loanCount: idx.length,
         beginningUpb: upb,
         nextMonthCpr: first === null ? null : smmToCpr(first),
-        cpr12: geometricAnnualCpr(smms.slice(0, Math.min(COHORT_MONTHS, acc.ctx.horizon))),
+        cpr12: periodCpr(expectedEnd12, scheduledEnd12, COHORT_MONTHS),
         scheduled12: s12,
         prepaid12: p12,
         prepaid12Share: ratio(p12, upb),
@@ -477,7 +490,11 @@ function summarize(acc: Accumulator, ledger: LedgerMonth[]): SummaryMetrics {
     loanCount: acc.population.length,
     currentUpb: upb,
     nextMonthCpr: ledger.length ? ledger[0].cpr : null,
-    cpr12: geometricAnnualCpr(ledger.slice(0, 12).map((m) => m.smm)),
+    cpr12: periodCpr(
+      acc.loanExpectedEnd12.reduce((a, b) => a + b, 0),
+      acc.loanContractualEnd12.reduce((a, b) => a + b, 0),
+      COHORT_MONTHS,
+    ),
     prepaid12,
     scheduled12,
     netServicing12: net12,

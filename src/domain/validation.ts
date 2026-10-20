@@ -9,7 +9,7 @@ import { generatePortfolio } from '../data/generator';
 import { mulberry32 } from '../data/prng';
 import { addMonths } from './calendar';
 import { createContext, runScenario, simulateLoan } from './engine';
-import { geometricAnnualCpr, ratio, smmToCpr } from './math';
+import { periodCpr, ratio, smmToCpr } from './math';
 import { defaultScenario } from './scenario';
 import { segmentKey, segmentLabel, segmentOptions } from './segments';
 import type { Portfolio, ScenarioInput } from './types';
@@ -115,30 +115,31 @@ function realizeOutcome(book: Portfolio, s: ScenarioInput, seed: number) {
   const sched = new Float64Array(VALIDATION_MONTHS);
   const prep = new Float64Array(VALIDATION_MONTHS);
   const perLoanPrep = new Map<string, Float64Array>();
-  const perLoanElig = new Map<string, Float64Array>();
+  const perLoanEnd = new Map<string, number>();
   for (const loan of book.loans) {
     const lp = new Float64Array(VALIDATION_MONTHS);
-    const le = new Float64Array(VALIDATION_MONTHS);
+    let endingBalance = 0;
     let alive = true;
     simulateLoan(loan, ctx, (m) => {
       const u = rand(); // always drawn: the sequence does not depend on earlier outcomes
       if (!alive) return;
       const i = m.t - 1;
       const B = m.contractualBalance;
-      const S = Math.min(B, m.scheduledPrincipal / m.survival);
+      const S = B - m.contractualEndingBalance;
       beg[i] += B;
       sched[i] += S;
-      le[i] = B - S;
+
       if (u < m.payoffProbability) {
         prep[i] += B - S;
         lp[i] = B - S;
         alive = false;
       }
+      if (m.t === VALIDATION_MONTHS && alive) endingBalance = m.contractualEndingBalance;
     });
     perLoanPrep.set(loan.id, lp);
-    perLoanElig.set(loan.id, le);
+    perLoanEnd.set(loan.id, endingBalance);
   }
-  return { beg, sched, prep, perLoanPrep, perLoanElig };
+  return { beg, sched, prep, perLoanPrep, perLoanEnd };
 }
 
 export function runValidation(): ValidationResult {
@@ -190,34 +191,33 @@ export function runValidation(): ValidationResult {
 
   // Cohort bias: frozen forecast vs actual, by note-rate band.
   const ctx = createContext(frozenForecastScenario(book), VALIDATION_MONTHS);
-  const groups = new Map<string, { n: number; f: number; a: number; fE: Float64Array; fP: Float64Array; aE: Float64Array; aP: Float64Array }>();
+  const groups = new Map<string, { n: number; f: number; a: number; scheduledEnd: number; forecastEnd: number; actualEnd: number }>();
   for (const loan of book.loans) {
     const key = segmentKey(loan, 'coupon');
     let g = groups.get(key);
     if (!g) {
-      g = { n: 0, f: 0, a: 0, fE: new Float64Array(VALIDATION_MONTHS), fP: new Float64Array(VALIDATION_MONTHS), aE: new Float64Array(VALIDATION_MONTHS), aP: new Float64Array(VALIDATION_MONTHS) };
+      g = { n: 0, f: 0, a: 0, scheduledEnd: 0, forecastEnd: 0, actualEnd: 0 };
       groups.set(key, g);
     }
     g.n++;
     const gg = g;
     simulateLoan(loan, ctx, (m) => {
       gg.f += m.prepaidPrincipal;
-      gg.fE[m.t - 1] += m.beginningBalance - m.scheduledPrincipal;
-      gg.fP[m.t - 1] += m.prepaidPrincipal;
+      if (m.t === VALIDATION_MONTHS) {
+        gg.scheduledEnd += m.contractualEndingBalance;
+        gg.forecastEnd += m.endingBalance;
+      }
     });
     const ap = out.perLoanPrep.get(loan.id)!;
-    const ae = out.perLoanElig.get(loan.id)!;
+    gg.actualEnd += out.perLoanEnd.get(loan.id)!;
     for (let i = 0; i < VALIDATION_MONTHS; i++) {
       gg.a += ap[i];
-      gg.aP[i] += ap[i];
-      gg.aE[i] += ae[i];
     }
   }
   const cohorts: CohortBias[] = segmentOptions('coupon', book.loans)
     .filter((o) => groups.has(o.key))
     .map((o) => {
       const g = groups.get(o.key)!;
-      const smms = (e: Float64Array, p: Float64Array) => Array.from(e, (x, i) => ratio(p[i], x));
       return {
         key: o.key,
         label: segmentLabel('coupon', o.key),
@@ -226,8 +226,8 @@ export function runValidation(): ValidationResult {
         actualPrepaid: g.a,
         bias: g.f - g.a,
         biasShare: g.a === 0 ? null : (g.f - g.a) / g.a,
-        forecastCpr: geometricAnnualCpr(smms(g.fE, g.fP)),
-        actualCpr: geometricAnnualCpr(smms(g.aE, g.aP)),
+        forecastCpr: periodCpr(g.forecastEnd, g.scheduledEnd, VALIDATION_MONTHS),
+        actualCpr: periodCpr(g.actualEnd, g.scheduledEnd, VALIDATION_MONTHS),
       };
     });
 

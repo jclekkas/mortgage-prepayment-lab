@@ -141,11 +141,17 @@ def project_portfolio(loans, sc):
             rec = m["refiN"] * sc["recapture"]["share"]
             recap_pv += rec * sc["recapture"]["contributionPerLoan"] * df
         ledger.append({**m, "t": t, "smm": smm, "cpr": None if smm is None else smm_to_cpr(smm), "net": net})
-    smms = [m["smm"] for m in ledger[:12] if m["smm"] is not None]
-    surv = 1.0
-    for s in smms:
-        surv *= 1 - s
-    cpr12 = 1 - surv ** (12 / len(smms)) if smms else None
+    # SIFMA B.3: scheduled endpoint without ANY prepayments in the window.
+    # Separate contractual amortization loop, independent of survival/ledger ratios.
+    scheduled_end = 0.0
+    for loan in loans:
+        if loan["remainingTerm"] <= 12:
+            continue
+        bal = loan["currentBalance"]
+        for _ in range(12):
+            bal -= min(bal, max(0.0, loan["contractualPayment"] - bal * loan["noteRate"] / 12))
+        scheduled_end += bal
+    cpr12 = 1 - ledger[11]["end"] / scheduled_end if scheduled_end > 0 else None
     summary = {
         "currentUpb": upb0,
         "nextMonthCpr": ledger[0]["cpr"],

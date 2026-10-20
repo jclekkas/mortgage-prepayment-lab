@@ -152,6 +152,7 @@ export interface SummaryMetrics {
   loanCount: number;
   currentUpb: number;
   nextMonthCpr: number | null;
+  /** 12-month endpoint-equivalent CPR; null if no contractual balance remains at month 12. */
   cpr12: number | null;
   prepaid12: number;
   scheduled12: number;
@@ -181,6 +182,7 @@ export interface CohortRow {
   loanCount: number;
   beginningUpb: number;
   nextMonthCpr: number | null;
+  /** 12-month endpoint-equivalent CPR; null if no contractual balance remains at month 12. */
   cpr12: number | null;
   scheduled12: number;
   prepaid12: number;

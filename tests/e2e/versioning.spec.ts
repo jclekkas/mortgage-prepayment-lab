@@ -26,7 +26,7 @@ test('an exported file from model 1.0.0 keeps assumptions and notes and is recal
   await openTab(page, 'files');
   await page.getByTestId('import-input').setInputFiles({ name: 'old.json', mimeType: 'application/json', buffer: Buffer.from(fixture('mpl-engine-1.0.0-before-threshold-fix.json')) });
   const msg = page.getByTestId('import-message');
-  await expect(msg).toContainText('Recalculated with mpl-engine-1.1.0', { timeout: 30_000 });
+  await expect(msg).toContainText('Recalculated with mpl-engine-1.2.0', { timeout: 30_000 });
   await expect(msg).toContainText('not checked as a reproduction');
   await expect(msg).toContainText('servicingNpv was');
   await expect(msg).not.toContainText('Did not reproduce');
@@ -61,7 +61,7 @@ test('exports carry the model version, the source build and a portfolio fingerpr
   await openTab(page, 'files');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);
   const f = JSON.parse(readFileSync(await dl.path(), 'utf8'));
-  expect(f.modelVersion).toBe('mpl-engine-1.1.0');
+  expect(f.modelVersion).toBe('mpl-engine-1.2.0');
   expect(typeof f.appBuild).toBe('string');
   expect(f.portfolio.hash).toBe(MIXED_FINGERPRINT);
 });

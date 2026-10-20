@@ -1,0 +1,85 @@
+{
+  "fileType": "mortgage-prepayment-lab/scenarios",
+  "schemaVersion": 1,
+  "modelVersion": "mpl-engine-1.1.0",
+  "appBuild": "test",
+  "exportedAt": "2026-10-20T00:00:00Z",
+  "portfolio": {
+    "kind": "preset",
+    "presetId": "mixed",
+    "hash": "4cbb1778461547d31453250d174554dee9f29790fdbdedcd8e87cd7bf9f469c5"
+  },
+  "baselineId": "baseline",
+  "scenarios": [
+    {
+      "schemaVersion": 1,
+      "modelVersion": "mpl-engine-1.1.0",
+      "portfolioHash": "4cbb1778461547d31453250d174554dee9f29790fdbdedcd8e87cd7bf9f469c5",
+      "baselineId": null,
+      "scenarioId": "baseline",
+      "name": "Baseline",
+      "valuationMonth": "2026-09",
+      "mode": "behavioral",
+      "ratePath": {
+        "offerRate": 0.0625,
+        "shockBps": 0,
+        "shape": "immediate",
+        "customPath": []
+      },
+      "behavioralParameters": {
+        "turnoverMultiplier": 1,
+        "refiMultiplier": 1,
+        "frictionBps": 50,
+        "burnout": true,
+        "seasonality": "flat"
+      },
+      "prepaymentParameters": {
+        "fixedCpr": 0.08,
+        "psaPercent": 100
+      },
+      "servicingParameters": {
+        "feeOverrideBps": null,
+        "costPerLoan": null,
+        "discountRate": 0.1
+      },
+      "recaptureParameters": {
+        "share": 0.2,
+        "contributionPerLoan": 1500,
+        "campaignCost": 0
+      },
+      "seed": 42,
+      "chartHorizon": 36
+    }
+  ],
+  "filter": {},
+  "notes": {},
+  "results": [
+    {
+      "scenarioId": "baseline",
+      "inputHash": "83c40cad4acad437ccb9faef52f4709beb89a40464197dd6fbf15d066b23725d",
+      "runKey": "a9933a81fc04fc9de2c8b7c5003652e130e1916ac1239823ef60396233788e90",
+      "summary": {
+        "loanCount": 1000,
+        "currentUpb": 331718585.63999975,
+        "nextMonthCpr": 0.0776493233213688,
+        "cpr12": 0.08894855517423539,
+        "prepaid12": 29212902.85895285,
+        "scheduled12": 5757541.882137781,
+        "netServicing12": 693889.8001322118,
+        "grossFee12": 790045.5796972264,
+        "operatingCost12": 96155.77956501466,
+        "servicingNpv": 3524196.152443547,
+        "servicingValueBps": 106.24053957194334,
+        "wal": 8.952846953599636,
+        "lifetimePrepaid": 194871333.0554559,
+        "lifetimeScheduled": 136847252.58454412,
+        "lifetimeNetServicing": 6135301.418590861,
+        "recapturedLoans": 57.00399995263779,
+        "recapturePv": 58575.58235861324,
+        "combinedContribution": 3582771.73480216,
+        "negativeMarginMonths": 43,
+        "projectionMonths": 357
+      }
+    }
+  ]
+}

@@ -57,8 +57,9 @@ In a sandbox without Playwright's browser download, point at an installed Chromi
 - [docs/PRD.md](docs/PRD.md): product requirements (v1.0, October 18, 2026)
 - [docs/METHODOLOGY.md](docs/METHODOLOGY.md): every formula, convention and exclusion
 - [docs/CALCULATION_REVIEW.md](docs/CALCULATION_REVIEW.md): engineering review of the mortgage calculations with closed-form worked examples (not professional model validation)
-- [docs/EVIDENCE.md](docs/EVIDENCE.md): each calculation rule mapped to its source or labeled assumption, an independent expected result and its test; source checks still incomplete
+- [docs/EVIDENCE.md](docs/EVIDENCE.md): each calculation rule mapped to its source or labeled assumption, an independent expected result and its test; source checks and remaining limits
 - [docs/ACCEPTANCE_REVIEW.md](docs/ACCEPTANCE_REVIEW.md): zero-fee controlled comparison, worked examples, evidence by kind, beginner check (prepared, not user-tested)
+- [docs/DOMAIN_AUDIT.md](docs/DOMAIN_AUDIT.md): October 20 primary-source audit, confirmed corrections, impact and prioritized validation gates
 - [docs/DOMAIN_REVIEW_QUESTIONS.md](docs/DOMAIN_REVIEW_QUESTIONS.md): questions for a qualified mortgage-domain reviewer
 - [docs/CREDIT_REFRESH.md](docs/CREDIT_REFRESH.md): synthetic credit score refresh workspace, rules, migration, and what a real integration and benefit claim would need
 - [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md): loan, portfolio, scenario and output fields
