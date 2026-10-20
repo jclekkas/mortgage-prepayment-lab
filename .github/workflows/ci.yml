@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install from lockfile
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Numerical acceptance (N01-N16 and reference model)
+        run: npm run test:numerics
+      - name: Unit tests and engine benchmark
+        run: npm test
+      - name: Reference fixtures are reproducible
+        run: |
+          python3 -I scripts/reference_model.py
+          git diff --exit-code tests/fixtures
+      - name: Production build
+        run: npm run build
+      - name: Install Playwright Chromium and WebKit (Safari's engine)
+        run: npx playwright install --with-deps chromium webkit
+      - name: End-to-end, accessibility and browser performance (Chromium, WebKit desktop, WebKit iPhone)
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 30

@@ -1,0 +1,156 @@
+{
+ "fileType": "mortgage-prepayment-lab/scenarios",
+ "schemaVersion": 1,
+ "modelVersion": "mpl-engine-1.0.0",
+ "exportedAt": "2026-10-19T13:47:28.491Z",
+ "portfolio": {
+  "kind": "preset",
+  "presetId": "mixed",
+  "hash": "5fc914c9c3e7911c6478479d937b3d50b46d0f00d631d51c6c60224a4284dc4e"
+ },
+ "baselineId": "baseline",
+ "scenarios": [
+  {
+   "schemaVersion": 1,
+   "modelVersion": "mpl-engine-1.0.0",
+   "portfolioHash": "5fc914c9c3e7911c6478479d937b3d50b46d0f00d631d51c6c60224a4284dc4e",
+   "baselineId": null,
+   "scenarioId": "baseline",
+   "name": "Baseline",
+   "valuationMonth": "2026-09",
+   "mode": "behavioral",
+   "ratePath": {
+    "offerRate": 0.0625,
+    "shockBps": 0,
+    "shape": "immediate",
+    "customPath": []
+   },
+   "behavioralParameters": {
+    "turnoverMultiplier": 1,
+    "refiMultiplier": 1,
+    "frictionBps": 50,
+    "burnout": true,
+    "seasonality": "flat"
+   },
+   "prepaymentParameters": {
+    "fixedCpr": 0.08,
+    "psaPercent": 100
+   },
+   "servicingParameters": {
+    "feeOverrideBps": null,
+    "costPerLoan": null,
+    "discountRate": 0.1
+   },
+   "recaptureParameters": {
+    "share": 0.2,
+    "contributionPerLoan": 1500,
+    "campaignCost": 0
+   },
+   "seed": 42,
+   "chartHorizon": 36
+  },
+  {
+   "schemaVersion": 1,
+   "modelVersion": "mpl-engine-1.0.0",
+   "portfolioHash": "5fc914c9c3e7911c6478479d937b3d50b46d0f00d631d51c6c60224a4284dc4e",
+   "baselineId": "baseline",
+   "scenarioId": "scenario-1",
+   "name": "Scenario 1",
+   "valuationMonth": "2026-09",
+   "mode": "behavioral",
+   "ratePath": {
+    "offerRate": 0.0625,
+    "shockBps": -100,
+    "shape": "immediate",
+    "customPath": []
+   },
+   "behavioralParameters": {
+    "turnoverMultiplier": 1,
+    "refiMultiplier": 1,
+    "frictionBps": 50,
+    "burnout": true,
+    "seasonality": "flat"
+   },
+   "prepaymentParameters": {
+    "fixedCpr": 0.08,
+    "psaPercent": 100
+   },
+   "servicingParameters": {
+    "feeOverrideBps": null,
+    "costPerLoan": null,
+    "discountRate": 0.1
+   },
+   "recaptureParameters": {
+    "share": 0.2,
+    "contributionPerLoan": 1500,
+    "campaignCost": 0
+   },
+   "seed": 42,
+   "chartHorizon": 36
+  }
+ ],
+ "filter": {},
+ "notes": {
+  "scenario-1": {
+   "whatChanged": "Lower rates raised refinancing (note written in model 1.0.0).",
+   "evidence": "",
+   "investigateNext": ""
+  }
+ },
+ "results": [
+  {
+   "scenarioId": "baseline",
+   "inputHash": "66e613ae42344371fb43605b5410659a5099a11a476204a04d179b4d00ac1209",
+   "runKey": "56fe4452af331be0611052cfa4725de48bdec9c83bba33c29c97584c1c0e13fd",
+   "summary": {
+    "loanCount": 1000,
+    "currentUpb": 331718581.5730993,
+    "nextMonthCpr": 0.0776493232819008,
+    "cpr12": 0.08894855510934596,
+    "prepaid12": 29212902.364675302,
+    "scheduled12": 5757544.056584855,
+    "netServicing12": 693889.787951941,
+    "grossFee12": 790045.5675169557,
+    "operatingCost12": 96155.77956501466,
+    "servicingNpv": 3524195.8440610245,
+    "servicingValueBps": 106.24053157795183,
+    "wal": 8.95284561044088,
+    "lifetimePrepaid": 194871307.560829,
+    "lifetimeScheduled": 136847274.01227075,
+    "lifetimeNetServicing": 6135300.213688235,
+    "recapturedLoans": 57.00399995263779,
+    "recapturePv": 58575.58235861324,
+    "combinedContribution": 3582771.4264196376,
+    "negativeMarginMonths": 43,
+    "projectionMonths": 357
+   }
+  },
+  {
+   "scenarioId": "scenario-1",
+   "inputHash": "3ad1ac7b49390e4da1aed32e73c6b38d4859b601c73fbf47f1b15d8008bec24f",
+   "runKey": "b01440a15b23ff937f173e96025cd193355ab1c3ddaa3513042211758cc91f3e",
+   "summary": {
+    "loanCount": 1000,
+    "currentUpb": 331718581.5730993,
+    "nextMonthCpr": 0.11179299588851599,
+    "cpr12": 0.1254299465118014,
+    "prepaid12": 41198447.34033126,
+    "scheduled12": 5670299.182044556,
+    "netServicing12": 681592.7971483273,
+    "grossFee12": 776046.1814609397,
+    "operatingCost12": 94453.38431261224,
+    "servicingNpv": 3053757.4334381814,
+    "servicingValueBps": 92.05867874378448,
+    "wal": 7.295197038689369,
+    "lifetimePrepaid": 227478612.66191667,
+    "lifetimeScheduled": 104239968.91118288,
+    "lifetimeNetServicing": 5034297.263683557,
+    "recapturedLoans": 93.37715498173664,
+    "recapturePv": 95697.6480160572,
+    "combinedContribution": 3149455.0814542384,
+    "negativeMarginMonths": 26,
+    "projectionMonths": 357
+   }
+  }
+ ]
+}

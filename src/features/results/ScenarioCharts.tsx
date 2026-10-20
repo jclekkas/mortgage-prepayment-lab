@@ -1,0 +1,166 @@
+import { slotColor } from '../../app/palette';
+import { assessSlots, useStore, type AppState, type Slot } from '../../app/store';
+import { formatMonth } from '../../domain/calendar';
+import { pct, usd } from '../../domain/format';
+import type { RunOutput } from '../../domain/types';
+import { LineChart, type Series } from '../../ui/LineChart';
+import { TermHelp } from '../../ui/TermHelp';
+
+export interface ChartEntry {
+  label: string;
+  output: RunOutput;
+  index: number;
+  isBaseline: boolean;
+}
+
+/**
+ * Chart entries for slots whose results belong to the current population, in slot order.
+ * Results kept from another population (after a cancelled or failed recalculation, or
+ * while one runs) are listed in `excluded` and never drawn next to current ones.
+ */
+export function entriesFor(state: AppState, slots: Slot[] = state.slots): { entries: ChartEntry[]; excluded: string[] } {
+  const a = assessSlots(state, slots);
+  const entries: ChartEntry[] = [];
+  a.items.forEach((item) => {
+    const i = state.slots.findIndex((s) => s.draft.scenarioId === item.id);
+    if (item.current && item.output) entries.push({ label: item.label, output: item.output, index: i, isBaseline: item.id === state.baselineId });
+  });
+  return { entries, excluded: a.items.filter((x) => !x.current && x.output).map((x) => `${x.label}: ${x.reason}`) };
+}
+
+/** Explains which retained results are left out of a comparison. */
+export function ExcludedNotice({ excluded }: { excluded: string[] }) {
+  if (excluded.length === 0) return null;
+  return (
+    <div className="notice warn" role="status" data-testid="excluded-results">
+      <strong>Not shown, because these results are for a different population:</strong>
+      <ul style={{ margin: '0.25rem 0 0' }}>{excluded.map((e) => <li key={e}>{e}</li>)}</ul>
+    </div>
+  );
+}
+
+function seriesOf(entries: ChartEntry[], horizon: number, pick: (m: RunOutput['ledger'][number]) => number | null): Series[] {
+  return entries.map((e) => ({
+    id: `${e.index}`,
+    label: e.label,
+    color: slotColor(e.index),
+    dashed: e.isBaseline,
+    values: e.output.ledger.slice(0, horizon).map(pick),
+  }));
+}
+
+export function ScenarioCharts({ entries, focus }: { entries: ChartEntry[]; focus: ChartEntry }) {
+  const { state, dispatch } = useStore();
+  const horizon = state.slots.find((s) => s.draft.scenarioId === state.activeId)?.draft.chartHorizon ?? 36;
+  const ledger = focus.output.ledger.slice(0, horizon);
+  const labels = ledger.map((m) => formatMonth(m.month));
+  if (ledger.length === 0) return <p className="muted">No months to chart: no loans in this population have payments left.</p>;
+  const sel = state.selectedMonth;
+  const onSelect = (i: number) => dispatch({ type: 'selectMonth', index: i });
+  let cs = 0, cp = 0;
+  const cumSched = ledger.map((m) => (cs += m.scheduledPrincipal));
+  const cumPrep = ledger.map((m) => (cp += m.prepaidPrincipal));
+  const first = (e: ChartEntry) => e.output.ledger[0];
+  const last = (e: ChartEntry) => e.output.ledger[Math.min(horizon, e.output.ledger.length) - 1];
+  return (
+    <div className="charts-grid">
+      <LineChart
+        testId="chart-cpr"
+        title="Monthly prepayment speed: conditional prepayment rate (CPR)"
+        term="cpr"
+        axes="Up the side: yearly prepayment rate, in percent. Along the bottom: month."
+        summary={`Yearly pace of early payoffs, measured each month. ${entries.map((e) => `${e.label}: ${pct(first(e)?.cpr)} in month 1, ${pct(last(e)?.cpr)} in month ${Math.min(horizon, e.output.ledger.length)}`).join('. ')}.`}
+        series={seriesOf(entries, horizon, (m) => m.cpr)}
+        xLabels={labels}
+        yFormat={(v) => pct(v, 1)}
+        selectedIndex={sel}
+        onSelect={onSelect}
+        includeZero
+      />
+      <LineChart
+        testId="chart-upb"
+        title="Remaining unpaid principal balance (UPB)"
+        term="upb"
+        axes="Up the side: dollars still owed at month end. Along the bottom: month."
+        summary={`Expected balance still outstanding at month end. ${entries.map((e) => `${e.label}: ${usd(last(e)?.endingUpb, { compact: true })} after ${Math.min(horizon, e.output.ledger.length)} months`).join('. ')}.`}
+        series={seriesOf(entries, horizon, (m) => m.endingUpb)}
+        xLabels={labels}
+        yFormat={(v) => usd(v, { compact: true })}
+        selectedIndex={sel}
+        onSelect={onSelect}
+        includeZero
+      />
+      <LineChart
+        testId="chart-principal"
+        stacked
+        title={`Cumulative principal returned to the loan owner: ${focus.label}`}
+        axes="Up the side: running total of principal repaid, in dollars. Along the bottom: month."
+        summary={`Over the chart window, ${usd(cumSched[cumSched.length - 1], { compact: true })} comes back as scheduled principal and ${usd(cumPrep[cumPrep.length - 1], { compact: true })} as prepaid principal. Principal repayment belongs to the loan owner.`}
+        series={[
+          { id: 'sched', label: 'Scheduled principal', color: 'var(--sched)', values: cumSched },
+          { id: 'prep', label: 'Prepaid principal', color: 'var(--prep)', values: cumPrep },
+        ]}
+        xLabels={labels}
+        yFormat={(v) => usd(v, { compact: true })}
+        selectedIndex={sel}
+        onSelect={onSelect}
+      />
+      <LineChart
+        testId="chart-net"
+        title="Net servicing cash flow per month"
+        term="netServicing"
+        axes="Up the side: fees minus costs that month, in dollars. Along the bottom: month."
+        summary={`Servicing fee on surviving balances minus cost per surviving loan. ${entries.map((e) => `${e.label}: ${usd(first(e)?.netServicing)} in month 1`).join('. ')}.`}
+        series={seriesOf(entries, horizon, (m) => m.netServicing)}
+        xLabels={labels}
+        yFormat={(v) => usd(v, { compact: true })}
+        selectedIndex={sel}
+        onSelect={onSelect}
+        includeZero
+      />
+      <NpvComparison entries={entries} />
+    </div>
+  );
+}
+
+export function NpvComparison({ entries }: { entries: ChartEntry[] }) {
+  const max = Math.max(1, ...entries.map((e) => Math.abs(e.output.summary.servicingNpv)));
+  return (
+    <figure className="card chart-card" style={{ margin: 0 }} data-testid="chart-npv">
+      <h3 style={{ display: 'inline' }}>Illustrative lifetime servicing net present value (NPV)</h3>
+      <TermHelp id="npv" />
+      <figcaption className="muted" style={{ fontSize: '0.85rem' }}>
+        Discounted net servicing cash flow over every remaining month. Not a market value or fair value. Bars start at zero; negative values extend left.
+      </figcaption>
+      <table>
+        <caption className="sr-only">Lifetime servicing net present value by scenario</caption>
+        <thead>
+          <tr>
+            <th scope="col">Scenario</th>
+            <th scope="col" style={{ width: '45%' }}><span className="sr-only">Bar</span></th>
+            <th scope="col">Value</th>
+            <th scope="col">Basis points of balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((e) => {
+            const v = e.output.summary.servicingNpv;
+            return (
+              <tr key={e.index}>
+                <th scope="row">{e.label}</th>
+                <td aria-hidden="true">
+                  <div className="bar-track">
+                    <div className="bar-mid" />
+                    <div className="bar-fill" style={{ background: slotColor(e.index), left: v >= 0 ? '50%' : `${50 - (Math.abs(v) / max) * 50}%`, width: `${(Math.abs(v) / max) * 50}%` }} />
+                  </div>
+                </td>
+                <td>{usd(v, { compact: true })}</td>
+                <td>{e.output.summary.servicingValueBps === null ? 'Not applicable' : e.output.summary.servicingValueBps.toFixed(1)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </figure>
+  );
+}
