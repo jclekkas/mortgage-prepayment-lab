@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { startFresh } from './fixtures';
 
-const PAGES = ['guided', 'overview', 'lab', 'cohorts', 'credit', 'decision', 'validation', 'learn', 'learn/one-dollar', 'glossary', 'methodology', 'brief'];
+const PAGES = ['home', 'share', 'guided', 'overview', 'lab', 'cohorts', 'credit', 'decision', 'validation', 'learn', 'learn/one-dollar', 'glossary', 'methodology', 'brief'];
 
 test('axe finds no WCAG A/AA violations on the main pages', async ({ page }) => {
   await startFresh(page);

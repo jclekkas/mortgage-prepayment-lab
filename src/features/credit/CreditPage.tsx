@@ -406,9 +406,10 @@ function BreakEven({ inputs, populationLoans, onChange }: { inputs: BreakEvenInp
                 <span id={`be-${x.key}-help`} className="muted" style={{ fontSize: 13 }}>{errors[x.key] ? <strong role="alert">{errors[x.key]} </strong> : null}{x.help}</span>
               </label>
             ))}
-            <button type="button" className="link" onClick={() => set('billableRefreshes', String(populationLoans))} data-testid="be-use-population">Set billable refreshes to the selected population ({n(populationLoans)} loans)</button>
+            <button type="button" onClick={() => { const zero = Object.fromEntries(FIELDS.map((x) => [x.key, 0])) as unknown as BreakEvenInputs; setText(Object.fromEntries(FIELDS.map((x) => [x.key, '0']))); setErrors({}); onChange(zero); }}>Reset calculator to zero</button>
+            <button type="button" className="link" onClick={() => set('billableRefreshes' , String(populationLoans))} data-testid="be-use-population">Set billable refreshes to the selected population ({n(populationLoans)} loans)</button>
           </div>
-          <ScrollTable label="Break-even result">
+          {Object.keys(errors).length > 0 ? <p className="notice warn" role="status">Finish or reset the highlighted fields to see the break-even result. The last valid inputs are kept until you replace them.</p> : <ScrollTable label="Break-even result">
             <table data-testid="be-results">
               <caption>Result on your assumptions (one period, undiscounted)</caption>
               <tbody>
@@ -420,7 +421,7 @@ function BreakEven({ inputs, populationLoans, onChange }: { inputs: BreakEvenInp
               </tbody>
             </table>
             <p className="muted" style={{ fontSize: 13 }}>This arithmetic shows what would have to be true. It is not evidence that it is true.</p>
-          </ScrollTable>
+          </ScrollTable>}
         </div>
       </section>
     </div>

@@ -1,3 +1,6 @@
+import { PageGuide } from './PageGuide';
+import { FieldStatusProvider } from '../ui/FieldStatus';
+import { HomePage, SharePage } from './Welcome';
 import { GuidedPage } from '../features/learn/GuidedPage';
 import { TrustNote } from '../ui/TrustNote';
 import { Component, useEffect, useRef, type ReactNode } from 'react';
@@ -54,6 +57,8 @@ function Routes() {
   }, [route, sub]);
   const page = (() => {
     switch (route) {
+      case 'home': return <HomePage />;
+      case 'share': return <SharePage />;
       case 'start': return <StartPage />;
       case 'guided': return <GuidedPage />;
       case 'overview': return <OverviewPage />;
@@ -90,7 +95,7 @@ function Routes() {
         {skip}
         {note}
         <main id="main" ref={mainRef} tabIndex={-1} className="bare">
-          <ErrorBoundary key={route}>{page}</ErrorBoundary>
+          <ErrorBoundary key={route}><PageGuide route={route} />{page}</ErrorBoundary>
         </main>
         {announcer}
         {footer}
@@ -106,7 +111,7 @@ function Routes() {
         <div className="app-body">
           <ContextHeader route={route} />
           <main id="main" ref={mainRef} tabIndex={-1}>
-            <ErrorBoundary key={route}>{page}</ErrorBoundary>
+            <ErrorBoundary key={route}><PageGuide route={route} />{page}</ErrorBoundary>
           </main>
           {footer}
         </div>
@@ -119,10 +124,10 @@ function Routes() {
 
 export function App() {
   return (
-    <StoreProvider>
+    <FieldStatusProvider><StoreProvider>
       <ShellUiProvider>
         <Routes />
       </ShellUiProvider>
-    </StoreProvider>
+    </StoreProvider></FieldStatusProvider>
   );
 }

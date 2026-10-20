@@ -1,9 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { diffInputs, type DriverGroup } from '../../domain/diff';
 import { useStore } from '../../app/store';
 import { BOUNDS, CHART_HORIZONS, type ChartHorizon } from '../../domain/config';
 import { defaultScenario } from '../../domain/scenario';
 import type { ModelMode, RatePathShape, ScenarioInput } from '../../domain/types';
+import { useFieldStatus } from '../../ui/FieldStatus';
 import { NumberControl } from '../../ui/NumberControl';
 import { TermHelp } from '../../ui/TermHelp';
 import type { TermId } from '../../ui/terms';
@@ -161,10 +162,14 @@ function Toggle(p: { label: string; checked: boolean; onChange: (v: boolean) => 
 }
 
 function CustomPath({ value, onChange, disabled }: { value: number[]; onChange: (v: number[]) => void; disabled: boolean }) {
+  const id = useId();
+  const { setIssue } = useFieldStatus();
   const fmt = (v: number[]) => v.map((r) => Number((r * 100).toFixed(4))).join(', ');
   const [text, setText] = useState(fmt(value));
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => setText(fmt(value)), [value]);
+  const pending = text !== fmt(value);
+  useEffect(() => { setIssue(id, !disabled && (err || pending) ? 'Apply or restore the custom monthly path before running.' : null); return () => setIssue(id, null); }, [id, disabled, err, pending, setIssue]);
   const apply = () => {
     const parts = text.split(/[\s,;]+/).filter(Boolean);
     const nums = parts.map(Number);
@@ -172,6 +177,7 @@ function CustomPath({ value, onChange, disabled }: { value: number[]; onChange: 
     if (parts.length > 600) return setErr('At most 600 months.');
     if (nums.some((n) => !Number.isFinite(n) || n < 1 || n > 15)) return setErr('Each monthly rate must be a number from 1 to 15 (percent).');
     setErr(null);
+    setText(fmt(nums.map((n) => n / 100)));
     onChange(nums.map((n) => n / 100));
   };
   return (
@@ -179,6 +185,7 @@ function CustomPath({ value, onChange, disabled }: { value: number[]; onChange: 
       <label htmlFor="custom-path">Monthly offer rates, % (month 1 first; the last value continues)</label>
       <textarea id="custom-path" value={text} disabled={disabled} onChange={(e) => setText(e.target.value)} onBlur={apply} aria-invalid={!!err} rows={3} />
       <button type="button" onClick={apply} disabled={disabled}>Apply path</button>
+      <button type="button" disabled={disabled} onClick={() => { setText(fmt(value)); setErr(null); }}>Restore path</button>
       {err && <p className="help" role="alert" style={{ color: 'var(--err-ink)' }}>{err}</p>}
     </div>
   );

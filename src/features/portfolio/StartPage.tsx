@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { navigate } from '../../app/router';
+import { href, navigate } from '../../app/router';
 import { useStore, type Role } from '../../app/store';
 import { PRESETS, loadPreset } from '../../data/presets';
 import type { Lens } from '../../domain/narrative';
@@ -35,6 +35,7 @@ export function StartPage() {
   return (
     <div className="start-grid">
       <div className="start-left">
+        <a href={href('home')}>← Home — keep my workspace</a>
         <p className="rail-brand" style={{ margin: 0 }}>Mortgage Prepayment &amp; Servicing Lab</p>
         <h1 className="start-title">What would you like to understand?</h1>
         <p style={{ fontSize: 17 }}>
@@ -48,10 +49,11 @@ export function StartPage() {
         </div>
         {state.started && (
           <p className="notice warn" data-testid="restart-warning">
-            You already have a workspace ({state.portfolio.meta.name}, {state.slots.length} scenario{state.slots.length === 1 ? '' : 's'}). Starting again replaces those scenarios and notes with fresh ones for the portfolio you pick. To keep them, export them first from the Decision room, or go back with your browser’s Back button.
+            You already have a workspace ({state.portfolio.meta.name}, {state.slots.length} scenario{state.slots.length === 1 ? '' : 's'}). Choosing a different portfolio replaces those scenarios and notes. Keeping the same portfolio preserves them. To keep them, export them first from the Decision room, or choose Resume workspace below. Nothing changes until you press a Start button.
           </p>
         )}
         <div className="stack" style={{ display: 'grid', justifyItems: 'start', gap: 10 }}>
+          {state.started && <a href={href('overview')}>Resume workspace — keep my scenarios</a>}
           <button type="button" className="primary" onClick={() => go(true)} data-testid="start-guided" style={{ fontSize: 16, padding: '10px 18px' }}>
             Start with a 3-minute guided experiment
           </button>

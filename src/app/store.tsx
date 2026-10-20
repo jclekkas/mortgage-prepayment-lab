@@ -1,3 +1,4 @@
+import { useFieldStatus } from '../ui/FieldStatus';
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react';
 import { loadPreset } from '../data/presets';
 import type { ChartHorizon } from '../domain/config';
@@ -331,6 +332,7 @@ interface SavedRecord {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
+  const { errors: fieldErrors } = useFieldStatus();
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const clientRef = useRef<EngineClient | null>(null);
   clientRef.current ??= new EngineClient();
@@ -379,11 +381,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const run = useCallback(
     (id: string) => {
+      if (Object.keys(fieldErrors).length) return;
       const slot = stateRef.current.slots.find((x) => x.draft.scenarioId === id);
       if (!slot) return;
       runInput(id, slot.draft, stateRef.current.filter, true);
     },
-    [runInput],
+    [runInput, fieldErrors],
   );
 
   const applyAndRun = useCallback(
@@ -396,13 +399,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const undoAndRun = useCallback(
     (id: string) => {
+      if (Object.keys(fieldErrors).length) return;
       const slot = stateRef.current.slots.find((x) => x.draft.scenarioId === id);
       if (!slot || !slot.undo.length) return;
       const prev = slot.undo[slot.undo.length - 1];
       dispatch({ type: 'undo', id });
       runInput(id, prev, stateRef.current.filter, true);
     },
-    [runInput],
+    [runInput, fieldErrors],
   );
 
   const runAll = useCallback(() => {

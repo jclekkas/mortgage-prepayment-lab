@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { href } from '../../app/router';
+import { href, useLocation } from '../../app/router';
 import { assessSlots, BACKUP_KEY, isDirty, slotLabel, useStore } from '../../app/store';
 import { kv } from '../../storage/idb';
 import { MODEL_VERSION } from '../../domain/version';
@@ -46,7 +46,9 @@ const DEC_TABS = [{ id: 'compare', label: 'Compare' }, { id: 'grid', label: 'Sen
 export function DecisionPage() {
   const { state, dispatch, importWorkspace, clearSaved } = useStore();
   // Open on "Files and brief" when a storage notice (for example about older saved work) points there.
-  const [tab, setTab] = useState(state.storage.message ? 'files' : 'compare');
+  const { sub } = useLocation();
+  const [tab, setTab] = useState(sub === 'files' || state.storage.message ? 'files' : 'compare');
+  useEffect(() => { if (sub === 'files') setTab('files'); }, [sub]);
   const [importMsg, setImportMsg] = useState<{ kind: 'ok' | 'err' | 'info'; text: string; details?: string[] } | null>(null);
   const [saved, setSaved] = useState<ScenarioFile['results'] | null>(null);
   const [legacy, setLegacy] = useState<ImportResult['legacy']>(null);

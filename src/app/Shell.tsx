@@ -1,3 +1,4 @@
+import { useFieldStatus } from '../ui/FieldStatus';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { formatMonth } from '../domain/calendar';
 import { stalenessReason } from '../domain/comparability';
@@ -13,6 +14,8 @@ import { currentContext, isDirty, newScenarioId, useStore, type Role, type Slot 
 import { usePref } from './prefs';
 
 export const TITLES: Record<Route, string> = {
+  home: 'Home',
+  share: 'Share and save',
   start: 'Start',
   guided: 'Guided experiment',
   overview: 'Overview',
@@ -65,7 +68,7 @@ export function Rail({ route }: { route: Route }) {
   useEffect(() => setOpen(false), [route]);
   return (
     <aside className={`rail${open ? ' open' : ''}`} aria-label="Navigation and portfolio">
-      <div className="rail-brand"><LineIcon /> Prepayment Lab</div>
+      <a className="rail-brand" href={href('home')} aria-label="Home — Prepayment Lab"><LineIcon /> Prepayment Lab <span className="home-label">Home</span></a>
       <button type="button" className="rail-menu-toggle" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((v) => !v)}>Menu</button>
       <div className="rail-card" aria-label="Portfolio">
         <p className="kicker">Portfolio</p>
@@ -78,6 +81,7 @@ export function Rail({ route }: { route: Route }) {
         <a href={href('start')} data-testid="change-portfolio">Change portfolio</a>
       </div>
       <nav id="main-nav" aria-label="Main">
+        <div className="nav-group"><a href={href('share')} aria-current={route === 'share' ? 'page' : undefined}>Share and save</a></div>
         {NAV.map((g) => (
           <div className="nav-group" key={g.label}>
             <p className="nav-group-label">{g.label}</p>
@@ -114,6 +118,7 @@ export function ContextHeader({ route }: { route: Route }) {
     <header className="ctx-header">
       <div className="ctx-row">
         <h1 id="page-title" tabIndex={-1}>{TITLES[route]}</h1>
+        <a href={href('share')} className="share-link">Share</a>
         <PerspectiveSwitch />
         <div className="seg" role="radiogroup" aria-label="Opens by default (changes which panels open first; never formulas or what you can open)" title="Changes which panels open first. It never changes formulas or what you can open." data-testid="role-switch">
           <span className="seg-label" aria-hidden="true">Opens by default</span>
@@ -191,6 +196,8 @@ function ScenarioTabs() {
 
 function RunControls() {
   const { state, active, baseline, run, cancel, draftErrors } = useStore();
+  const { errors } = useFieldStatus();
+  const fieldIssues = Object.values(errors);
   const d = active.draft;
   const isBase = d.scenarioId === state.baselineId;
   const running = active.run.status === 'running';
@@ -199,6 +206,7 @@ function RunControls() {
   const changes = n === 0 ? 'Matches the baseline' : `${n} change${n === 1 ? '' : 's'} from baseline`;
   const text = isBase
     ? 'Baseline is frozen. Pick a scenario to edit.'
+    : fieldIssues.length ? 'Finish or reset the highlighted fields before running.'
     : running ? 'Calculating…'
     : active.run.status === 'error' ? 'Run failed. See the message below.'
     : `${changes} · ${dirty ? 'edited, press Run' : 'results up to date'}`;
@@ -206,7 +214,7 @@ function RunControls() {
     <>
       <span className={`status-line${!isBase && (dirty || active.run.status === 'error') ? ' edited' : ''}`} data-testid="dirty-badge" role="status">{text}</span>
       {running && <button type="button" onClick={() => cancel(d.scenarioId)} data-testid="cancel">Cancel</button>}
-      <button type="button" className="primary" onClick={() => run(d.scenarioId)} disabled={draftErrors.length > 0 || isBase} aria-busy={running} data-testid="run"
+      <button type="button" className="primary" onClick={() => run(d.scenarioId)} disabled={draftErrors.length > 0 || fieldIssues.length > 0 || isBase || running} aria-busy={running} data-testid="run" id="run-scenario"
         title={isBase ? 'The baseline is frozen. Pick a scenario to run.' : 'Run the active scenario (R)'}>
         <span aria-hidden="true">▷</span> {running ? 'Running…' : 'Run'}
       </button>
@@ -222,9 +230,10 @@ function RunControls() {
 /** Single-key shortcuts. WCAG 2.1.4: they can be turned off in the Keys dialog. */
 export function useShortcuts(route: Route) {
   const { state, dispatch, active, run, draftErrors } = useStore();
+  const { errors } = useFieldStatus();
   const { keysOpen, setKeysOpen, shortcutsOn } = useShellUi();
-  const live = useRef({ state, active, draftErrors, keysOpen, shortcutsOn, route });
-  live.current = { state, active, draftErrors, keysOpen, shortcutsOn, route };
+  const live = useRef({ state, active, draftErrors, keysOpen, shortcutsOn, route, errors });
+  live.current = { state, active, draftErrors, keysOpen, shortcutsOn, route, errors };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const L = live.current;
@@ -245,7 +254,7 @@ export function useShortcuts(route: Route) {
       const lk = k.toLowerCase();
       if (lk === 'r') {
         const a = L.active;
-        if (a.draft.scenarioId !== L.state.baselineId && a.run.status !== 'running' && L.draftErrors.length === 0) { run(a.draft.scenarioId); e.preventDefault(); }
+        if (a.draft.scenarioId !== L.state.baselineId && a.run.status !== 'running' && L.draftErrors.length === 0 && Object.keys(L.errors).length === 0) { run(a.draft.scenarioId); e.preventDefault(); }
         return;
       }
       if (lk === 'p') { dispatch({ type: 'setGoal', goal: L.state.goal === 'investor' ? 'servicing' : 'investor' }); e.preventDefault(); return; }

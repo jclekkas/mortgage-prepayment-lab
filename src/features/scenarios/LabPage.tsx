@@ -42,7 +42,7 @@ export function LabPage() {
       <AssumptionsPanel />
       <SplitHandle width={clampCtrlW(ctrlW)} onWidth={(w) => setCtrlW(clampCtrlW(w))} />
       <section aria-labelledby="results-h" className="lab-results" style={{ minWidth: 0 }}>
-        <h2 id="results-h" className="sr-only">Results: {active.draft.name}</h2>
+        <h2 id="results-h" tabIndex={-1} className="sr-only">Results: {active.draft.name}</h2>
         <PopulationBadge />
         <RunStatus />
         <KpiCards />
@@ -99,6 +99,7 @@ function AssumptionsPanel() {
   const d = active.draft;
   const frozen = d.scenarioId === state.baselineId;
   const dirty = isDirty(active);
+  const [resetKey, setResetKey] = useState(0);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(d.name);
   return (
@@ -123,12 +124,16 @@ function AssumptionsPanel() {
             : 'Edits apply to this scenario only and take effect when you press Run. The frozen baseline keeps the starting assumptions for comparison (dashed grey in charts).'}
         </p>
       </div>
+      <div className="row lab-jumps">
+        <button type="button" onClick={() => document.getElementById('run-scenario')?.focus()}>Go to Run</button>
+        <button type="button" onClick={() => { const results = document.getElementById('results-h'); results?.focus(); results?.scrollIntoView({ block: 'start' }); }}>Go to results</button>
+      </div>
       <div className="assump-body">
-        <Controls />
+        <Controls key={`${d.scenarioId}-${resetKey}`} />
       </div>
       <div className="assump-foot" role="group" aria-label="Scenario actions">
         <button type="button" className="ghost" onClick={() => dispatch({ type: 'undo', id: d.scenarioId })} disabled={frozen || active.undo.length === 0}>Undo</button>
-        <button type="button" className="ghost" onClick={() => dispatch({ type: 'resetToBaseline', id: d.scenarioId })} disabled={frozen}>Reset to baseline</button>
+        <button type="button" className="ghost" onClick={() => { dispatch({ type: 'resetToBaseline', id: d.scenarioId }); setResetKey((n) => n + 1); }} disabled={frozen}>Reset to baseline</button>
         <button type="button" className="ghost" onClick={() => dispatch({ type: 'duplicate', id: d.scenarioId, newId: newScenarioId() })} disabled={state.slots.length >= 4} title={state.slots.length >= 4 ? 'Up to four scenarios including the baseline' : undefined}>
           Duplicate
         </button>

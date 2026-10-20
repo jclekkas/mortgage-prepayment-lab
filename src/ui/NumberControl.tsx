@@ -1,4 +1,5 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { useFieldStatus } from './FieldStatus';
 import { TermHelp } from './TermHelp';
 import type { TermId } from './terms';
 
@@ -30,17 +31,20 @@ export interface NumberControlProps {
 /** A slider paired with a keyboard-accessible number field, units, reset and explanation. */
 export function NumberControl(p: NumberControlProps) {
   const id = useId();
+  const { setIssue } = useFieldStatus();
+  const emitted = useRef(p.value);
   const scale = p.scale ?? 1;
   const digits = p.digits ?? 2;
   const shown = (v: number) => String(Number((v * scale).toFixed(digits)));
   const [text, setText] = useState(shown(p.value));
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    setText(shown(p.value));
-    setError(null);
+    if (p.value !== emitted.current) { setText(shown(p.value)); setError(null); }
+    emitted.current = p.value;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.value]);
   const disabled = !!p.disabledReason;
+  useEffect(() => { setIssue(id, !disabled && error ? `${p.label}: ${error}` : null); return () => setIssue(id, null); }, [id, error, disabled, p.label, setIssue]);
   const commitText = (t: string) => {
     setText(t);
     const v = Number(t);
@@ -54,6 +58,7 @@ export function NumberControl(p: NumberControlProps) {
       return;
     }
     setError(null);
+    emitted.current = stored;
     p.onChange(stored);
   };
   const isDefault = Math.abs(p.value - p.defaultValue) < 1e-12;
@@ -92,10 +97,11 @@ export function NumberControl(p: NumberControlProps) {
             aria-invalid={!!error}
             aria-describedby={`${id}-h${error ? ` ${id}-e` : ''}`}
             onChange={(e) => commitText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') { setText(shown(p.value)); setError(null); } }}
           />
           <span aria-hidden="true">{p.unit}</span>
         </span>
-        <button type="button" className="link" disabled={disabled || isDefault} onClick={() => p.onChange(p.defaultValue)} aria-label={`Reset ${p.label} to ${shown(p.defaultValue)} ${p.unit}`}>
+        <button type="button" className="link" disabled={disabled || (isDefault && !error)} onClick={() => { setText(shown(p.defaultValue)); setError(null); emitted.current = p.defaultValue; p.onChange(p.defaultValue); }} aria-label={`Reset ${p.label} to ${shown(p.defaultValue)} ${p.unit}`}>
           Reset
         </button>
       </div>

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
 export type Route =
-  | 'start' | 'guided' | 'overview' | 'lab' | 'cohorts' | 'credit' | 'decision' | 'validation' | 'learn' | 'glossary' | 'methodology' | 'brief';
+  | 'home' | 'share' | 'start' | 'guided' | 'overview' | 'lab' | 'cohorts' | 'credit' | 'decision' | 'validation' | 'learn' | 'glossary' | 'methodology' | 'brief';
 
-const ROUTES: Route[] = ['start', 'guided', 'overview', 'lab', 'cohorts', 'credit', 'decision', 'validation', 'learn', 'glossary', 'methodology', 'brief'];
+const ROUTES: Route[] = ['home', 'share', 'start', 'guided', 'overview', 'lab', 'cohorts', 'credit', 'decision', 'validation', 'learn', 'glossary', 'methodology', 'brief'];
 
 export interface Location {
   route: Route;
@@ -13,7 +13,7 @@ export interface Location {
 
 export function parseHash(hash: string): Location {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean);
-  const route = (ROUTES as string[]).includes(parts[0]) ? (parts[0] as Route) : 'start';
+  const route = (ROUTES as string[]).includes(parts[0]) ? (parts[0] as Route) : 'home';
   return { route, sub: parts[1] ?? null };
 }
 
