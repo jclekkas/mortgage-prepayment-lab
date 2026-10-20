@@ -1,13 +1,17 @@
+import { LineIcon } from './Shell';
 import { useState } from 'react';
 import { href } from './router';
 import { useStore } from './store';
 
 export function HomePage() {
   const { state } = useStore();
-  return <div className="stack welcome">
+  return <div className="stack welcome home-page">
+    <header className="home-brand"><a href={href('home')} aria-label="Prepayment Lab Home"><LineIcon /><span>Prepayment Lab</span></a><span className="muted">Mortgage learning workspace</span></header>
+    <div className="home-intro">
     <p className="kicker">Learn by changing one thing at a time</p>
     <h1 id="page-title">What happens when borrowers pay their mortgages off early?</h1>
     <p>Explore how early payoffs change fee income, costs and the timing of money coming back. This is a teaching tool with made-up loans, not a forecast of a real portfolio.</p>
+    </div>
     {state.started && <section className="card"><h2>Your workspace is still here</h2><p>{state.portfolio.meta.name} · {state.slots.length} scenarios. Going Home does not reset your work.</p><a href={href('overview')}>Resume workspace →</a></section>}
     <div className="home-steps">
       <section className="card"><p className="kicker">1 · Learn</p><h2>New to mortgages?</h2><p>A short guided experiment explains who earns what, asks for your prediction, then shows a rate cut alongside an unchanged baseline.</p><a href={href(state.started ? 'guided' : 'start')}>Start the guided experience →</a></section>

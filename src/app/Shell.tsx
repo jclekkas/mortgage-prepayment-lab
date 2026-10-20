@@ -51,7 +51,7 @@ export function ShellUiProvider({ children }: { children: ReactNode }) {
   return <UiCtx.Provider value={{ keysOpen, setKeysOpen, shortcutsOn, setShortcutsOn }}>{children}</UiCtx.Provider>;
 }
 
-const LineIcon = () => (
+export const LineIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 17h16M3 14l4.5-5 3.5 3 6-7" stroke="currentColor" strokeWidth="1.6" fill="none" /></svg>
 );
 

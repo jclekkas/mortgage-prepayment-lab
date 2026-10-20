@@ -94,11 +94,13 @@ function Routes() {
       <>
         {skip}
         {note}
+        <div className={route === 'home' ? 'home-layout' : undefined}>
         <main id="main" ref={mainRef} tabIndex={-1} className="bare">
           <ErrorBoundary key={route}><PageGuide route={route} />{page}</ErrorBoundary>
         </main>
         {announcer}
         {footer}
+        </div>
       </>
     );
   }

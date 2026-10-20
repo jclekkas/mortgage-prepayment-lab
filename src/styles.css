@@ -367,3 +367,28 @@ details.drawer { border: 1px solid var(--border); padding: 8px 12px; background:
 
 .welcome > a, .welcome .card > a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 0; }
 .welcome > details > summary { min-height: 44px; padding: 8px 0; }
+
+/* Home shares one centered content edge from brand through footer. */
+.home-layout { width: min(100%, 1120px); margin-inline: auto; }
+.home-layout main.bare { padding: 0 24px; }
+.home-page { max-width: none; }
+.home-page > * + * { margin-top: 28px; }
+.home-brand { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 24px; border-bottom: 1px solid var(--border); }
+.home-brand a { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 23px; font-weight: 600; color: var(--text); text-decoration: none; }
+.home-brand svg { width: 28px; height: 28px; flex: none; color: var(--accent); }
+.home-intro { max-width: 760px; }
+.home-intro h1 { font-size: clamp(26px, 3vw, 36px); line-height: 1.2; margin: 12px 0 16px; }
+.home-intro > p:last-child { font-size: 16px; margin: 0; color: var(--muted); }
+.home-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.home-steps .card { display: flex; flex-direction: column; padding: 22px; }
+.home-steps h2 { min-height: 2.5em; }
+.home-steps .card > a { margin-top: auto; padding-top: 16px; }
+.home-layout .footer { margin: 32px 24px 24px; padding-top: 24px; border-top: 1px solid var(--border); }
+@media (max-width: 700px) {
+  .home-layout main.bare { padding-inline: 16px; }
+  .home-brand { align-items: flex-start; flex-direction: column; gap: 2px; padding-block: 16px; }
+  .home-page > * + * { margin-top: 24px; }
+  .home-steps { grid-template-columns: 1fr; gap: 16px; }
+  .home-steps h2 { min-height: 0; }
+  .home-layout .footer { margin-inline: 16px; }
+}
