@@ -6,7 +6,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { openTab, startFresh } from './fixtures';
 
-const PAGES = ['overview', 'lab', 'cohorts', 'decision', 'validation', 'guided', 'learn', 'learn/one-dollar', 'glossary', 'methodology', 'brief'];
+const PAGES = ['overview', 'lab', 'cohorts', 'credit', 'decision', 'validation', 'guided', 'learn', 'learn/one-dollar', 'glossary', 'methodology', 'brief'];
 
 async function runRateCut(page: Page) {
   await page.getByRole('button', { name: /^Rates −100 bp/ }).click();

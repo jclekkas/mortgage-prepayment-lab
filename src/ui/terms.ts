@@ -31,6 +31,14 @@ export const TERMS = {
   recapture: { name: 'Recapture', plain: 'When a borrower who refinances takes the new loan from the same company. The old loan still pays off and its fees still stop.' },
   netServicing: { name: 'Net servicing cash flow', plain: 'Servicing fees collected minus the cost of servicing the loans still active.' },
   servicingFee: { name: 'Servicing fee', plain: 'The yearly slice of the interest rate the servicer keeps for collecting payments, quoted in basis points of the balance.' },
+  creditScore: { name: 'Credit score', plain: 'A number summarizing a borrower’s credit history at one moment. Different score versions and sources use different scales, so scores are compared only within the same version and source. The scores in this app are synthetic, not FICO Scores.' },
+  scoreRefresh: { name: 'Score refresh', plain: 'Getting newer credit scores for borrowers who already have loans. It gives newer information; it does not change anyone’s credit or earn money by itself.' },
+  scoreCoverage: { name: 'Usable coverage', plain: 'The share of the selected loans, by count and by balance, that have a usable score on the analysis date. Missing, unscorable, late-arriving and other-version records are not usable.' },
+  scoreAge: { name: 'Score age', plain: 'How long before the analysis date the score being used was observed. Older scores describe the borrower as they were then.' },
+  scoreVersion: { name: 'Score version', plain: 'The scoring model and version that produced a score. A change of version is not a change in the borrower: the scale itself changed, so the two numbers are not subtracted.' },
+  analysisDate: { name: 'Analysis date', plain: 'The date the analysis is as of. Only information available on or before it is used, so later data cannot leak into an earlier decision.' },
+  incremental: { name: 'Incremental outcome', plain: 'An outcome that happened because of an action and would not have happened without it. Measuring it needs a comparison group that did not get the action.' },
+  breakEven: { name: 'Break-even', plain: 'The number of incremental outcomes needed for their contribution to equal the total cost. Below it, the decision loses money on these assumptions.' },
 } satisfies Record<string, TermDef>;
 
 export type TermId = keyof typeof TERMS;

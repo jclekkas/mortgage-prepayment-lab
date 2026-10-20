@@ -242,6 +242,13 @@ grouping, as-of features, censoring at observation end, and separate voluntary p
 default/liquidation, repurchase and maturity, keeping "unknown voluntary payoff" when the
 reason is unknown.
 
+## Credit score refresh (synthetic, not a model input)
+
+The credit score refresh page uses deterministic synthetic score observations. No engine input
+contains a credit field, so scores never change prepayment, servicing cash flow, value, input
+hashes or run keys. Rules, denominators, date restrictions, the break-even arithmetic and the
+unimplemented extension interface are in `docs/CREDIT_REFRESH.md`.
+
 ## Verification
 
 - `tests/numerics/acceptance.test.ts`: PRD N01-N16 with expected values derived from first principles or quoted from the PRD.

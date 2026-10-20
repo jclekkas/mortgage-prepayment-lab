@@ -241,6 +241,7 @@ th .term-pop { min-width: 12rem; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
 th, td { padding: 6px 8px; border-bottom: 1px solid var(--grid); text-align: right; vertical-align: top; }
 th:first-child, td:first-child { text-align: left; }
+.kv td { text-align: left; }
 thead th { background: var(--surface); position: sticky; top: 0; font-size: 12px; font-weight: 600; color: var(--muted); }
 .table-wrap { overflow-x: auto; max-width: 100%; position: relative; }
 .table-wrap.tall { max-height: 460px; overflow-y: auto; }

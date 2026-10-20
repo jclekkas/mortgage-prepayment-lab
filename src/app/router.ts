@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
 export type Route =
-  | 'start' | 'guided' | 'overview' | 'lab' | 'cohorts' | 'decision' | 'validation' | 'learn' | 'glossary' | 'methodology' | 'brief';
+  | 'start' | 'guided' | 'overview' | 'lab' | 'cohorts' | 'credit' | 'decision' | 'validation' | 'learn' | 'glossary' | 'methodology' | 'brief';
 
-const ROUTES: Route[] = ['start', 'guided', 'overview', 'lab', 'cohorts', 'decision', 'validation', 'learn', 'glossary', 'methodology', 'brief'];
+const ROUTES: Route[] = ['start', 'guided', 'overview', 'lab', 'cohorts', 'credit', 'decision', 'validation', 'learn', 'glossary', 'methodology', 'brief'];
 
 export interface Location {
   route: Route;

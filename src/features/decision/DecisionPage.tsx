@@ -50,6 +50,7 @@ export function DecisionPage() {
   const [importMsg, setImportMsg] = useState<{ kind: 'ok' | 'err' | 'info'; text: string; details?: string[] } | null>(null);
   const [saved, setSaved] = useState<ScenarioFile['results'] | null>(null);
   const [legacy, setLegacy] = useState<ImportResult['legacy']>(null);
+  const [creditNote, setCreditNote] = useState<string | null>(null);
   // A saved workspace an earlier visit could not open is kept; offer it as a file.
   const [backup, setBackup] = useState<{ file: string; savedAt?: string } | null>(null);
   // Re-read when the storage status changes: the store may keep an unreadable record after this page mounts.
@@ -100,7 +101,7 @@ export function DecisionPage() {
 
   const exportJson = () => {
     try {
-      const file = buildScenarioFile({ portfolio: state.portfolio, baselineId: state.baselineId, scenarios: state.slots.map((s) => s.run.outputInput ?? s.draft), filter: state.filter, notes: state.notes }, state.slots.map((s) => s.run.output!));
+      const file = buildScenarioFile({ portfolio: state.portfolio, baselineId: state.baselineId, scenarios: state.slots.map((s) => s.run.outputInput ?? s.draft), filter: state.filter, notes: state.notes, credit: state.credit }, state.slots.map((s) => s.run.output!));
       downloadText(`${safeFileName(state.portfolio.meta.name)}-scenarios.json`, JSON.stringify(file, null, 1), 'application/json');
     } catch (e) {
       setImportMsg({ kind: 'err', text: (e as Error).message, details: e instanceof PopulationMismatchError ? e.problems : undefined });
@@ -110,14 +111,16 @@ export function DecisionPage() {
     if (!f) return;
     try {
       const text = await readFileText(f);
-      const { workspace, savedResults, legacy: old } = parseScenarioFile(text);
+      const { workspace, savedResults, legacy: old, creditNote } = parseScenarioFile(text);
       importWorkspace(workspace);
       setSaved(savedResults);
       setLegacy(old);
       setImportMsg(old
         ? { kind: 'info', text: `Imported assumptions and notes from a file made with model ${old.fromVersion}. Recalculating every scenario with ${MODEL_VERSION}…` }
         : { kind: 'ok', text: 'Imported. Re-running to check the results reproduce…' });
+      setCreditNote(creditNote);
     } catch (e) {
+      setCreditNote(null);
       setImportMsg({ kind: 'err', text: e instanceof ImportError ? e.message : `Import failed: ${(e as Error).message}`, details: e instanceof ImportError ? e.details : undefined });
     }
   };
@@ -246,6 +249,7 @@ export function DecisionPage() {
             </Notice>
           </div>
         )}
+        {creditNote && <div data-testid="import-credit-note"><Notice kind="info" role="status">{creditNote}</Notice></div>}
       </section>
         )}
       </Tabs>

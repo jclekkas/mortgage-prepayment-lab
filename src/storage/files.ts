@@ -14,6 +14,7 @@ import { scenarioInputHash, validateScenario } from '../domain/scenario';
 import type { Loan, Portfolio, PopulationFilter, RunOutput, ScenarioInput } from '../domain/types';
 import { APP_BUILD, LEGACY_MODEL_VERSIONS, MODEL_VERSION, SCHEMA_VERSION, SUPPORTED_MODEL_VERSIONS, SUPPORTED_SCHEMA_VERSIONS } from '../domain/version';
 import { cleanText } from './sanitize';
+import { CREDIT_DATA_LABEL, CREDIT_FIXTURE_VERSION, creditFixture, isValidApplied, snapshotsFor, type CreditSelection } from '../domain/credit';
 import { scenarioFileSchema, type ScenarioFile } from './schema';
 
 export interface DecisionNote {
@@ -28,6 +29,8 @@ export interface Workspace {
   scenarios: ScenarioInput[];
   filter: PopulationFilter;
   notes: Record<string, DecisionNote>;
+  /** Synthetic credit-score selection; absent in files from before the credit workspace. */
+  credit?: CreditSelection;
 }
 
 /** Raised when an export would label a result with a population it was not calculated for. */
@@ -72,7 +75,34 @@ export function buildScenarioFile(ws: Workspace, results: RunOutput[], exportedA
       runKey: r.runKey,
       summary: r.summary as unknown as Record<string, number | null>,
     })),
+    ...(ws.credit ? { credit: creditBlock(ws.portfolio, ws.credit) } : {}),
   };
+}
+
+/** Records which synthetic snapshots were in use, with fingerprints, so an import can prove it reproduces them. */
+export function creditBlock(portfolio: Portfolio, sel: CreditSelection): NonNullable<ScenarioFile['credit']> {
+  const f = creditFixture(portfolio);
+  return {
+    fixtureVersion: f.fixtureVersion,
+    dataLabel: CREDIT_DATA_LABEL,
+    analysisDate: f.analysisDate,
+    usedByPrepaymentResults: false,
+    appliedSnapshots: snapshotsFor(f, sel.appliedSnapshotIds).map((x) => ({ id: x.id, kind: x.kind, label: x.label, observedLabel: x.observedLabel, observations: x.observations.length, fingerprint: x.fingerprint, provenance: x.provenance })),
+    breakEven: { ...sel.breakEven },
+  };
+}
+
+/** Restores the credit selection from a file, or explains why the default earlier information is used instead. */
+function readCredit(portfolio: Portfolio, block: ScenarioFile['credit']): { credit: CreditSelection | undefined; note: string | null } {
+  if (!block) return { credit: undefined, note: null };
+  const f = creditFixture(portfolio);
+  const ids = block.appliedSnapshots.map((x) => x.id);
+  const fallback = 'The workspace uses the earlier synthetic score information instead; scenarios and results are unaffected.';
+  if (block.fixtureVersion !== CREDIT_FIXTURE_VERSION) return { credit: undefined, note: `The file’s synthetic score data is version ${block.fixtureVersion}; this build has ${CREDIT_FIXTURE_VERSION}. ${fallback}` };
+  if (!isValidApplied(f, ids)) return { credit: undefined, note: `The file refers to score snapshots this portfolio does not have (${ids.join(', ')}). ${fallback}` };
+  const snaps = snapshotsFor(f, ids);
+  if (snaps.some((x, i) => x.fingerprint !== block.appliedSnapshots[i].fingerprint)) return { credit: undefined, note: `The file’s score snapshots do not match the fixture this build generates (fingerprint differs). ${fallback}` };
+  return { credit: { appliedSnapshotIds: ids, breakEven: { ...block.breakEven } }, note: null };
 }
 
 export class ImportError extends Error {
@@ -106,6 +136,8 @@ export interface ImportResult {
   savedResults: ScenarioFile['results'];
   /** Set when the file came from an older, compatible model version and is being recalculated. */
   legacy: { fromVersion: string; note: string } | null;
+  /** Set when the file's credit-score selection could not be restored and the default was used. */
+  creditNote: string | null;
 }
 
 export async function readFileText(file: File): Promise<string> {
@@ -197,8 +229,10 @@ export function parseScenarioFile(text: string): ImportResult {
     if (!ids.has(k)) continue;
     notes[k] = { whatChanged: cleanText(n.whatChanged, 4000), evidence: cleanText(n.evidence, 4000), investigateNext: cleanText(n.investigateNext, 4000) };
   }
+  const credit = readCredit(portfolio, f.credit);
   return {
-    workspace: { portfolio, baselineId: f.baselineId, scenarios, filter: f.filter as PopulationFilter, notes },
+    workspace: { portfolio, baselineId: f.baselineId, scenarios, filter: f.filter as PopulationFilter, notes, ...(credit.credit ? { credit: credit.credit } : {}) },
+    creditNote: credit.note,
     savedResults: f.results,
     legacy: recalcNotes.length ? { fromVersion: obj.modelVersion as string, note: recalcNotes.join(' ') } : null,
   };

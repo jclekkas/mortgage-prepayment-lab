@@ -107,6 +107,33 @@ export const savedResultSchema = z.strictObject({
   summary: z.record(z.string(), summaryNumber),
 });
 
+const money = (min: number, max: number) => fin().min(min).max(max);
+/** Synthetic credit-score information used by the educational refresh workspace. Added after 76fe75a; optional. */
+export const creditBlockSchema = z.strictObject({
+  fixtureVersion: z.string().max(64),
+  dataLabel: z.string().max(120),
+  analysisDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  /** Always false: no prepayment or servicing result in the file used these scores. */
+  usedByPrepaymentResults: z.literal(false),
+  appliedSnapshots: z.array(z.strictObject({
+    id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/),
+    kind: z.enum(['origination', 'refresh']),
+    label: z.string().max(120),
+    observedLabel: z.string().max(300),
+    observations: z.number().int().min(0).max(IMPORT_LIMITS.maxLoans),
+    fingerprint: hash,
+    provenance: z.string().max(500),
+  })).min(1).max(3),
+  breakEven: z.strictObject({
+    billableRefreshes: money(0, 10_000_000),
+    unitCost: money(0, 10_000),
+    fixedCost: money(0, 1_000_000_000),
+    actionCost: money(0, 1_000_000_000),
+    incrementalOutcomes: money(0, 10_000_000),
+    contributionPerOutcome: money(-1_000_000, 1_000_000),
+  }),
+});
+
 export const scenarioFileSchema = z.strictObject({
   fileType: z.literal('mortgage-prepayment-lab/scenarios'),
   schemaVersion,
@@ -123,6 +150,7 @@ export const scenarioFileSchema = z.strictObject({
   filter: filterSchema,
   notes: z.record(z.string(), noteSchema),
   results: z.array(savedResultSchema).max(4),
+  credit: creditBlockSchema.optional(),
 });
 
 export type ScenarioFile = z.infer<typeof scenarioFileSchema>;

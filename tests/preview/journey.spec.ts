@@ -19,7 +19,7 @@ function watchErrors(page: Page) {
   return problems;
 }
 
-test('start, guided experiment, edit without running, run, compare, perspective, filter, export, import, six lessons', async ({ page }) => {
+test('start, guided experiment, edit without running, run, compare, perspective, filter, export, import, credit refresh, six lessons', async ({ page }) => {
   test.setTimeout(240_000);
   const problems = watchErrors(page);
   const p = loadPreset('mixed');
@@ -87,6 +87,19 @@ test('start, guided experiment, edit without running, run, compare, perspective,
   expect(file.appBuild).toBe(process.env.EXPECTED_COMMIT ?? file.appBuild);
   await page.getByTestId('import-input').setInputFiles({ name: 'scenarios.json', mimeType: 'application/json', buffer: Buffer.from(text) });
   await expect(page.getByTestId('import-message')).toContainText(/Reproduced \d of \d saved results/);
+
+  // Credit score refresh: synthetic preview, apply, results unchanged.
+  await page.goto('./#/credit');
+  await expect(page.getByTestId('credit-data-label')).toHaveText('Illustrative score data, not actual FICO Scores');
+  const status = await page.getByTestId('dirty-badge').innerText();
+  await page.getByTestId('credit-simulate').click();
+  await expect(page.getByTestId('credit-preview-notice')).toBeVisible();
+  await page.getByTestId('credit-apply').click();
+  await expect(page.getByTestId('credit-applied-notice')).toBeVisible();
+  await expect(page.getByTestId('dirty-badge')).toHaveText(status);
+  await page.getByTestId('tab-forecast').click();
+  await expect(page.getByTestId('credit-not-estimated')).toHaveText('Not estimated: the current prepayment model does not use credit scores.');
+  await page.getByTestId('credit-revert').click();
 
   // All six lessons in order through the Next links, each starting fresh and explaining the answer.
   await page.goto('./#/learn/one-dollar');

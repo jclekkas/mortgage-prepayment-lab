@@ -10,6 +10,7 @@ import { kv } from '../storage/idb';
 import { assessComparison, populationContext, type ComparisonAssessment, type PopulationContext } from '../domain/comparability';
 import { cleanText } from '../storage/sanitize';
 import { EngineClient, JobCancelled, JobError } from '../worker/client';
+import { creditFixture, defaultCreditSelection, isRefreshApplied, type BreakEvenInputs, type CreditSelection } from '../domain/credit';
 
 export type Role = 'gm' | 'director' | 'analyst';
 
@@ -62,6 +63,10 @@ export interface AppState {
   announcement: string;
   /** Bumped when the workspace is replaced, so every scenario recalculates. */
   generation: number;
+  /** Which synthetic credit-score snapshots the educational analysis uses. Never a scenario input. */
+  credit: CreditSelection;
+  /** True while the newest synthetic refresh is shown as a preview and not yet applied. Not saved. */
+  creditPreview: boolean;
 }
 
 const emptyRun = (): RunState => ({ status: 'idle', output: null, outputInput: null, isLastGood: false, error: null, fields: [], progress: 0, cached: false });
@@ -98,8 +103,12 @@ export function initialState(): AppState {
     storage: { status: 'loading', savedAt: null, message: null },
     announcement: '',
     generation: 0,
+    credit: defaultCreditSelection(creditFixture(portfolio)),
+    creditPreview: false,
   };
 }
+
+const freshCredit = (p: Portfolio) => ({ credit: defaultCreditSelection(creditFixture(p)), creditPreview: false });
 
 export type Action =
   | { type: 'start'; goal: Lens; role: Role; portfolio: Portfolio }
@@ -128,6 +137,11 @@ export type Action =
   | { type: 'setHypothesis'; text: string }
   | { type: 'storage'; storage: Partial<StorageState> }
   | { type: 'restore'; ws: Workspace; goal?: Lens; role?: Role; exercises?: Record<string, ExerciseRecord>; hypothesis?: string; started: boolean }
+  | { type: 'creditSimulate' }
+  | { type: 'creditApply' }
+  | { type: 'creditDiscard' }
+  | { type: 'creditRevert' }
+  | { type: 'creditBreakEven'; inputs: BreakEvenInputs }
   | { type: 'announce'; text: string };
 
 const mapSlot = (s: AppState, id: string, fn: (x: Slot) => Slot): Slot[] => s.slots.map((x) => (x.draft.scenarioId === id ? fn(x) : x));
@@ -135,13 +149,13 @@ const mapSlot = (s: AppState, id: string, fn: (x: Slot) => Slot): Slot[] => s.sl
 export function reducer(s: AppState, a: Action): AppState {
   switch (a.type) {
     case 'start':
-      return { ...s, started: true, goal: a.goal, role: a.role, ...(a.portfolio.meta.hash !== s.portfolio.meta.hash ? { portfolio: a.portfolio, ...freshSlots(a.portfolio), filter: {}, notes: {} } : {}) };
+      return { ...s, started: true, goal: a.goal, role: a.role, ...(a.portfolio.meta.hash !== s.portfolio.meta.hash ? { portfolio: a.portfolio, ...freshSlots(a.portfolio), filter: {}, notes: {}, ...freshCredit(a.portfolio) } : {}) };
     case 'setGoal':
       return { ...s, goal: a.goal };
     case 'setRole':
       return { ...s, role: a.role };
     case 'setPortfolio':
-      return { ...s, portfolio: a.portfolio, ...freshSlots(a.portfolio), filter: {}, notes: {}, selectedMonth: 0 };
+      return { ...s, portfolio: a.portfolio, ...freshSlots(a.portfolio), filter: {}, notes: {}, selectedMonth: 0, ...freshCredit(a.portfolio) };
     case 'edit':
       if (a.id === s.baselineId) return s;
       return { ...s, slots: mapSlot(s, a.id, (x) => ({ ...x, draft: a.next, undo: [...x.undo, x.draft].slice(-50) })) };
@@ -232,8 +246,26 @@ export function reducer(s: AppState, a: Action): AppState {
         exercises: a.exercises ?? s.exercises,
         validationHypothesis: a.hypothesis ?? s.validationHypothesis,
         generation: s.generation + 1,
+        credit: a.ws.credit ?? defaultCreditSelection(creditFixture(a.ws.portfolio)),
+        creditPreview: false,
       };
     }
+    // Credit information changes never touch scenarios, filters or results.
+    case 'creditSimulate':
+      return isRefreshApplied(creditFixture(s.portfolio), s.credit) ? s : { ...s, creditPreview: true, announcement: 'Synthetic score refresh previewed. Nothing is applied yet.' };
+    case 'creditApply': {
+      const f = creditFixture(s.portfolio);
+      if (!s.creditPreview || isRefreshApplied(f, s.credit)) return s;
+      return { ...s, credit: { ...s.credit, appliedSnapshotIds: f.snapshots.map((x) => x.id) }, creditPreview: false, announcement: `Applied ${f.snapshots[2].label} to the educational analysis. Prepayment and servicing results are unchanged.` };
+    }
+    case 'creditDiscard':
+      return s.creditPreview ? { ...s, creditPreview: false, announcement: 'Preview discarded. The earlier information is still in use.' } : s;
+    case 'creditRevert': {
+      const f = creditFixture(s.portfolio);
+      return { ...s, credit: { ...s.credit, appliedSnapshotIds: [f.snapshots[0].id, f.snapshots[1].id] }, creditPreview: false, announcement: 'Reverted to the earlier score information.' };
+    }
+    case 'creditBreakEven':
+      return { ...s, credit: { ...s.credit, breakEven: a.inputs } };
     case 'announce':
       return { ...s, announcement: a.text };
   }
@@ -396,7 +428,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const saved = await kv.get<SavedRecord>(STORAGE_KEY);
         if (saved) {
           try {
-            const { workspace, legacy } = parseScenarioFile(saved.file);
+            const { workspace, legacy, creditNote } = parseScenarioFile(saved.file);
             const hypothesis = typeof saved.hypothesis === 'string' ? cleanText(saved.hypothesis, HYPOTHESIS_MAX) : undefined;
             dispatch({ type: 'restore', ws: workspace, goal: saved.goal, role: saved.role, exercises: saved.exercises, hypothesis, started: saved.started });
             dispatch({
@@ -404,9 +436,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               storage: {
                 status: 'saved',
                 savedAt: saved.savedAt,
-                message: legacy
-                  ? `Your saved work was made with model ${legacy.fromVersion}. Its assumptions and notes were kept and every scenario is being recalculated with ${MODEL_VERSION}, so numbers may differ from what you saw before. ${legacy.note}`
-                  : null,
+                message: [
+                  legacy ? `Your saved work was made with model ${legacy.fromVersion}. Its assumptions and notes were kept and every scenario is being recalculated with ${MODEL_VERSION}, so numbers may differ from what you saw before. ${legacy.note}` : '',
+                  creditNote ?? '',
+                ].filter(Boolean).join(' ') || null,
               },
             });
           } catch (e) {
@@ -422,13 +455,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Debounced save.
-  const saveKey = JSON.stringify([state.started, state.goal, state.role, state.portfolio.meta.hash, state.baselineId, state.slots.map((x) => x.draft), state.filter, state.notes, state.exercises, state.validationHypothesis]);
+  const saveKey = JSON.stringify([state.started, state.goal, state.role, state.portfolio.meta.hash, state.baselineId, state.slots.map((x) => x.draft), state.filter, state.notes, state.exercises, state.validationHypothesis, state.credit]);
   useEffect(() => {
     if (state.storage.status === 'loading' || state.storage.status === 'unavailable') return;
     const t = setTimeout(async () => {
       const s = stateRef.current;
       try {
-        const ws: Workspace = { portfolio: s.portfolio, baselineId: s.baselineId, scenarios: s.slots.map((x) => x.draft), filter: s.filter, notes: s.notes };
+        const ws: Workspace = { portfolio: s.portfolio, baselineId: s.baselineId, scenarios: s.slots.map((x) => x.draft), filter: s.filter, notes: s.notes, credit: s.credit };
         const file = JSON.stringify(buildScenarioFile(ws, []));
         const savedAt = new Date().toISOString();
         const record: SavedRecord = { savedAt, file, goal: s.goal, role: s.role, exercises: s.exercises, started: s.started, hypothesis: s.validationHypothesis };

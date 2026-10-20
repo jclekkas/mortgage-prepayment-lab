@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { startFresh } from './fixtures';
 
-const PAGES = ['guided', 'overview', 'lab', 'cohorts', 'decision', 'validation', 'learn', 'learn/one-dollar', 'glossary', 'methodology', 'brief'];
+const PAGES = ['guided', 'overview', 'lab', 'cohorts', 'credit', 'decision', 'validation', 'learn', 'learn/one-dollar', 'glossary', 'methodology', 'brief'];
 
 test('axe finds no WCAG A/AA violations on the main pages', async ({ page }) => {
   await startFresh(page);
@@ -65,7 +65,7 @@ for (const width of [390, 768, 1280]) {
   test(`no page-wide horizontal overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await startFresh(page);
-    for (const r of ['guided', 'overview', 'lab', 'cohorts', 'decision', 'validation', 'learn/rates-fall']) {
+    for (const r of ['guided', 'overview', 'lab', 'cohorts', 'credit', 'decision', 'validation', 'learn/rates-fall']) {
       await page.goto(`/#/${r}`);
       await page.waitForTimeout(500);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

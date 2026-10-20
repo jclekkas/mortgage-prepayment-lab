@@ -18,6 +18,7 @@ export const TITLES: Record<Route, string> = {
   overview: 'Overview',
   lab: 'Scenario lab',
   cohorts: 'Loan groups',
+  credit: 'Credit score refresh',
   decision: 'Decision room',
   validation: 'Forecast check',
   learn: 'Lessons',
@@ -27,7 +28,7 @@ export const TITLES: Record<Route, string> = {
 };
 
 const NAV: { label: string; items: [Route, string][] }[] = [
-  { label: 'Analyze', items: [['overview', 'Overview'], ['lab', 'Scenario lab'], ['cohorts', 'Loan groups'], ['decision', 'Decision room']] },
+  { label: 'Analyze', items: [['overview', 'Overview'], ['lab', 'Scenario lab'], ['cohorts', 'Loan groups'], ['credit', 'Credit score refresh'], ['decision', 'Decision room']] },
   { label: 'Check', items: [['validation', 'Forecast check']] },
   { label: 'Learn', items: [['guided', 'Guided experiment'], ['learn', 'Lessons'], ['glossary', 'Glossary'], ['methodology', 'Methodology']] },
 ];

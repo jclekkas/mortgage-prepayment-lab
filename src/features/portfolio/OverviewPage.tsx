@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { href } from '../../app/router';
+import { CreditCard } from '../credit/CreditCard';
 import { useStore } from '../../app/store';
 import { formatMonth } from '../../domain/calendar';
 import { pct, usd } from '../../domain/format';
@@ -111,6 +112,7 @@ export function OverviewPage() {
               <a href={href('cohorts')}>Explore loan groups</a>
             </section>
           )}
+          <CreditCard />
         </div>
       </div>
       <TermsOnPage ids={['cpr', 'bp', 'ppt', 'upb', 'prepaid', 'npv', 'wal', 'netServicing']} />

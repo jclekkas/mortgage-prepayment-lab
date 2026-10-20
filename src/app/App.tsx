@@ -7,6 +7,7 @@ import { GlossaryPage } from '../features/learn/GlossaryPage';
 import { LearnPage } from '../features/learn/LearnPage';
 import { MethodologyPage } from '../features/learn/MethodologyPage';
 import { CohortsPage } from '../features/portfolio/CohortsPage';
+import { CreditPage } from '../features/credit/CreditPage';
 import { OverviewPage } from '../features/portfolio/OverviewPage';
 import { StartPage } from '../features/portfolio/StartPage';
 import { LabPage } from '../features/scenarios/LabPage';
@@ -58,6 +59,7 @@ function Routes() {
       case 'overview': return <OverviewPage />;
       case 'lab': return <LabPage />;
       case 'cohorts': return <CohortsPage />;
+      case 'credit': return <CreditPage />;
       case 'decision': return <DecisionPage />;
       case 'validation': return <ValidationPage />;
       case 'learn': return <LearnPage sub={sub} />;

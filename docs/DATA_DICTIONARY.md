@@ -87,4 +87,12 @@ unclassified columns are 0. Missing values export as `not applicable`. Text begi
 
 ## Scenario file (`mortgage-prepayment-lab/scenarios`, schema 1)
 
-`fileType`, `schemaVersion`, `modelVersion`, `appBuild` (optional: the source commit of the build that wrote the file; added in model 1.1.0), `exportedAt`, `portfolio` (`{kind: "preset", presetId, hash}` or `{kind: "embedded", meta, loans}`), `baselineId`, `scenarios` (1-4), `filter`, `notes`, `results` (scenario id, input hash, run key, summary). Unknown fields are rejected. Limits: 10 megabytes (MB), 10,000 loans. Web addresses (URLs) in a file are never fetched.
+`fileType`, `schemaVersion`, `modelVersion`, `appBuild` (optional: the source commit of the build that wrote the file; added in model 1.1.0), `exportedAt`, `portfolio` (`{kind: "preset", presetId, hash}` or `{kind: "embedded", meta, loans}`), `baselineId`, `scenarios` (1-4), `filter`, `notes`, `results` (scenario id, input hash, run key, summary), `credit` (optional, added after `76fe75a`: synthetic credit-score selection with fixture version, data label, analysis date, `usedByPrepaymentResults: false`, applied snapshots with fingerprints and provenance, and break-even inputs; see `docs/CREDIT_REFRESH.md`). Unknown fields are rejected. Limits: 10 megabytes (MB), 10,000 loans. Web addresses (URLs) in a file are never fetched.
+
+## Credit score observation (`ScoreObservation`, `src/domain/credit.ts`)
+
+Synthetic only, kept apart from `Loan`. `loanId`, `status` (`scored`, `missing`, `unscorable`), `score` (300 to 850 or null), `scoreModel`, `source`, `observedOn` and `availableOn` (YYYY-MM-DD), `snapshotId`, `provenance` (`synthetic-fixture`). Not read by the prepayment engine.
+
+## Credit score CSV columns
+
+`loan_id`, `snapshot_id`, `snapshot_kind`, `status`, `score`, `score_model`, `source`, `observed_on`, `available_on`, `usable_on_analysis_date`, `not_usable_reason`, `fixture_version`, `snapshot_fingerprint`, `data_label` ("Illustrative score data, not actual FICO Scores").

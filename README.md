@@ -19,6 +19,7 @@ not a FICO model. Behavioral coefficients are deliberately simple teaching value
 - **Scenario lab**: baseline plus up to three scenarios, undo, reset, duplicate, rename, freeze as baseline, stale-run protection, cancellation.
 - **Cohort explorer**, one-factor sensitivities (labeled non-additive) and a two-way sensitivity grid.
 - **Decision room** with notes, JavaScript Object Notation (JSON) export/import that re-runs and checks reproduction, cash-flow comma-separated values (CSV) file, and a printable one-page brief with a reproducibility hash.
+- **Credit score refresh** (synthetic, educational): coverage, score age, and what a newer snapshot changes, kept separate from the prepayment model, which does not use scores; plus an optional break-even calculator with no built-in pricing or uplift. Illustrative score data, not actual FICO Scores.
 - **Six predict-first exercises** and a **validation lab** comparing a frozen forecast with a synthetic 24-month history generated from different parameters.
 
 ## Run it
@@ -59,6 +60,7 @@ In a sandbox without Playwright's browser download, point at an installed Chromi
 - [docs/EVIDENCE.md](docs/EVIDENCE.md): each calculation rule mapped to its source or labeled assumption, an independent expected result and its test; source checks still incomplete
 - [docs/ACCEPTANCE_REVIEW.md](docs/ACCEPTANCE_REVIEW.md): zero-fee controlled comparison, worked examples, evidence by kind, beginner check (prepared, not user-tested)
 - [docs/DOMAIN_REVIEW_QUESTIONS.md](docs/DOMAIN_REVIEW_QUESTIONS.md): questions for a qualified mortgage-domain reviewer
+- [docs/CREDIT_REFRESH.md](docs/CREDIT_REFRESH.md): synthetic credit score refresh workspace, rules, migration, and what a real integration and benefit claim would need
 - [docs/DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md): loan, portfolio, scenario and output fields
 - [docs/PERFORMANCE.md](docs/PERFORMANCE.md): measured timings and environment
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): deployment runbook and rollback

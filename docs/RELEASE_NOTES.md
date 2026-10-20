@@ -5,6 +5,19 @@
 Status: published as a preview at https://jclekkas.github.io/mortgage-prepayment-lab/ from
 the `p0-educational-build` branch; pull request #1 is not merged. No production release exists.
 
+### Credit score refresh workspace (after `76fe75a`)
+
+- New Analyze page **Credit score refresh** and an Overview card. Synthetic, deterministic score
+  snapshots (origination, earlier refresh, simulated newest refresh) kept apart from loan data;
+  coverage, score age, direction of change among comparable pairs, band distribution and band
+  movement, each with its denominator and excluded records. Simulate, preview, apply, discard,
+  revert. Forecast revisions are "Not estimated"; an optional break-even calculator starts at 0.
+- No change to loan generation, model version, scenario inputs, hashes, run keys or any number.
+- Scenario files gain an optional `credit` block (schema 1, additive). Older files and saved
+  workspaces load unchanged with the earlier information. Details: `docs/CREDIT_REFRESH.md`.
+- Tests: `tests/unit/credit.test.ts` (26), `tests/e2e/credit.spec.ts` (5); the credit page joins
+  the axe, overflow, 12px and color checks, and the hosted journey.
+
 ### Verification evidence
 
 Recorded per tested commit in the pull request (PR) description and in the review handoff.
