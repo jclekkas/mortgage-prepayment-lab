@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { openTab, selectScenario, setNumber, startFresh } from './fixtures';
+import { openTab, reveal, selectScenario, setNumber, startFresh } from './fixtures';
 
 test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, import, reproduce', async ({ page }) => {
   await startFresh(page);
@@ -125,6 +125,7 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
 test('fixed CPR mode disables rate and recapture controls and ignores rates', async ({ page }) => {
   await startFresh(page);
   await page.goto('/#/lab');
+  await reveal(page, 'mode-fixedCpr');
   await page.getByTestId('mode-fixedCpr').check();
   await page.getByTestId('run').click();
   await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');

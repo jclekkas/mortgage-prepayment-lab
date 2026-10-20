@@ -3,7 +3,7 @@
  * WebKit, desktop light and phone dark). Expected numbers come from the engine source.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { openTab } from '../e2e/fixtures';
+import { openTab, reveal } from '../e2e/fixtures';
 import { readFileSync } from 'node:fs';
 import { loadPreset } from '../../src/data/presets';
 import { runScenario } from '../../src/domain/engine';
@@ -44,6 +44,7 @@ test('start, guided experiment, edit without running, run, compare, perspective,
 
   // Edit without running: results are marked as the previous run and exports pause.
   await page.goto('./#/lab');
+  await reveal(page, 'ctl-shock');
   await page.getByTestId('ctl-shock').locator('input[type=number]').fill('-50');
   await expect(page.getByTestId('dirty-badge')).toContainText('edited');
   await expect(page.getByTestId('kpi-stale').first()).toBeVisible();
