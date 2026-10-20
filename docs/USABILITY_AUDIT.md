@@ -27,6 +27,8 @@ Live normal interactions: setup with Mixed book; overview; Scenario lab; clearin
 
 Browser gate initially caught and prompted fixes for introduced regressions: the Home accessible name did not match visible text, and disabling Run during calculation lost keyboard focus. Run now retains focus and ignores repeat activation while busy. The simplified Home page also exposed a too-small setup link; Home action links and the expandable guide now have 44-pixel targets. Workspace keyboard shortcuts pause on Home. Existing stale-result and setup-warning assertions were updated to the intentionally corrected behavior.
 
+A legacy-workspace browser test intermittently failed in WebKit. Its captured trace showed the URL at #/decision while the DOM still showed Start: useLocation could miss a hash change between initial render and listener attachment. The router now reconciles the current hash after subscribing. A rapid-navigation regression covers this. The legacy fixture setup also now uses a blank same-origin page so it cannot race app reads or autosave; assertions for preserved notes, assumptions and the migration notice remain unchanged.
+
 ## Limits and follow-up
 
 No formulas, model units, machine-readable export keys or import schemas were changed. Browser/source checks do not establish financial accuracy. First-time learner interviews, manual screen-reader testing, real mobile-device touch testing, full social preview rendering across messaging providers, and formal mortgage-domain review remain outstanding. A web link opens the tool with the recipient's own local workspace, not a cloud-synchronized analysis. Files remain the supported way to reproduce an analysis.

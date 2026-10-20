@@ -30,6 +30,9 @@ export function useLocation(): Location {
   useEffect(() => {
     const on = () => setLoc(parseHash(window.location.hash));
     window.addEventListener('hashchange', on);
+    // A deep link can change between initial render and listener attachment.
+    // Reconcile after subscribing so the visible page always matches the URL.
+    on();
     return () => window.removeEventListener('hashchange', on);
   }, []);
   return loc;

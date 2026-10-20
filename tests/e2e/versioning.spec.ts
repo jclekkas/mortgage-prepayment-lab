@@ -7,7 +7,11 @@ const MIXED_FINGERPRINT = '4cbb1778461547d31453250d174554dee9f29790fdbdedcd8e87c
 
 /** Put a record straight into the app's IndexedDB store, as an earlier build would have left it. */
 async function seedSaved(page: Page, value: unknown) {
-  await page.goto('/#/start');
+  // Seed on a blank same-origin document: the app must not read or autosave
+  // the fixture until the caller opens it once. A reload followed by goto
+  // could upgrade the legacy file before its migration notice was asserted.
+  await page.route('**/__seed__', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Fixture setup</title>' }));
+  await page.goto('/__seed__');
   await page.evaluate((v) => new Promise<void>((res, rej) => {
     const del = indexedDB.deleteDatabase('mortgage-prepayment-lab');
     del.onsuccess = del.onerror = del.onblocked = () => {
@@ -17,7 +21,7 @@ async function seedSaved(page: Page, value: unknown) {
       q.onerror = () => rej(q.error);
     };
   }), value);
-  await page.reload();
+  await page.unroute('**/__seed__');
 }
 
 test('an exported file from model 1.0.0 keeps assumptions and notes and is recalculated, not "reproduced"', async ({ page }) => {

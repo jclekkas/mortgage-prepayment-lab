@@ -65,3 +65,13 @@ test('credit calculator hides stale figures while a field is blank and can reset
   await expect(page.getByTestId('be-unitCost')).toHaveValue('0');
   await expect(page.getByTestId('be-results')).toBeVisible();
 });
+
+
+test('rapid startup navigation leaves the page consistent with its URL', async ({ page }) => {
+  for (let i = 0; i < 8; i++) {
+    await page.goto('/#/start');
+    await page.reload();
+    await page.goto('/#/decision');
+    await expect(page.getByRole('heading', { name: 'Decision room', exact: true })).toBeVisible();
+  }
+});
