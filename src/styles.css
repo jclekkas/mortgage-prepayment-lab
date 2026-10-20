@@ -398,3 +398,7 @@ details.drawer { border: 1px solid var(--border); padding: 8px 12px; background:
 .reset-dialog { color: var(--text); }
 .reset-dialog::backdrop { background: rgb(0 0 0 / 70%); }
 .reset-dialog .row > button { min-height: 44px; }
+
+.scenario-management { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; border-top: 1px solid var(--border); padding-top: 8px; font-size: 13px; }
+.scenario-management > button { min-height: 44px; }
+.scenario-management > .muted { flex-basis: 100%; }

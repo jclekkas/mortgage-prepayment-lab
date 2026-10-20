@@ -124,6 +124,7 @@ export type Action =
   | { type: 'duplicate'; id: string; newId: string }
   | { type: 'addScenario'; scenario: ScenarioInput }
   | { type: 'remove'; id: string }
+  | { type: 'removeAllScenarios' }
   | { type: 'setActive'; id: string }
   | { type: 'freeze'; id: string }
   | { type: 'runStart'; id: string }
@@ -187,6 +188,11 @@ export function reducer(s: AppState, a: Action): AppState {
     case 'addScenario':
       if (s.slots.length >= 4) return s;
       return { ...s, slots: [...s.slots, { draft: a.scenario, undo: [], run: emptyRun() }], activeId: a.scenario.scenarioId };
+    case 'removeAllScenarios': {
+      const baseline = s.slots.find((x) => x.draft.scenarioId === s.baselineId)!;
+      const notes = s.notes[s.baselineId] ? { [s.baselineId]: s.notes[s.baselineId] } : {};
+      return { ...s, slots: [baseline], activeId: s.baselineId, notes, announcement: 'All comparison scenarios deleted. The frozen baseline is kept. Choose New scenario to begin again.' };
+    }
     case 'remove': {
       if (a.id === s.baselineId) return s;
       const slots = s.slots.filter((x) => x.draft.scenarioId !== a.id);

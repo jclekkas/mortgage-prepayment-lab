@@ -1,3 +1,4 @@
+import { ScenarioManagement } from '../ui/ScenarioManagement';
 import { useFieldStatus } from '../ui/FieldStatus';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { formatMonth } from '../domain/calendar';
@@ -134,6 +135,7 @@ export function ContextHeader({ route }: { route: Route }) {
         <ScenarioTabs />
         <RunControls />
       </div>
+      <ScenarioManagement />
     </header>
   );
 }
@@ -241,6 +243,7 @@ export function useShortcuts(route: Route) {
       if (e.key === 'Escape' && L.keysOpen) { setKeysOpen(false); return; }
       if (!L.shortcutsOn || e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
+      if (t?.closest('dialog[open]')) return;
       const tag = t?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable) return;
       const k = e.key;

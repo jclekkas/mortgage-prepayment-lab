@@ -140,7 +140,6 @@ function AssumptionsPanel() {
         <button type="button" className="ghost" onClick={() => dispatch({ type: 'freeze', id: d.scenarioId })} disabled={frozen || dirty || !active.run.output} title={dirty ? 'Run the scenario first' : 'Replace the frozen baseline with this scenario’s last run'} data-testid="freeze">
           Make baseline
         </button>
-        {!frozen && <button type="button" className="ghost" onClick={() => dispatch({ type: 'remove', id: d.scenarioId })}>Delete</button>}
       </div>
     </section>
   );
