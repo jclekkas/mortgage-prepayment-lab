@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { diffInputs, type DriverGroup } from '../../domain/diff';
 import { useStore } from '../../app/store';
 import { BOUNDS, CHART_HORIZONS, type ChartHorizon } from '../../domain/config';
 import { defaultScenario } from '../../domain/scenario';
@@ -8,7 +9,7 @@ import { TermHelp } from '../../ui/TermHelp';
 import type { TermId } from '../../ui/terms';
 
 export function Controls() {
-  const { state, dispatch, active } = useStore();
+  const { state, dispatch, active, baseline } = useStore();
   const d = active.draft;
   const frozen = d.scenarioId === state.baselineId;
   const defaults = defaultScenario(d.portfolioHash, d.valuationMonth);
@@ -25,12 +26,13 @@ export function Controls() {
   const behavioral = d.mode === 'behavioral';
   const notBehavioral = behavioral ? null : 'Only used in behavioral mode. In fixed CPR and PSA modes, rates do not drive prepayment.';
   const why = (r: string | null) => frozenReason ?? r;
+  const diffs = diffInputs(baseline.run.outputInput ?? baseline.draft, d);
+  const changedIn = (g: DriverGroup) => diffs.filter((c) => c.group === g).length;
 
   return (
     <div className="controls" data-testid="controls">
       {frozen && <p className="notice info">{frozenReason}</p>}
-      <fieldset>
-        <legend>Market conditions</legend>
+      <Group group="market" title="Market conditions" changed={changedIn('market')}>
         <NumberControl testId="ctl-offer" label="Mortgage offer rate" value={d.ratePath.offerRate} min={BOUNDS.offerRate.min} max={BOUNDS.offerRate.max} step={0.05} scale={100} unit="%" defaultValue={defaults.ratePath.offerRate} digits={3}
           onChange={(v) => edit((n) => { n.ratePath.offerRate = v; })} source="Market assumption" disabledReason={why(notBehavioral)}
           help="Synthetic starting level of the rate borrowers could refinance into. Not today’s market rate." />
@@ -50,10 +52,9 @@ export function Controls() {
           {d.ratePath.shape === 'custom' && <CustomPath value={d.ratePath.customPath} disabled={!!why(notBehavioral)} onChange={(p) => edit((n) => { n.ratePath.customPath = p; })} />}
           <p className="help">Immediate applies the full shock from month 1. The ramp phases it in evenly over 12 months.</p>
         </div>
-      </fieldset>
+      </Group>
 
-      <fieldset>
-        <legend>Borrower behavior</legend>
+      <Group group="behavior" title="Borrower behavior" changed={changedIn('behavior')}>
         <NumberControl testId="ctl-turnover" label="Turnover multiplier" term="turnover" value={d.behavioralParameters.turnoverMultiplier} min={0} max={2} step={0.05} unit="×" defaultValue={1}
           onChange={(v) => edit((n) => { n.behavioralParameters.turnoverMultiplier = v; })} source="Behavior assumption" disabledReason={why(notBehavioral)}
           help="Scales background full payoffs from moves and home sales." />
@@ -69,10 +70,9 @@ export function Controls() {
         <Toggle label="Seasonal turnover" checked={d.behavioralParameters.seasonality === 'seasonal'} disabledReason={why(notBehavioral)} source="Teaching assumption"
           help="Disclosed preset: more moves in summer, fewer in winter, averaging exactly 1 over a year."
           onChange={(v) => edit((n) => { n.behavioralParameters.seasonality = v ? 'seasonal' : 'flat'; })} />
-      </fieldset>
+      </Group>
 
-      <fieldset>
-        <legend>Modeling assumptions</legend>
+      <Group group="model" title="Modeling assumptions" changed={changedIn('model')}>
         <div className="control">
           <div className="control-head"><span id="mode-l" style={{ fontWeight: 500 }}>Model mode</span><span className="source">Modeling assumption</span></div>
           <div role="radiogroup" aria-labelledby="mode-l" className="stack" style={{ marginTop: '0.25rem' }}>
@@ -108,10 +108,9 @@ export function Controls() {
           </select>
           <p className="help">Changes the chart window only. Valuation always runs to each loan’s maturity.</p>
         </div>
-      </fieldset>
+      </Group>
 
-      <fieldset>
-        <legend>Business decisions</legend>
+      <Group group="business" title="Business decisions" changed={changedIn('business')}>
         <Toggle label={`Use a hypothetical servicing fee instead of the contract${uniformFee ? ` (${contractFee} basis points)` : ''}`} checked={d.servicingParameters.feeOverrideBps !== null} disabledReason={frozenReason} source="Contract term"
           help="For a hypothetical acquisition on different terms. Labeled as a contract change assumption in results."
           onChange={(v) => edit((n) => { n.servicingParameters.feeOverrideBps = v ? contractFee : null; })} />
@@ -140,7 +139,7 @@ export function Controls() {
           onChange={(v) => edit((n) => { n.recaptureParameters.campaignCost = v; })} source="Business decision"
           disabledReason={why(behavioral ? null : 'Recapture needs behavioral mode.')}
           help="Spent once at the start and deducted once from the recapture contribution." />
-      </fieldset>
+      </Group>
     </div>
   );
 }
@@ -182,5 +181,20 @@ function CustomPath({ value, onChange, disabled }: { value: number[]; onChange: 
       <button type="button" onClick={apply} disabled={disabled}>Apply path</button>
       {err && <p className="help" role="alert" style={{ color: 'var(--err-ink)' }}>{err}</p>}
     </div>
+  );
+}
+
+/** Groups start open on wide screens and collapsed on narrow ones; each says how many inputs differ from the baseline. */
+const wide = () => typeof window === 'undefined' || !window.matchMedia || window.matchMedia('(min-width: 1100px)').matches;
+function Group({ group, title, changed, children }: { group: DriverGroup; title: string; changed: number; children: ReactNode }) {
+  const [open, setOpen] = useState(wide);
+  return (
+    <details className="cgroup" open={open} onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)} data-testid={`group-${group}`}>
+      <summary>
+        {title}
+        {changed > 0 && <span className="tag accent">{changed} changed</span>}
+      </summary>
+      <div className="cgroup-body">{children}</div>
+    </details>
   );
 }

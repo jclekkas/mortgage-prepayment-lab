@@ -5,7 +5,6 @@ import { TermsOnPage } from '../../ui/TermHelp';
 export function MethodologyPage() {
   return (
     <div className="stack" style={{ maxWidth: 900 }}>
-      <h1>Methodology</h1>
       <TermsOnPage ids={['npv', 'pv', 'smm', 'cpr', 'psa', 'upb', 'wal', 'bp', 'discount', 'burnout', 'recapture', 'occ']} />
       <p className="notice warn">
         <strong>Excluded cash flows.</strong> Illustrative servicing net present value (NPV), future fees less costs in today’s dollars, leaves out escrow and remittance float, ancillary and late fees, servicing advances, default and foreclosure costs, taxes, hedges and any terminal value or multiple. It is not market value or accounting fair value.

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { generatePortfolio, type GeneratorConfig } from '../../src/data/generator';
 import { defaultScenario } from '../../src/domain/scenario';
 import { buildScenarioFile } from '../../src/storage/files';
-import { setNumber, startFresh } from './fixtures';
+import { openTab, setNumber, startFresh } from './fixtures';
 
 function bigFile(config: Partial<GeneratorConfig> = {}): Buffer {
   const p = generatePortfolio({ loanCount: 10_000, presetId: 'big-test', name: 'Ten thousand loans', description: 'Large synthetic test book', ...config });
@@ -17,6 +17,7 @@ test('10,000-loan import runs with progress and can be cancelled', async ({ page
   await page.goto('/#/decision');
   const buf = bigFile();
   expect(buf.length).toBeLessThan(10 * 1024 * 1024);
+  await openTab(page, 'files');
   await page.getByTestId('import-input').setInputFiles({ name: 'big.json', mimeType: 'application/json', buffer: buf });
   // The generated file carries no saved results, so the reproduction check has nothing to compare.
   await expect(page.getByTestId('import-message')).toContainText('Imported. The file had no saved results to compare.', { timeout: 30_000 });
@@ -40,11 +41,11 @@ test('10,000-loan import runs with progress and can be cancelled', async ({ page
     return false;
   });
   expect(cancelled, 'the Cancel button appeared while the run was in progress').toBe(true);
-  await expect(page.getByTestId('dirty-badge')).toHaveText(/Edited: press Run/);
+  await expect(page.getByTestId('dirty-badge')).toHaveText(/edited, press Run/);
   await expect(page.getByTestId('cancel')).toHaveCount(0);
   // The app still works after cancellation.
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 30_000 });
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date', { timeout: 30_000 });
 });
 
 test('a slower older run never overwrites a newer one', async ({ page }) => {
@@ -54,7 +55,7 @@ test('a slower older run never overwrites a newer one', async ({ page }) => {
   await page.getByTestId('run').click();
   await setNumber(page, 'ctl-shock', '50');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
   await page.waitForTimeout(500);
   await expect(page.getByTestId('explanation')).toContainText('Rate shock: 0 basis points → 50 basis points');
 });
@@ -62,11 +63,13 @@ test('a slower older run never overwrites a newer one', async ({ page }) => {
 test('malformed and future-version imports are rejected and change nothing', async ({ page }) => {
   await startFresh(page);
   await page.goto('/#/decision');
+  await openTab(page, 'files');
   await page.getByTestId('import-input').setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{oops') });
   await expect(page.getByTestId('import-message')).toContainText('not valid JavaScript Object Notation');
   const future = JSON.stringify({ fileType: 'mortgage-prepayment-lab/scenarios', schemaVersion: 9, modelVersion: 'x' });
   await page.getByTestId('import-input').setInputFiles({ name: 'f.json', mimeType: 'application/json', buffer: Buffer.from(future) });
   await expect(page.getByTestId('import-message')).toContainText('newer version');
+  await openTab(page, 'compare');
   await expect(page.getByTestId('compare-table')).toContainText('Scenario 1');
 });
 
@@ -104,14 +107,16 @@ test('saved workspace is restored after reload', async ({ page }) => {
 test('cancelling a 10,000-loan grid or sensitivity frees the worker immediately (D1)', async ({ page }) => {
   await startFresh(page);
   await page.goto('/#/decision');
+  await openTab(page, 'files');
   await page.getByTestId('import-input').setInputFiles({ name: 'big.json', mimeType: 'application/json', buffer: bigFile() });
   await expect(page.getByTestId('import-message')).toContainText('Imported', { timeout: 30_000 });
   await page.goto('/#/lab');
   await expect(page.getByText('Ten thousand loans')).toBeVisible();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 30_000 });
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date', { timeout: 30_000 });
 
   // Grid: 25 full runs of 10,000 loans would occupy the worker for well over 5 s.
   await page.goto('/#/decision');
+  await openTab(page, 'grid');
   await page.getByTestId('grid-run').click();
   await expect(page.getByRole('progressbar', { name: 'Grid progress' })).toBeVisible();
   await page.getByTestId('grid-cancel').click();
@@ -119,17 +124,18 @@ test('cancelling a 10,000-loan grid or sensitivity frees the worker immediately 
   await page.goto('/#/lab');
   await setNumber(page, 'ctl-shock', '-75');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 5_000 });
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date', { timeout: 5_000 });
 
   // Sensitivities: the panel now has its own progress bar and Cancel.
-  await page.getByLabel('Role (changes detail level, not formulas)').selectOption('director');
+  await page.getByTestId('role-director').click();
+  await openTab(page, 'sensitivities');
   await page.getByTestId('sensitivity-run').click();
   await expect(page.getByRole('progressbar', { name: 'Sensitivity progress' })).toBeVisible();
   await page.getByTestId('sensitivity-cancel').click();
   await expect(page.getByTestId('sensitivity-run')).toBeVisible();
   await setNumber(page, 'ctl-shock', '-25');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 5_000 });
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date', { timeout: 5_000 });
 });
 
 test('the validation hypothesis survives navigation and reload (D2)', async ({ page }) => {
@@ -151,12 +157,13 @@ test('REGRESSION: after a filter change, a cancelled recalculation is never comp
   await page.goto('/#/decision');
   // All high-coupon loans, so filtering to 7%+ keeps about three quarters of 10,000 loans:
   // each recalculation takes long enough to cancel.
+  await openTab(page, 'files');
   await page.getByTestId('import-input').setInputFiles({ name: 'big.json', mimeType: 'application/json', buffer: bigFile({ cohortWeights: [0, 0, 1] }) });
   // Wait for the import to replace the workspace before acting on it.
   await expect(page.getByTestId('import-message')).toContainText('Imported', { timeout: 30_000 });
   await page.goto('/#/lab');
   await expect(page.getByText('Ten thousand loans')).toBeVisible();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 30_000 });
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date', { timeout: 30_000 });
 
   await page.goto('/#/cohorts');
   await page.getByTestId('filter-coupon-ge7').check();
@@ -170,9 +177,12 @@ test('REGRESSION: after a filter change, a cancelled recalculation is never comp
   const blocked = page.getByTestId('comparison-blocked');
   await expect(blocked).toContainText('Scenario 1: The recalculation was cancelled', { timeout: 30_000 });
   await expect(blocked).not.toContainText('Baseline:', { timeout: 30_000 });
+  await openTab(page, 'compare');
   await expect(page.getByTestId('compare-table')).toContainText('Not compared: different population');
+  await openTab(page, 'files');
   await expect(page.getByTestId('export-json')).toBeDisabled();
   await expect(page.getByTestId('open-brief')).toBeDisabled();
+  await openTab(page, 'compare');
   await expect(page.getByTestId('excluded-results')).toContainText('Scenario 1');
 
   // The brief cannot be printed, even by direct link.
@@ -183,21 +193,25 @@ test('REGRESSION: after a filter change, a cancelled recalculation is never comp
   // The lab shows no ledger or CSV export for the retained result.
   await page.goto('/#/lab');
   await expect(page.getByTestId('no-current-result')).toBeVisible();
+  await expect(page.getByTestId('lab-tabs')).toHaveCount(0);
   await expect(page.getByTestId('export-csv')).toHaveCount(0);
   await expect(page.getByTestId('excluded-results')).toContainText('Scenario 1');
 
   // Running Scenario 1 for the new population restores everything.
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date', { timeout: 30_000 });
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date', { timeout: 30_000 });
+  await openTab(page, 'ledger');
   await expect(page.getByTestId('export-csv')).toBeVisible();
   await page.goto('/#/decision');
   await expect(page.getByTestId('comparison-blocked')).toHaveCount(0);
+  await openTab(page, 'files');
   await expect(page.getByTestId('export-json')).toBeEnabled();
 });
 
 test('REGRESSION: an import whose saved prepaid12 was altered does not verify (issue 3)', async ({ page }) => {
   await startFresh(page);
   await page.goto('/#/decision');
+  await openTab(page, 'files');
   await expect(page.getByTestId('export-json')).toBeEnabled();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);
   const f = JSON.parse(readFileSync((await download.path())!, 'utf8'));

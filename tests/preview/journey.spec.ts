@@ -3,6 +3,7 @@
  * WebKit, desktop light and phone dark). Expected numbers come from the engine source.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from '../e2e/fixtures';
 import { readFileSync } from 'node:fs';
 import { loadPreset } from '../../src/data/presets';
 import { runScenario } from '../../src/domain/engine';
@@ -44,15 +45,16 @@ test('start, guided experiment, edit without running, run, compare, perspective,
   // Edit without running: results are marked as the previous run and exports pause.
   await page.goto('./#/lab');
   await page.getByTestId('ctl-shock').locator('input[type=number]').fill('-50');
-  await expect(page.getByTestId('dirty-badge')).toContainText('Edited');
+  await expect(page.getByTestId('dirty-badge')).toContainText('edited');
   await expect(page.getByTestId('kpi-stale').first()).toBeVisible();
   await page.goto('./#/decision');
+  await openTab(page, 'files');
   await expect(page.getByTestId('export-json')).toBeDisabled();
 
   // Run, then compare against the baseline with neutral speed words.
   await page.goto('./#/lab');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
   await expect(page.getByTestId('kpi-cpr-value')).toHaveText(pct(half.nextMonthCpr));
   await expect(page.getByTestId('kpi-cpr')).toContainText('faster');
   await expect(page.getByTestId('kpi-npv')).toContainText('lower');
@@ -75,6 +77,7 @@ test('start, guided experiment, edit without running, run, compare, perspective,
 
   // Export and import: saved results reproduce.
   await page.goto('./#/decision');
+  await openTab(page, 'files');
   await expect(page.getByTestId('export-json')).toBeEnabled();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);
   const text = readFileSync((await download.path())!, 'utf8');

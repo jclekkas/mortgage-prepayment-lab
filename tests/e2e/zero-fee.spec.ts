@@ -4,6 +4,7 @@
  * docs/ACCEPTANCE_REVIEW.md using visible labels, and checks the numbers against the engine.
  */
 import { expect, test } from '@playwright/test';
+import { openTab } from './fixtures';
 import { loadPreset } from '../../src/data/presets';
 import { runScenario } from '../../src/domain/engine';
 import { pct, usd } from '../../src/domain/format';
@@ -33,18 +34,19 @@ test('zero fee, 0 versus -100 bps: only the rate shock differs, and value improv
   await page.getByLabel(/Use a hypothetical servicing fee instead of the contract/).check();
   await page.getByTestId('ctl-fee').locator('input[type=number]').fill('0');
   await page.getByRole('button', { name: 'Run', exact: true }).click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
 
-  // 6. Freeze it as the baseline: the zero-fee, no-shock run becomes the comparison point.
-  await page.getByRole('button', { name: 'Freeze as baseline' }).click();
-  await page.getByLabel('Active scenario').selectOption({ label: 'Baseline (frozen): Baseline (from Scenario 1)' });
+  // 6. Make it the baseline: the zero-fee, no-shock run becomes the comparison point.
+  await page.getByRole('button', { name: 'Make baseline' }).click();
+  await page.getByTestId('scenario-tab-1').click();
+  await expect(page.getByTestId('scenario-tab-1')).toContainText('Baseline (from Scenario 1)');
   await expect(page.getByTestId('kpi-npv-value')).toHaveText(usd(z.servicingNpv, { compact: true }));
 
   // 7-8. Back to Scenario 1 (still fee 0), set the rate shock to -100, Run.
-  await page.getByLabel('Active scenario').selectOption({ label: 'Scenario 1' });
+  await page.getByTestId('scenario-tab-2').click();
   await page.getByTestId('ctl-shock').locator('input[type=number]').fill('-100');
   await page.getByRole('button', { name: 'Run', exact: true }).click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
 
   // 9. Read the comparison.
   await expect(page.getByTestId('kpi-cpr-value')).toHaveText(pct(c.nextMonthCpr));
@@ -55,6 +57,7 @@ test('zero fee, 0 versus -100 bps: only the rate shock differs, and value improv
 
   // The explanation names the only changed input and splits value into fees and costs.
   await page.goto('/#/decision');
+  await openTab(page, 'compare');
   await expect(page.getByTestId('compare-table')).toBeVisible();
   await page.goto('/#/lab');
   const body = page.locator('body');

@@ -62,7 +62,7 @@ test('guided experiment teaches, asks for a prediction, then shows baseline, rat
   await expect(page.getByTestId('guided-result').getByTestId('trust-note')).toContainText('Real-world accuracy not established');
 
   // The guided run did not touch the learner's scenarios until they choose to add it.
-  const options = page.getByLabel('Active scenario').locator('option');
+  const options = page.getByTestId('scenario-tabs').getByRole('button');
   await expect(options).toHaveCount(2);
   await page.getByTestId('guided-add').click();
   await expect(options).toHaveCount(3);
@@ -71,7 +71,7 @@ test('guided experiment teaches, asks for a prediction, then shows baseline, rat
   // The dashboard's baseline matches the guided baseline (same calculation, same population).
   const guidedBaseNpv = (await npv.locator('td').nth(0).textContent())!.trim();
   await page.getByTestId('guided-done').click();
-  await page.getByLabel('Active scenario').selectOption({ index: 0 });
+  await page.getByTestId('scenario-tab-1').click();
   await expect(page.getByTestId('kpi-npv-value')).toHaveText(guidedBaseNpv);
 });
 

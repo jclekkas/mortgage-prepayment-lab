@@ -16,16 +16,22 @@ export function LearnPage({ sub }: { sub: string | null }) {
   const done = LESSONS.filter((l) => state.exercises[l.id]?.done).length;
   return (
     <div className="stack" style={{ maxWidth: 900 }}>
-      <h1>Learn by predicting</h1>
       <TermsOnPage ids={LEARN_TERMS} />
-      <p>Six short exercises. Each asks you to commit to a prediction before it shows the calculated answer. Progress is stored on this device. Completed: {done} of {LESSONS.length}.</p>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <p style={{ margin: 0, maxWidth: 620 }}>Six short exercises. Each asks you to commit to a prediction before it shows the calculated answer. Progress is stored on this device.</p>
+        <p style={{ margin: 0, textAlign: 'right' }}><span style={{ fontSize: 30 }}>{done}</span> / {LESSONS.length}<br /><span className="muted" style={{ fontSize: 13 }}>Completed: {done} of {LESSONS.length}</span></p>
+      </div>
+      <div className="progress" role="progressbar" aria-label="Lessons completed" aria-valuemin={0} aria-valuemax={LESSONS.length} aria-valuenow={done}><div style={{ width: `${(100 * done) / LESSONS.length}%` }} /></div>
       <p>New to mortgages? Start with the <a href={href('guided')} data-testid="learn-guided">3-minute guided experiment</a>: it introduces the borrower, loan owner and servicer and walks through one rate cut before any quiz.</p>
-      <ol className="stack" style={{ paddingLeft: '1.2rem' }}>
-        {LESSONS.map((l) => (
-          <li key={l.id}>
-            <a href={href('learn', l.id)} data-testid={`lesson-${l.id}`}>{l.title.replace(/^\d+\.\s*/, '')}</a>
-            {state.exercises[l.id]?.done && <span className="badge ok" style={{ marginLeft: '0.5rem' }}>Completed</span>}
-            <div className="muted" style={{ fontSize: '0.9rem' }}>{l.intro}</div>
+      <ol className="lesson-grid" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        {LESSONS.map((l, i) => (
+          <li key={l.id} className="lesson-card">
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <span className="lesson-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+              <span className={`tag${state.exercises[l.id]?.done ? ' accent' : ''}`}>{state.exercises[l.id]?.done ? 'Completed' : 'Not started'}</span>
+            </div>
+            <h2><a href={href('learn', l.id)} data-testid={`lesson-${l.id}`}>{l.title.replace(/^\d+\.\s*/, '')}</a></h2>
+            <p className="muted" style={{ fontSize: 13, margin: 0 }}>{l.intro}</p>
           </li>
         ))}
       </ol>
@@ -67,7 +73,7 @@ function LessonView({ lesson }: { lesson: Lesson }) {
   return (
     <div className="stack" style={{ maxWidth: 820 }} data-testid={`lesson-view-${lesson.id}`}>
       <a href={href('learn')}>← All exercises</a>
-      <h1>{lesson.title}</h1>
+      <h2>{lesson.title}</h2>
       <TermsOnPage ids={LEARN_TERMS} />
       <p>{lesson.intro}</p>
       <fieldset className="card" disabled={!!outcome}>

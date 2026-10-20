@@ -18,11 +18,11 @@ Rate shock 0 versus -100 basis points is the only difference. The test asserts t
 **Steps in the app (fresh start):**
 
 1. On the start page, pick **Mixed book**, then **Skip the guide and open the dashboard**.
-2. Open **Scenario lab**. The header's **Viewing** box shows **Scenario 1**.
-3. Under *Business decisions*, tick **Use a hypothetical servicing fee instead of the contract (25 basis points)**.
-4. Set **Annual servicing fee (hypothetical)** to **0**. Press **Run**.
-5. Press **Freeze as baseline**. The zero-fee, no-shock run is now the baseline that everything is compared against.
-6. In **Viewing**, choose **Scenario 1** again. It still has the fee at 0.
+2. Open **Scenario lab** (left menu). The scenario tab **2 Scenario 1** is selected at the top.
+3. In the assumptions panel, under *Business decisions*, tick **Use a hypothetical servicing fee instead of the contract (25 basis points)**.
+4. Set **Annual servicing fee (hypothetical)** to **0**. Press **Run** (top right).
+5. At the bottom of the assumptions panel, press **Make baseline**. The zero-fee, no-shock run is now the frozen baseline (tab **1**) that everything is compared against.
+6. Select the tab **2 Scenario 1** again. It still has the fee at 0.
 7. Set **Rate shock** to **-100**. Press **Run**.
 8. Read the headline cards and the explanation.
 

@@ -269,6 +269,8 @@ interface Api {
   run: (id: string) => void;
   /** Replace a scenario's draft and run it immediately. */
   applyAndRun: (next: ScenarioInput) => void;
+  /** Undo a scenario's last edit and run the restored assumptions. */
+  undoAndRun: (id: string) => void;
   cancel: (id: string) => void;
   runAll: () => void;
   baseline: Slot;
@@ -360,6 +362,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [runInput],
   );
 
+  const undoAndRun = useCallback(
+    (id: string) => {
+      const slot = stateRef.current.slots.find((x) => x.draft.scenarioId === id);
+      if (!slot || !slot.undo.length) return;
+      const prev = slot.undo[slot.undo.length - 1];
+      dispatch({ type: 'undo', id });
+      runInput(id, prev, stateRef.current.filter, true);
+    },
+    [runInput],
+  );
+
   const runAll = useCallback(() => {
     const s = stateRef.current;
     for (const slot of s.slots) runInput(slot.draft.scenarioId, slot.run.outputInput ?? slot.draft, s.filter, false);
@@ -399,7 +412,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           } catch (e) {
             // Keep the unreadable record before autosave can replace it.
             await kv.set(BACKUP_KEY, { ...saved, backedUpAt: new Date().toISOString(), reason: (e as Error).message });
-            dispatch({ type: 'storage', storage: { status: 'saved', savedAt: null, message: `Your earlier saved work could not be opened by this version (${(e as Error).message}). It has been kept, not deleted: download it from the Decision room under “Brief, files and local data”. Starting with a new workspace.` } });
+            dispatch({ type: 'storage', storage: { status: 'saved', savedAt: null, message: `Your earlier saved work could not be opened by this version (${(e as Error).message}). It has been kept, not deleted: download it from the Decision room, “Files and brief” tab. Starting with a new workspace.` } });
           }
         } else dispatch({ type: 'storage', storage: { status: 'saved', savedAt: null, message: null } });
       } catch (e) {
@@ -447,7 +460,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const active = state.slots.find((x) => x.draft.scenarioId === state.activeId) ?? baseline;
   const draftErrors = useMemo(() => validateScenario(active.draft), [active.draft]);
 
-  const api: Api = { state, dispatch, client, run, applyAndRun, cancel, runAll, baseline, active, draftErrors, importWorkspace, clearSaved };
+  const api: Api = { state, dispatch, client, run, applyAndRun, undoAndRun, cancel, runAll, baseline, active, draftErrors, importWorkspace, clearSaved };
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
 

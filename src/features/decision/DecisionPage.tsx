@@ -19,6 +19,7 @@ import { GridPanel } from './GridPanel';
 import { LabelWithHelp, TermsOnPage } from '../../ui/TermHelp';
 import type { TermId } from '../../ui/terms';
 import { trendOf, type TrendMetric } from '../../domain/trend';
+import { Tabs } from '../../ui/Tabs';
 import { TrendArrow, TrendKey } from '../../ui/TrendArrow';
 
 const METRICS: [string, (s: SummaryMetrics) => string, TermId | undefined, [TrendMetric, (s: SummaryMetrics) => number | null] | undefined][] = [
@@ -40,8 +41,12 @@ function fmtMetric(v: MetricDifference['saved']): string {
   return String(v);
 }
 
+const DEC_TABS = [{ id: 'compare', label: 'Compare' }, { id: 'grid', label: 'Sensitivity grid' }, { id: 'notes', label: 'Decision notes' }, { id: 'files', label: 'Files and brief' }];
+
 export function DecisionPage() {
   const { state, dispatch, importWorkspace, clearSaved } = useStore();
+  // Open on "Files and brief" when a storage notice (for example about older saved work) points there.
+  const [tab, setTab] = useState(state.storage.message ? 'files' : 'compare');
   const [importMsg, setImportMsg] = useState<{ kind: 'ok' | 'err' | 'info'; text: string; details?: string[] } | null>(null);
   const [saved, setSaved] = useState<ScenarioFile['results'] | null>(null);
   const [legacy, setLegacy] = useState<ImportResult['legacy']>(null);
@@ -139,7 +144,6 @@ export function DecisionPage() {
   };
   return (
     <div className="stack">
-      <h1>Decision room</h1>
       <TermsOnPage ids={['upb', 'cpr', 'prepaid', 'npv', 'pv', 'wal', 'bp', 'psa', 'recapture', 'discount']} />
       <p className="muted">Up to four scenarios, including the frozen baseline, on the same valuation date ({formatMonth(state.portfolio.meta.asOfMonth)}) and the same population.</p>
       <PopulationBadge />
@@ -154,6 +158,10 @@ export function DecisionPage() {
           <ul style={{ margin: '0.25rem 0 0' }}>{assessment.blockers.map((b) => <li key={b}>{b}</li>)}</ul>
         </div>
       )}
+      {state.storage.message && <Notice kind={state.storage.status === 'unavailable' ? 'err' : 'info'}>{state.storage.message}</Notice>}
+      <Tabs tabs={DEC_TABS} selected={tab} onSelect={setTab} label="Decision room sections" testId="decision-tabs">
+        {tab === 'compare' && (
+          <div className="stack">
       <section className="card" aria-labelledby="cmp-h">
         <h2 id="cmp-h">Scenario comparison</h2>
         {state.slots.length > 1 && <TrendKey />}
@@ -184,6 +192,10 @@ export function DecisionPage() {
       </section>
       <ExcludedNotice excluded={excluded} />
       {focus && <ScenarioCharts entries={entries} focus={focus} />}
+          </div>
+        )}
+        {tab === 'grid' && <GridPanel />}
+        {tab === 'notes' && (
       <section className="card" aria-labelledby="notes-h">
         <h2 id="notes-h">Your reasoning</h2>
         <p className="muted" style={{ fontSize: '0.88rem' }}>Write down what you think changed, what evidence supports it, and what you would investigate next. A simulation is a hypothesis, not proof.</p>
@@ -205,9 +217,10 @@ export function DecisionPage() {
           })}
         </div>
       </section>
-      <GridPanel />
+        )}
+        {tab === 'files' && (
       <section className="card" aria-labelledby="files-h">
-        <h2 id="files-h">Brief, files and local data</h2>
+        <h2 id="files-h">Files and brief</h2>
         <div className="row">
           {settled ? <a className="button" href={href('brief')} data-testid="open-brief">Open one-page brief</a> : <button type="button" disabled data-testid="open-brief">Open one-page brief</button>}
           <button type="button" onClick={exportJson} disabled={!settled} data-testid="export-json">Export scenarios to a file</button>
@@ -225,7 +238,6 @@ export function DecisionPage() {
         <p className="muted" style={{ fontSize: '0.85rem' }}>
           Files stay on your computer and are plain-text JavaScript Object Notation (JSON) files you can re-import. Imports are limited to 10 megabytes and 10,000 synthetic loans, are checked against a strict schema, and are never silently reinterpreted: a file from an older model version keeps its assumptions and notes, is recalculated with the current model, and shows its old and new results side by side. Saved: {state.storage.savedAt ? new Date(state.storage.savedAt).toLocaleString() : 'not yet'}.
         </p>
-        {state.storage.message && <Notice kind={state.storage.status === 'unavailable' ? 'err' : 'info'}>{state.storage.message}</Notice>}
         {importMsg && (
           <div data-testid="import-message">
             <Notice kind={importMsg.kind} role={importMsg.kind === 'err' ? 'alert' : 'status'}>
@@ -235,6 +247,8 @@ export function DecisionPage() {
           </div>
         )}
       </section>
+        )}
+      </Tabs>
     </div>
   );
 }

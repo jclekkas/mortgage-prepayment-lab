@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { startFresh } from './fixtures';
+import { openTab, startFresh } from './fixtures';
 
 const IDS = ['one-dollar', 'speedometer', 'rates-fall', 'same-speed', 'keep-customer', 'challenge-forecast'];
 
@@ -70,5 +70,6 @@ test('expected values are explained before any expected dollars are shown', asyn
   const above = await note.evaluate((n, t) => !!(n.compareDocumentPosition(t as Node) & Node.DOCUMENT_POSITION_FOLLOWING), await table.elementHandle());
   expect(above).toBe(true);
   await page.goto('/#/lab');
+  await openTab(page, 'ledger');
   await expect(page.getByTestId('ledger-expected-note')).toContainText('not payments any one borrower makes');
 });

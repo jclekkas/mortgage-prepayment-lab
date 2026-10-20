@@ -30,7 +30,7 @@ export function BriefPage() {
         <button type="button" className="primary" onClick={() => window.print()} disabled={!ready}>Print or save this brief</button>
       </div>
       <header>
-        <h1>Scenario brief: {p.name}</h1>
+        <h2 style={{ fontSize: 24 }}>Scenario brief: {p.name}</h2>
         <p>
           Synthetic portfolio, as of {formatMonth(p.asOfMonth)} · {state.portfolio.loans.length.toLocaleString()} loans · population: {describeFilter(state.filter)} · model {MODEL_VERSION} · build {APP_BUILD.slice(0, 7)} · prepared {new Date().toLocaleDateString()}
         </p>

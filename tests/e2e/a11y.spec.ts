@@ -45,7 +45,7 @@ test('keyboard only: start, edit a control, run', async ({ page }) => {
   await page.getByTestId('run').focus();
   await expect(page.getByTestId('run')).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
   await expect(page.getByTestId('announcer')).toContainText('Calculation complete');
   // Focus stays on the Run button after recalculation.
   await expect(page.getByTestId('run')).toBeFocused();
@@ -54,6 +54,10 @@ test('keyboard only: start, edit a control, run', async ({ page }) => {
   await chart.focus();
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowRight');
+  // The selected month carries over to the Month ledger tab, reached by keyboard.
+  await page.getByTestId('tab-charts').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('tab-ledger')).toBeFocused();
   await expect(page.getByTestId('month-ledger')).toContainText('month 3');
 });
 

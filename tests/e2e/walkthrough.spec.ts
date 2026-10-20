@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { setNumber, startFresh } from './fixtures';
+import { openTab, selectScenario, setNumber, startFresh } from './fixtures';
 
 test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, import, reproduce', async ({ page }) => {
   await startFresh(page);
@@ -9,7 +9,7 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   // Lab: shock rates on Scenario 1 and run.
   await page.goto('/#/lab');
   await setNumber(page, 'ctl-shock', '-100');
-  await expect(page.getByTestId('dirty-badge')).toHaveText(/Edited: press Run/);
+  await expect(page.getByTestId('dirty-badge')).toHaveText(/edited, press Run/);
   // Before Run: nothing may present the old results as reflecting the edit.
   await expect(page.getByTestId('run-status')).toContainText('Previous run.');
   await expect(page.getByTestId('run-status')).toContainText('Rate shock: 0 basis points → -100 basis points');
@@ -17,6 +17,7 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   await expect(page.getByTestId('explanation-stale')).toContainText('not yet run');
   await expect(page.getByTestId('explanation-headline')).toContainText('When last run');
   await expect(page.getByTestId('charts-stale')).toBeVisible();
+  await openTab(page, 'ledger');
   await expect(page.getByTestId('export-csv')).toBeDisabled();
   await expect(page.getByTestId('export-csv-paused')).toBeVisible();
   await expect(page.getByTestId('kpi-npv-value')).toHaveText(baseNpv!);
@@ -28,13 +29,14 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   await page.goto('/#/decision');
   await expect(page.getByTestId('edits-unrun')).toContainText('Brief and export are paused');
   await expect(page.getByTestId('compare-table')).toContainText('Previous run');
+  await openTab(page, 'files');
   await expect(page.getByTestId('export-json')).toBeDisabled();
   await expect(page.getByTestId('open-brief')).toBeDisabled();
   await page.goto('/#/brief');
   await expect(page.getByTestId('brief-blocked')).toContainText('edited but not run');
   await page.goto('/#/lab');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
   await expect(page.getByTestId('explanation-headline')).toContainText('lower-rate assumption');
   // After Run: every previous-run marker is gone.
   await expect(page.getByTestId('kpi-stale')).toHaveCount(0);
@@ -61,20 +63,22 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   await expect(page.getByTestId('investor-panel')).toBeVisible();
   await page.getByTestId('perspective-servicer').click();
   await expect(page.getByTestId('kpi-npv')).toBeVisible();
-  await expect(page.getByTestId('kpi-upb').getByTestId('trend')).toHaveAttribute('data-tone', 'flat');
-  await expect(page.getByTestId('kpi-upb').getByTestId('trend')).toContainText('no change');
-  await expect(page.getByTestId('kpi-upb')).toContainText('vs baseline: $0');
+  // The balance owed is stated once, in the headline line: no assumption changes it.
+  await expect(page.getByTestId('balance-line')).toContainText('Balance still owed: $331.72M');
+  await expect(page.getByTestId('balance-line')).toContainText('No assumption changes it');
 
   // Inspect a month via the ledger; reconciliation must pass.
-  await page.getByRole('button', { name: 'Next month' }).click();
+  await openTab(page, 'ledger');
+  await page.getByRole('button', { name: 'Next month', exact: true }).click();
   await expect(page.getByTestId('month-ledger')).toContainText('month 2');
   await expect(page.getByTestId('reconciliation')).toContainText('within tolerance');
 
   // Freeze the shocked scenario as baseline, then restore by viewing it.
   await page.getByTestId('freeze').click();
-  await page.getByLabel('Active scenario').selectOption({ label: 'Baseline (frozen): Baseline (from Scenario 1)' });
+  await selectScenario(page, 1);
+  await expect(page.getByTestId('scenario-tab-1')).toContainText('Baseline (from Scenario 1)');
   await expect(page.getByTestId('kpi-npv-value')).toHaveText(shockNpv!);
-  await page.getByLabel('Active scenario').selectOption({ index: 1 });
+  await selectScenario(page, 2);
 
   // Filter a cohort: population badge updates everywhere.
   await page.goto('/#/cohorts');
@@ -88,6 +92,7 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
   // Compare in the decision room.
   await page.goto('/#/decision');
   await expect(page.getByTestId('compare-table')).toContainText('Illustrative servicing net present value (NPV)');
+  await openTab(page, 'files');
 
   // Export JSON, then import it and confirm results reproduce.
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);
@@ -99,6 +104,7 @@ test('core loop: preset, shock, run, inspect, filter, compare, lesson, export, i
 
   // CSV export has no NaN/Infinity.
   await page.goto('/#/lab');
+  await openTab(page, 'ledger');
   const [csv] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-csv').click()]);
   const csvText = readFileSync((await csv.path())!, 'utf8');
   expect(csvText).not.toMatch(/NaN|Infinity/);
@@ -121,11 +127,13 @@ test('fixed CPR mode disables rate and recapture controls and ignores rates', as
   await page.goto('/#/lab');
   await page.getByTestId('mode-fixedCpr').check();
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
   const npv = await page.getByTestId('kpi-npv-value').textContent();
   await expect(page.getByTestId('ctl-shock').locator('input[type=number]')).toBeDisabled();
   await expect(page.getByTestId('ctl-recapture')).toContainText('Disabled');
+  await openTab(page, 'recapture');
   await expect(page.getByTestId('recapture-panel')).toContainText('Not available');
+  await openTab(page, 'ledger');
 
   // Issue 2: fixed CPR gives a speed, not a cause, so the cause split is not applicable.
   const ledger = page.getByTestId('month-ledger');
@@ -154,7 +162,7 @@ test('out-of-range input is rejected with a reason, not silently clamped', async
   await page.goto('/#/lab');
   await setNumber(page, 'ctl-offer', '1.5');
   await setNumber(page, 'ctl-shock', '-100');
-  await expect(page.getByTestId('run-bar')).toContainText('outside the supported 1% to 15% range');
+  await expect(page.getByTestId('run-errors')).toContainText('outside the supported 1% to 15% range');
   await expect(page.getByTestId('run')).toBeDisabled();
   await setNumber(page, 'ctl-shock', '-400');
   await expect(page.getByTestId('ctl-shock')).toContainText('Allowed range');

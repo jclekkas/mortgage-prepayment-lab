@@ -9,7 +9,7 @@ import { BlockedNotice } from '../results/BlockedNotice';
 import { LabelWithHelp, TermsOnPage } from '../../ui/TermHelp';
 import { trendOf } from '../../domain/trend';
 import { TrendArrow, TrendKey } from '../../ui/TrendArrow';
-import { PerspectiveSwitch, usePerspective } from '../results/Perspective';
+import { usePerspective } from '../results/Perspective';
 
 export function CohortsPage() {
   const { state, dispatch } = useStore();
@@ -32,7 +32,7 @@ export function CohortsPage() {
   const find = (r: CohortRow) => baseRows.find((b) => b.key === r.key);
   return (
     <div className="stack">
-      <h1>Cohort explorer: {actSlot.draft.name}</h1>
+      <h2>Results by loan group: {actSlot.draft.name}</h2>
       <TermsOnPage ids={['upb', 'cpr', 'prepaid', 'npv', 'bp', 'netServicing']} />
       <p className="muted">
         Filter the population to a segment and every chart, card and comparison updates. Each row shows the segment’s unpaid principal balance (UPB), its conditional prepayment rate (CPR), the yearly pace of early payoffs, and its servicing net present value (NPV), future fees less costs in today’s dollars. Dollars show size; the normalized columns (share of balance, and basis points of balance) show intensity, so a large segment is not automatically the riskier one.
@@ -75,7 +75,6 @@ export function CohortsPage() {
             </select>
           </label>
         </div>
-        <div className="row" style={{ marginTop: '0.5rem' }}><PerspectiveSwitch /></div>
         <p className="muted" style={{ fontSize: '0.85rem' }} data-testid="cohort-perspective">
           {servicer
             ? 'Servicer perspective: servicing fee income, cost and illustrative value are shown for each segment.'

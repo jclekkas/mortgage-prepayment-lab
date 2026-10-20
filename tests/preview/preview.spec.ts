@@ -4,6 +4,7 @@
  * source, so the test proves the deployed bundle calculates what the tested code does.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { openTab } from '../e2e/fixtures';
 import { readFileSync } from 'node:fs';
 import { loadPreset } from '../../src/data/presets';
 import { runScenario } from '../../src/domain/engine';
@@ -52,9 +53,10 @@ test('hosted preview: assets, calculation, deep links, export/import, no console
   await page.goto('./#/lab');
   await page.getByTestId('ctl-shock').locator('input[type=number]').fill('-100');
   await page.getByTestId('run').click();
-  await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
+  await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
   await expect(page.getByTestId('kpi-cpr-value')).toHaveText(pct(shocked.nextMonthCpr));
   await expect(page.getByTestId('kpi-npv-value')).toHaveText(usd(shocked.servicingNpv, { compact: true }));
+  await openTab(page, 'ledger');
   await expect(page.getByTestId('reconciliation')).toContainText('within tolerance');
 
   // Deep-link refresh.
@@ -66,6 +68,7 @@ test('hosted preview: assets, calculation, deep links, export/import, no console
 
   // Export, then import the same file: every saved metric reproduces.
   await page.goto('./#/decision');
+  await openTab(page, 'files');
   await expect(page.getByTestId('export-json')).toBeEnabled();
   const [download] = await Promise.all([page.waitForEvent('download'), page.getByTestId('export-json').click()]);
   const text = readFileSync((await download.path())!, 'utf8');

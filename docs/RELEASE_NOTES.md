@@ -192,6 +192,18 @@ Each defect below was reproduced on `b2016bd` before it was fixed, and each has 
   results paired with edited assumptions; "rates down, value down" holds only when margins are positive.
   Domain-review questions are in `docs/DOMAIN_REVIEW_QUESTIONS.md`.
 
+### Dark "terminal" redesign (v4 design handoff)
+
+Display only: no calculation, model version, wording of disclosures or "Previous run" safeguard changed.
+
+- **Theme and type.** Dark tokens from the handoff; Source Serif 4 self-hosted from npm (`@fontsource/source-serif-4`, OFL), not loaded from Google Fonts, so the strict content security policy is unchanged and no visitor request goes to a third party. Tabular figures throughout. No text under 12px, including chart axis labels at every chart width (checked by `tests/e2e/terminal.spec.ts`).
+- **Color meaning.** Green and red appear only on better/worse tags and scenario-tab change text; sparklines are accent blue against a dashed grey baseline (the handoff's sparkline note conflicted with its own acceptance rule; the stricter rule was followed). Warnings and errors are amber.
+- **Shell.** Left rail (Analyze, Check, Learn) that becomes a menu below 1100px; a context header with the page title, perspective and "Opens by default" controls, scenario tabs that carry each scenario's value and change, one status line and the only Run button.
+- **Keyboard shortcuts** (R, 1 to 4, P, O L G D F, ?, Esc). They pause in fields and ignore Ctrl, Cmd and Alt, and they can be turned off in the Keys dialog (WCAG 2.1.4).
+- **Overview.** Hero with a short template headline (direction and size only); the full explanation headline is the first "Why" point. Cards with sparklines; the unpaid balance moved to the hero line. Quick experiments as cells with "Undo the last change and re-run".
+- **Scenario lab.** Resizable assumptions panel (drag or arrow keys, remembered on this device), collapsible groups with "N changed", results in tabs. The full-ledger table is replaced by **Month by month** (named for plain reading rather than the handoff's "Order book", which in trading means bids and offers); "Value to date" is the running total in today's dollars.
+- **Other pages.** Decision room in tabs; glossary search; lesson cards with progress; guided-experiment stepper; start page in two columns (the seed stays out of the beginner flow).
+
 ### Known limitations
 
 - Synthetic data and uncalibrated, illustrative behavioral coefficients. Not a forecast, a FICO model or a validated valuation.

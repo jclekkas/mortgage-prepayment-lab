@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { useStore, type Role } from '../../app/store';
 import { PRESETS, loadPreset } from '../../data/presets';
@@ -25,61 +25,69 @@ export function StartPage() {
     dispatch({ type: 'start', goal, role, portfolio: loadPreset(preset) });
     navigate(guided ? 'guided' : goal === 'learn' ? 'learn' : 'overview');
   };
+  const section = (n: string, id: string, title: string, note: string, children: ReactNode) => (
+    <section aria-labelledby={id}>
+      <h2 id={id} style={{ fontSize: 24, display: 'flex', gap: 12, alignItems: 'baseline' }}><span style={{ color: 'var(--accent)', fontWeight: 400, fontSize: 30 }} aria-hidden="true">{n}</span>{title}</h2>
+      <p className="muted" style={{ fontSize: 14 }}>{note}</p>
+      {children}
+    </section>
+  );
   return (
-    <div className="stack" style={{ maxWidth: 980 }}>
-      <div>
-        <h1>What would you like to understand?</h1>
-        <p className="muted">
+    <div className="start-grid">
+      <div className="start-left">
+        <p className="rail-brand" style={{ margin: 0 }}>Mortgage Prepayment &amp; Servicing Lab</p>
+        <h1 className="start-title">What would you like to understand?</h1>
+        <p style={{ fontSize: 17 }}>
           An educational simulator of how borrower prepayments change a mortgage servicing portfolio. Every loan is synthetic.
           Results are illustrative, not market values, accounting marks or a FICO model.
         </p>
+        <div className="trust-cells" aria-label="How far to trust these numbers">
+          <div><p className="kicker">Checked</p>Arithmetic tested against hand-worked examples and an independent re-implementation.</div>
+          <div><p className="kicker">Illustrative</p>Synthetic loans; borrower-behavior settings are teaching values, not calibrated.</div>
+          <div><p className="kicker">Not established</p>Not tested against real loan outcomes or reviewed by a mortgage modeling professional.</div>
+        </div>
+        {state.started && (
+          <p className="notice warn" data-testid="restart-warning">
+            You already have a workspace ({state.portfolio.meta.name}, {state.slots.length} scenario{state.slots.length === 1 ? '' : 's'}). Starting again replaces those scenarios and notes with fresh ones for the portfolio you pick. To keep them, export them first from the Decision room, or go back with your browser’s Back button.
+          </p>
+        )}
+        <div className="stack" style={{ display: 'grid', justifyItems: 'start', gap: 10 }}>
+          <button type="button" className="primary" onClick={() => go(true)} data-testid="start-guided" style={{ fontSize: 16, padding: '10px 18px' }}>
+            Start with a 3-minute guided experiment
+          </button>
+          <button type="button" onClick={() => go(false)} data-testid="start" style={{ fontSize: 16, padding: '10px 18px', marginTop: 0 }}>
+            Skip the guide and open the dashboard
+          </button>
+        </div>
       </div>
-      <section aria-labelledby="goal-h">
-        <h2 id="goal-h">Your goal</h2>
-        <div className="choice-grid">
-          {GOALS.map((g) => (
-            <button key={g.id} type="button" className="choice" aria-pressed={goal === g.id} onClick={() => setGoal(g.id)}>
-              <strong>{g.title}</strong>
-              <span className="muted">{g.body}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-      <section aria-labelledby="role-h">
-        <h2 id="role-h">Your role</h2>
-        <p className="muted">Role changes how much detail is shown first. It never changes formulas or what you can open.</p>
-        <div className="choice-grid">
-          {ROLES.map((r) => (
-            <button key={r.id} type="button" className="choice" aria-pressed={role === r.id} onClick={() => setRole(r.id)}>
-              <strong>{r.title}</strong>
-              <span className="muted">{r.body}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-      <section aria-labelledby="pf-h">
-        <h2 id="pf-h">Synthetic portfolio</h2>
-        <div className="choice-grid">
-          {PRESETS.map((p) => (
-            <button key={p.id} type="button" className="choice" aria-pressed={preset === p.id} onClick={() => setPreset(p.id)} data-testid={`preset-${p.id}`}>
-              <strong>{p.name}</strong>
-              <span className="muted">{p.description} 1,000 synthetic loans.</span>
-            </button>
-          ))}
-        </div>
-      </section>
-      {state.started && (
-        <p className="notice warn" data-testid="restart-warning">
-          You already have a workspace ({state.portfolio.meta.name}, {state.slots.length} scenario{state.slots.length === 1 ? '' : 's'}). Starting again replaces those scenarios and notes with fresh ones for the portfolio you pick. To keep them, export them first from the Decision room, or go back with your browser’s Back button.
-        </p>
-      )}
-      <div className="row">
-        <button type="button" className="primary" onClick={() => go(true)} data-testid="start-guided">
-          Start with a 3-minute guided experiment
-        </button>
-        <button type="button" onClick={() => go(false)} data-testid="start">
-          Skip the guide and open the dashboard
-        </button>
+      <div className="stack">
+        {section('01', 'goal-h', 'Your goal', 'Sets the starting perspective: servicer or loan owner. You can switch at any time.',
+          <div className="choice-grid">
+            {GOALS.map((g) => (
+              <button key={g.id} type="button" className="choice" aria-pressed={goal === g.id} onClick={() => setGoal(g.id)}>
+                <strong>{g.title}</strong>
+                <span className="muted">{g.body}</span>
+              </button>
+            ))}
+          </div>)}
+        {section('02', 'role-h', 'Your role', 'Changes how much detail opens first. It never changes formulas or what you can open.',
+          <div className="choice-grid">
+            {ROLES.map((r) => (
+              <button key={r.id} type="button" className="choice" aria-pressed={role === r.id} onClick={() => setRole(r.id)}>
+                <strong>{r.title}</strong>
+                <span className="muted">{r.body}</span>
+              </button>
+            ))}
+          </div>)}
+        {section('03', 'pf-h', 'Synthetic portfolio', 'Each book is 1,000 generated loans. No real borrower or market data.',
+          <div className="choice-grid">
+            {PRESETS.map((p) => (
+              <button key={p.id} type="button" className="choice" aria-pressed={preset === p.id} onClick={() => setPreset(p.id)} data-testid={`preset-${p.id}`}>
+                <strong>{p.name}</strong>
+                <span className="muted">{p.description} 1,000 synthetic loans.</span>
+              </button>
+            ))}
+          </div>)}
       </div>
     </div>
   );

@@ -107,13 +107,20 @@ export function GuidedPage() {
   return (
     <div className="stack guided" style={{ maxWidth: 860 }} data-testid="guided">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <p className="muted" style={{ margin: 0 }} aria-live="polite">Guided first experiment · step {step} of 4: {steps[step - 1]}</p>
+        <p className="muted" style={{ margin: 0 }} aria-live="polite">Step {step} of 4: {steps[step - 1]}</p>
         <a href={href('overview')} data-testid="guided-skip">Skip to the dashboard</a>
       </div>
+      <ol className="stepper" aria-label="Steps">
+        {steps.map((t, i) => (
+          <li key={t} aria-current={i + 1 === step ? 'step' : undefined} className={i + 1 < step ? 'done' : undefined}>
+            <span aria-hidden="true">{i + 1}. </span>{t}{i + 1 < step && <span className="sr-only"> (done)</span>}
+          </li>
+        ))}
+      </ol>
 
       {step === 1 && (
         <section className="card stack" aria-labelledby="g1">
-          <h1 id="g1" ref={heading} tabIndex={-1}>Three parties, one mortgage</h1>
+          <h2 id="g1" className="step-title" ref={heading} tabIndex={-1} data-page-focus>Three parties, one mortgage</h2>
           <ul>
             <li><strong>The borrower</strong> took out the mortgage and makes a monthly payment of interest plus some principal.</li>
             <li><strong>The loan owner</strong> (an investor). Principal repayment belongs to the loan owner, along with most of the interest.</li>
@@ -127,7 +134,7 @@ export function GuidedPage() {
 
       {step === 2 && (
         <section className="card stack" aria-labelledby="g2">
-          <h1 id="g2" ref={heading} tabIndex={-1}>The starting assumptions (the baseline)</h1>
+          <h2 id="g2" className="step-title" ref={heading} tabIndex={-1} data-page-focus>The starting assumptions (the baseline)</h2>
           <p>A synthetic book of {p.loans.length.toLocaleString()} home loans. Nothing here is real borrower or market data.</p>
           <div className="table-wrap">
             <table data-testid="guided-assumptions">
@@ -152,7 +159,7 @@ export function GuidedPage() {
 
       {step === 3 && (
         <section className="card stack" aria-labelledby="g3">
-          <h1 id="g3" ref={heading} tabIndex={-1}>Predict: the offer rate falls by 1 percentage point</h1>
+          <h2 id="g3" className="step-title" ref={heading} tabIndex={-1} data-page-focus>Predict: the offer rate falls by 1 percentage point</h2>
           <p>The mortgage rate available today drops from {pct(baseIn.ratePath.offerRate)} to {pct(baseIn.ratePath.offerRate - 0.01)} (100 basis points) and everything else stays the same. After the cut, {aboveAfter.toLocaleString()} borrowers would have a positive modeled incentive, up from {above.toLocaleString()}. Borrowers still below that threshold also become more likely to refinance in the model, because the modeled likelihood rises gradually rather than switching on at the threshold. In this illustrative model, the lower offered rate increases the modeled likelihood of refinancing. It does not determine whether refinancing is worthwhile for an individual borrower. Predict the direction of each result:</p>
           {OUTCOMES.map((o) => (
             <fieldset key={o.id} className="card" style={{ margin: 0 }}>
@@ -198,7 +205,7 @@ function GuidedResult({ result, answers, onRestart, onAdd, added, canAdd }: {
   const words: Record<Answer, string> = { up: 'up', down: 'down', same: 'about the same' };
   return (
     <section className="card stack" aria-labelledby="g4" data-testid="guided-result">
-      <h1 id="g4" ref={heading} tabIndex={-1}>What the model calculated</h1>
+      <h2 id="g4" className="step-title" ref={heading} tabIndex={-1} data-page-focus>What the model calculated</h2>
       <div className="table-wrap">
         <table data-testid="guided-table" className="stack-table">
           <caption>Baseline versus the rate cut, all {base.population.loanCount.toLocaleString()} loans. Differences use unrounded values.</caption>

@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 const TERMS: [string, string][] = [
   ['Unpaid principal balance (UPB)', 'The principal borrowers still owe. Servicing fees are a percentage of UPB, so UPB is the base that earns fee income.'],
   ['Conditional prepayment rate (CPR)', 'Annualized speed: the share of the balance eligible to prepay that would prepay over a year if this month’s rate continued. CPR = 1 − (1 − SMM)^12, where SMM is the single monthly mortality defined below. Conditional means it applies to whatever balance survives, so it is not the share of today’s book gone in 12 months.'],
@@ -18,11 +20,18 @@ const TERMS: [string, string][] = [
 ];
 
 export function GlossaryPage() {
+  const [q, setQ] = useState('');
+  const needle = q.trim().toLowerCase();
+  const shown = needle ? TERMS.filter(([t, d]) => t.toLowerCase().includes(needle) || d.toLowerCase().includes(needle)) : TERMS;
   return (
     <div className="stack" style={{ maxWidth: 860 }}>
-      <h1>Glossary</h1>
+      <div className="row">
+        <label htmlFor="gloss-q">Search the glossary</label>
+        <input id="gloss-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: '1 1 16rem' }} data-testid="glossary-search" />
+      </div>
+      <p className="muted" role="status" style={{ margin: 0, fontSize: 13 }}>{needle ? `${shown.length} of ${TERMS.length} terms match.` : `${TERMS.length} terms.`}</p>
       <dl className="card">
-        {TERMS.map(([t, d]) => (
+        {shown.map(([t, d]) => (
           <div key={t} style={{ marginBottom: '0.9rem' }}>
             <dt style={{ fontWeight: 700 }}>{t}</dt>
             <dd style={{ margin: '0.15rem 0 0' }}>{d}</dd>

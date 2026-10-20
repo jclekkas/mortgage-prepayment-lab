@@ -17,7 +17,7 @@ test('browser timings: first useful display and run-to-result', async ({ page, b
     await setNumber(page, 'ctl-shock', String(-100 - i * 5));
     const s = Date.now();
     await page.getByTestId('run').click();
-    await expect(page.getByTestId('dirty-badge')).toHaveText('Results are up to date');
+    await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
     times.push(Date.now() - s);
   }
   times.sort((a, b) => a - b);

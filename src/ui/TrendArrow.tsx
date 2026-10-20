@@ -21,17 +21,25 @@ export function TrendArrow({ trend }: { trend: Trend | null }) {
   );
 }
 
-/** Key for the arrows. */
-export function TrendKey() {
+/** Key for the tags. The loan-owner view shows direction only, so its key has no better/worse colors. */
+export function TrendKey({ owner }: { owner?: boolean }) {
+  if (owner) {
+    return (
+      <p className="trend-key muted">
+        Shape shows direction (<span className="trend trend-neutral"><span aria-hidden="true">▲</span> higher</span>, <span className="trend trend-neutral"><span aria-hidden="true">▼</span> shorter</span>).
+        These measures describe when cash arrives; they are not good or bad by themselves.{' '}
+        <span className="trend trend-flat"><span aria-hidden="true">►</span> small change</span> is nonzero but below a display threshold; <span className="trend trend-flat"><span aria-hidden="true">►</span> no change</span> is zero.
+      </p>
+    );
+  }
   return (
     <p className="trend-key muted">
-      Arrows show the direction of each change versus the baseline. Prepayment speed, prepaid principal, balance and average life show direction only{' '}
-      (<span className="trend trend-neutral"><span aria-hidden="true">▲</span> faster</span>, <span className="trend trend-neutral"><span aria-hidden="true">▼</span> lower</span>):
-      they are not good or bad by themselves. Servicer cash-flow and value measures are judged on their own numbers:{' '}
-      <span className="trend trend-good"><span aria-hidden="true">▲</span> higher</span> or <span className="trend trend-good"><span aria-hidden="true">▲</span> smaller loss</span> improved,{' '}
-      <span className="trend trend-bad"><span aria-hidden="true">▼</span> lower</span> worsened. A smaller loss is still a loss.{' '}
-      <span className="trend trend-flat"><span aria-hidden="true">►</span> small change</span> means nonzero but below a display threshold set for readability, not economic importance;{' '}
-      <span className="trend trend-flat"><span aria-hidden="true">►</span> no change</span> means zero.
+      Shape shows direction. Prepayment speed, prepaid principal, balance and average life get a direction word only{' '}
+      (<span className="trend trend-neutral"><span aria-hidden="true">▲</span> faster</span>); they are not good or bad by themselves. Servicer cash-flow and value measures
+      say whether they improved (<span className="trend trend-good"><span aria-hidden="true">▲</span> higher</span>, <span className="trend trend-good"><span aria-hidden="true">▲</span> smaller loss</span>) or
+      worsened (<span className="trend trend-bad"><span aria-hidden="true">▼</span> lower</span>) for the servicer; a smaller loss is still a loss.{' '}
+      <span className="trend trend-flat"><span aria-hidden="true">►</span> small change</span> is nonzero but below a display threshold, not a judgment of importance;{' '}
+      <span className="trend trend-flat"><span aria-hidden="true">►</span> no change</span> is zero.
     </p>
   );
 }
