@@ -25,7 +25,7 @@ Live normal interactions: setup with Mixed book; overview; Scenario lab; clearin
 - Local Playwright browser installation is blocked by the environment. Browser execution and deployment status must be recorded from CI and hosted verification, not inferred from the local unit suite.
 - Connected browser could inspect the public site but could not reach this container's local server.
 
-Browser gate initially caught and prompted fixes for two introduced regressions: the Home accessible name did not match visible text, and disabling Run during calculation lost keyboard focus. Run now retains focus and ignores repeat activation while busy. Existing stale-result and setup-warning assertions were updated to the intentionally corrected behavior.
+Browser gate initially caught and prompted fixes for introduced regressions: the Home accessible name did not match visible text, and disabling Run during calculation lost keyboard focus. Run now retains focus and ignores repeat activation while busy. The simplified Home page also exposed a too-small setup link; Home action links and the expandable guide now have 44-pixel targets. Workspace keyboard shortcuts pause on Home. Existing stale-result and setup-warning assertions were updated to the intentionally corrected behavior.
 
 ## Limits and follow-up
 

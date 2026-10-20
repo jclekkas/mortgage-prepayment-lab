@@ -237,7 +237,7 @@ export function useShortcuts(route: Route) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const L = live.current;
-      if (L.route === 'start') return;
+      if (L.route === 'start' || L.route === 'home') return;
       if (e.key === 'Escape' && L.keysOpen) { setKeysOpen(false); return; }
       if (!L.shortcutsOn || e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;

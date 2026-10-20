@@ -364,3 +364,6 @@ details.drawer { border: 1px solid var(--border); padding: 8px 12px; background:
 @media (max-width: 1099px) { .control-inputs button { min-height: 44px; } .rail-brand { font-size: 17px; } }
 
 .lab-jumps { padding: 8px 14px; border-bottom: 1px solid var(--border); }
+
+.welcome > a, .welcome .card > a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 0; }
+.welcome > details > summary { min-height: 44px; padding: 8px 0; }
