@@ -392,3 +392,9 @@ details.drawer { border: 1px solid var(--border); padding: 8px 12px; background:
   .home-steps h2 { min-height: 0; }
   .home-layout .footer { margin-inline: 16px; }
 }
+
+.home-workspace-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+.home-workspace-actions > a, .home-workspace-actions > button { min-height: 44px; display: inline-flex; align-items: center; }
+.reset-dialog { color: var(--text); }
+.reset-dialog::backdrop { background: rgb(0 0 0 / 70%); }
+.reset-dialog .row > button { min-height: 44px; }

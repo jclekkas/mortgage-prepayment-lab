@@ -310,7 +310,7 @@ interface Api {
   active: Slot;
   draftErrors: FieldError[];
   importWorkspace: (ws: Workspace) => void;
-  clearSaved: () => Promise<void>;
+  resetWorkspace: () => Promise<void>;
 }
 
 const Ctx = createContext<Api | null>(null);
@@ -338,6 +338,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   clientRef.current ??= new EngineClient();
   const client = clientRef.current;
   const latest = useRef(new Map<string, { id: number; cancel: () => void }>());
+  const resetting = useRef(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savePending = useRef<Promise<unknown>>(Promise.resolve());
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -352,6 +355,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Progress re-renders the whole app, so dispatch at most every 100 ms (and the final update).
       let lastProgress = 0;
       const h = client.request({ kind: 'run', scenario: input, filter }, (done, total) => {
+        if (resetting.current) return;
         const now = performance.now();
         if (done < total && now - lastProgress < 100) return;
         lastProgress = now;
@@ -461,20 +465,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Debounced save.
   const saveKey = JSON.stringify([state.started, state.goal, state.role, state.portfolio.meta.hash, state.baselineId, state.slots.map((x) => x.draft), state.filter, state.notes, state.exercises, state.validationHypothesis, state.credit]);
   useEffect(() => {
-    if (state.storage.status === 'loading' || state.storage.status === 'unavailable') return;
+    if (resetting.current || state.storage.status === 'loading' || state.storage.status === 'unavailable') return;
     const t = setTimeout(async () => {
+      if (resetting.current) return;
       const s = stateRef.current;
       try {
         const ws: Workspace = { portfolio: s.portfolio, baselineId: s.baselineId, scenarios: s.slots.map((x) => x.draft), filter: s.filter, notes: s.notes, credit: s.credit };
         const file = JSON.stringify(buildScenarioFile(ws, []));
         const savedAt = new Date().toISOString();
         const record: SavedRecord = { savedAt, file, goal: s.goal, role: s.role, exercises: s.exercises, started: s.started, hypothesis: s.validationHypothesis };
-        await kv.set(STORAGE_KEY, record);
+        savePending.current = kv.set(STORAGE_KEY, record);
+        await savePending.current;
         dispatch({ type: 'storage', storage: { status: 'saved', savedAt } });
       } catch (e) {
         dispatch({ type: 'storage', storage: { status: 'unavailable', message: `Could not save on this device: ${(e as Error).message}` } });
       }
     }, 600);
+    saveTimer.current = t;
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
@@ -484,12 +491,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'announce', text: `Imported ${ws.scenarios.length} scenario(s).` });
   }, []);
 
-  const clearSaved = useCallback(async () => {
+  const resetWorkspace = useCallback(async () => {
+    if (resetting.current) return;
+    if (stateRef.current.storage.status === 'loading') throw new Error('Wait for saved work to finish loading, then try again.');
+    resetting.current = true;
+    if (saveTimer.current !== null) clearTimeout(saveTimer.current);
     try {
+      // Let any write already underway finish before clearing; it must not resurrect old work.
+      await savePending.current.catch(() => undefined);
       await kv.clear();
-      dispatch({ type: 'storage', storage: { status: 'cleared', savedAt: null, message: 'Saved data was cleared from this device.' } });
+      const jobs = [...latest.current.values()];
+      latest.current.clear();
+      for (const job of jobs) job.cancel();
+      // Reset only this app's display preferences, never another app's browser data.
+      try {
+        for (const key of Object.keys(localStorage)) if (key.startsWith('mpl-pref:')) localStorage.removeItem(key);
+      } catch { /* Unavailable preferences do not prevent clearing the workspace. */ }
+      // A full reload also clears worker caches, component drafts and temporary lesson state.
+      window.location.hash = '#/start';
+      window.location.reload();
     } catch (e) {
-      dispatch({ type: 'storage', storage: { status: 'unavailable', message: `Could not clear local data: ${(e as Error).message}` } });
+      resetting.current = false;
+      throw new Error(`The workspace could not be cleared. Your current work is still open. ${(e as Error).message}`);
     }
   }, []);
 
@@ -497,7 +520,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const active = state.slots.find((x) => x.draft.scenarioId === state.activeId) ?? baseline;
   const draftErrors = useMemo(() => validateScenario(active.draft), [active.draft]);
 
-  const api: Api = { state, dispatch, client, run, applyAndRun, undoAndRun, cancel, runAll, baseline, active, draftErrors, importWorkspace, clearSaved };
+  const api: Api = { state, dispatch, client, run, applyAndRun, undoAndRun, cancel, runAll, baseline, active, draftErrors, importWorkspace, resetWorkspace };
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
 

@@ -1,3 +1,4 @@
+import { ResetWorkspace } from '../../ui/ResetWorkspace';
 import { useEffect, useState } from 'react';
 import { href, useLocation } from '../../app/router';
 import { assessSlots, BACKUP_KEY, isDirty, slotLabel, useStore } from '../../app/store';
@@ -44,7 +45,7 @@ function fmtMetric(v: MetricDifference['saved']): string {
 const DEC_TABS = [{ id: 'compare', label: 'Compare' }, { id: 'grid', label: 'Sensitivity grid' }, { id: 'notes', label: 'Decision notes' }, { id: 'files', label: 'Files and brief' }];
 
 export function DecisionPage() {
-  const { state, dispatch, importWorkspace, clearSaved } = useStore();
+  const { state, dispatch, importWorkspace } = useStore();
   // Open on "Files and brief" when a storage notice (for example about older saved work) points there.
   const { sub } = useLocation();
   const [tab, setTab] = useState(sub === 'files' || state.storage.message ? 'files' : 'compare');
@@ -233,7 +234,7 @@ export function DecisionPage() {
             Import scenarios from a file
             <input type="file" accept="application/json,.json" className="sr-only" onChange={(e) => { void onImport(e.target.files?.[0]); e.target.value = ''; }} data-testid="import-input" />
           </label>
-          <button type="button" onClick={() => void clearSaved()}>Clear data saved on this device</button>
+          <ResetWorkspace />
           {backup && (
             <button type="button" onClick={() => downloadText('earlier-saved-workspace.json', backup.file, 'application/json')} data-testid="download-backup">
               Download earlier saved work (could not be opened)

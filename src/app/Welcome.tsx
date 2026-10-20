@@ -1,3 +1,4 @@
+import { ResetWorkspace } from '../ui/ResetWorkspace';
 import { LineIcon } from './Shell';
 import { useState } from 'react';
 import { href } from './router';
@@ -24,7 +25,7 @@ export function HomePage() {
       <li><a href={href('validation')}>Forecast check</a>: compare a prediction with sample outcomes; this does not validate the model for investing.</li>
       <li><a href={href('learn')}>Lessons</a>, <a href={href('glossary')}>Glossary</a> and <a href={href('methodology')}>Methodology</a>: learn the terms and inspect assumptions.</li>
     </ul></details>
-    <a href={href('start')}>Choose a different portfolio or change setup</a>
+    <div className="home-workspace-actions"><a href={href('start')}>Choose a different portfolio or change setup</a><ResetWorkspace /></div>
   </div>;
 }
 
