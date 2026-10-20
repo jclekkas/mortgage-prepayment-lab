@@ -33,8 +33,8 @@ test('Home preserves the workspace and sharing opens the correct files tab', asy
   await startFresh(page);
   await page.getByRole('button', { name: /^Rates −100 bp/ }).click();
   await expect(page.getByTestId('dirty-badge')).toContainText('results up to date');
-  const before = await page.getByTestId('scenario-tab-2').innerText();
-  await page.getByRole('link', { name: 'Home — Prepayment Lab' }).click();
+  const before = (await page.getByTestId('scenario-tab-2').textContent()) ?? '';
+  await page.getByRole('link', { name: 'Prepayment Lab Home' }).click();
   await expect(page.getByRole('heading', { name: 'Your workspace is still here' })).toBeVisible();
   await page.getByRole('link', { name: 'Resume workspace →', exact: true }).click();
   await expect(page.getByTestId('scenario-tab-2')).toHaveText(before);
@@ -47,9 +47,9 @@ test('Home preserves the workspace and sharing opens the correct files tab', asy
 test('phone navigation always exposes Home and Share without opening the menu', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startFresh(page);
-  await expect(page.getByRole('link', { name: 'Home — Prepayment Lab' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Prepayment Lab Home' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Share', exact: true })).toBeVisible();
-  await page.getByRole('link', { name: 'Home — Prepayment Lab' }).click();
+  await page.getByRole('link', { name: 'Prepayment Lab Home' }).click();
   await expect(page.getByRole('heading', { name: 'What happens when borrowers pay their mortgages off early?', exact: true })).toBeVisible();
   const width = await page.evaluate(() => ({ page: document.documentElement.scrollWidth, viewport: innerWidth }));
   expect(width.page).toBeLessThanOrEqual(width.viewport + 1);

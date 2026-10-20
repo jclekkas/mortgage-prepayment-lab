@@ -68,7 +68,7 @@ export function Rail({ route }: { route: Route }) {
   useEffect(() => setOpen(false), [route]);
   return (
     <aside className={`rail${open ? ' open' : ''}`} aria-label="Navigation and portfolio">
-      <a className="rail-brand" href={href('home')} aria-label="Home — Prepayment Lab"><LineIcon /> Prepayment Lab <span className="home-label">Home</span></a>
+      <a className="rail-brand" href={href('home')} aria-label="Prepayment Lab Home"><LineIcon /> Prepayment Lab <span className="home-label">Home</span></a>
       <button type="button" className="rail-menu-toggle" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpen((v) => !v)}>Menu</button>
       <div className="rail-card" aria-label="Portfolio">
         <p className="kicker">Portfolio</p>
@@ -214,7 +214,7 @@ function RunControls() {
     <>
       <span className={`status-line${!isBase && (dirty || active.run.status === 'error') ? ' edited' : ''}`} data-testid="dirty-badge" role="status">{text}</span>
       {running && <button type="button" onClick={() => cancel(d.scenarioId)} data-testid="cancel">Cancel</button>}
-      <button type="button" className="primary" onClick={() => run(d.scenarioId)} disabled={draftErrors.length > 0 || fieldIssues.length > 0 || isBase || running} aria-busy={running} data-testid="run" id="run-scenario"
+      <button type="button" className="primary" onClick={() => { if (!running) run(d.scenarioId); }} disabled={draftErrors.length > 0 || fieldIssues.length > 0 || isBase} aria-disabled={running} aria-busy={running} data-testid="run" id="run-scenario"
         title={isBase ? 'The baseline is frozen. Pick a scenario to run.' : 'Run the active scenario (R)'}>
         <span aria-hidden="true">▷</span> {running ? 'Running…' : 'Run'}
       </button>

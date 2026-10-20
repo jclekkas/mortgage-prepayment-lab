@@ -25,6 +25,8 @@ Live normal interactions: setup with Mixed book; overview; Scenario lab; clearin
 - Local Playwright browser installation is blocked by the environment. Browser execution and deployment status must be recorded from CI and hosted verification, not inferred from the local unit suite.
 - Connected browser could inspect the public site but could not reach this container's local server.
 
+Browser gate initially caught and prompted fixes for two introduced regressions: the Home accessible name did not match visible text, and disabling Run during calculation lost keyboard focus. Run now retains focus and ignores repeat activation while busy. Existing stale-result and setup-warning assertions were updated to the intentionally corrected behavior.
+
 ## Limits and follow-up
 
 No formulas, model units, machine-readable export keys or import schemas were changed. Browser/source checks do not establish financial accuracy. First-time learner interviews, manual screen-reader testing, real mobile-device touch testing, full social preview rendering across messaging providers, and formal mortgage-domain review remain outstanding. A web link opens the tool with the recipient's own local workspace, not a cloud-synchronized analysis. Files remain the supported way to reproduce an analysis.

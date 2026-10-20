@@ -113,6 +113,8 @@ test('break-even: assumptions only, undefined when contribution is not positive'
   await expect(page.getByTestId('be-break-even')).toHaveText('7 outcomes');
   await page.getByTestId('be-unitCost').fill('-1');
   await expect(page.getByTestId('credit-breakeven')).toContainText('Enter a number from 0');
+  await expect(page.getByTestId('be-results')).toHaveCount(0);
+  await page.getByTestId('be-unitCost').fill('2');
   await expect(page.getByTestId('be-total-cost')).toHaveText('$7,000');
 });
 

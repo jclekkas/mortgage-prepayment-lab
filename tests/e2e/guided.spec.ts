@@ -80,7 +80,7 @@ test('start page warns before replacing work, and the header offers a way back t
   await page.getByTestId('start').click();
   await expect(page.getByTestId('kpi-npv-value')).toBeVisible();
   await page.getByTestId('change-portfolio').click();
-  await expect(page.getByTestId('restart-warning')).toContainText('Starting again replaces those scenarios');
+  await expect(page.getByTestId('restart-warning')).toContainText('Choosing a different portfolio replaces those scenarios');
   await expect(page.getByTestId('restart-warning')).toContainText('2 scenarios');
 });
 
