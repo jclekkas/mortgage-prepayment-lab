@@ -1,5 +1,7 @@
 # Engineering review of the mortgage calculations
 
+> Historical review. The October 20 source checks, period-CPR correction and current status are in [DOMAIN_AUDIT.md](DOMAIN_AUDIT.md). Earlier blocked-source statements and numerical snapshots below describe that review date.
+
 October 19, 2026 · reviewed at the pull request (PR) head commit `805f912`, with fixes in the following commit.
 
 **This is an engineering review of the arithmetic and conventions in an educational
@@ -43,7 +45,7 @@ numerical acceptance tests, and F1 is the finding described below.
 | Weighted-average life (WAL) | Σ (t/12)(scheduled + prepaid) / starting unpaid principal balance (UPB), full maturity | Zero-rate, no prepayment: (n+1)/24 = 15.0417 years; at 12% CPR, the geometric-series sum | Pass (W6) |
 | Cause probabilities | q = 1 − e^(−(h_move + h_refi)); split in proportion to hazards | At zero incentive: h_refi = 0.02, h_move = 0.003, q = 1 − e^(−0.023) and its split | Pass (W7) |
 | Burnout timing | E counts *prior* months with positive incentive | Month t factor = exp(−0.02 (t−1)): the current month does not count itself; zero incentive never accrues | **Failed, then fixed (F1)** |
-| Recapture | Share × refinance payoffs × contribution, discounted, minus the campaign cost once; maturity month excluded | One loan at constant hazards: share × contribution × q_refi (1 − (1−q)^(n−1))/q − cost; three loans give 3 × gross − cost once; servicing NPV unchanged; combined = NPV + recapture | Pass after F1 (W8, N14) |
+| Recapture | Share × refinance payoffs × contribution, discounted, minus the campaign cost once; maturity month excluded | One loan at constant hazards and zero discount: share × contribution × q_refi (1 − (1−q)^(n−1))/q − cost; three loans give 3 × gross − cost once; servicing NPV unchanged; combined = NPV + recapture | Pass after F1 (W8, N14) |
 
 ## Finding F1 (fixed): floating-point noise turned "zero incentive" into "positive"
 

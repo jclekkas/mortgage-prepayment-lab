@@ -136,3 +136,7 @@ realized profit, and must cite out-of-sample evidence on real, permitted data.
   group not acted on) measuring incremental outcomes, their realized contribution and every
   cost, over a stated horizon with discounting. A forecast revision alone is not a benefit.
 - Neither exists for this project. Nothing here is validated or investment-grade.
+
+## October 20 methodological readiness review
+
+The completed synthetic refresh workflow is unchanged. `DOMAIN_AUDIT.md` section 5 evaluates its future score-aware extension: point-in-time joins, borrower linkage, score history in run identity, data availability, incremental holdout testing and separate causal-benefit evidence. The 1.2.0 domain calculation changes do not make scores model inputs. The version statement above describes the original credit-refresh release.

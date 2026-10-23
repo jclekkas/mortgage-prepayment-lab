@@ -17,13 +17,26 @@ import { compareSummaries } from '../../src/storage/verify';
 const fixture = (n: string) => readFileSync(new URL(`../fixtures/legacy/${n}`, import.meta.url), 'utf8');
 
 describe('calculation version policy', () => {
-  it('the threshold correction has its own minor version, and 1.0.0 is a listed compatible predecessor', () => {
-    expect(MODEL_VERSION).toBe('mpl-engine-1.1.0');
+  it('the domain correction has its own minor version, and predecessors are listed', () => {
+    expect(MODEL_VERSION).toBe('mpl-engine-1.2.0');
+    expect(LEGACY_MODEL_VERSIONS['mpl-engine-1.1.0']).toContain('SIFMA');
     expect(LEGACY_MODEL_VERSIONS['mpl-engine-1.0.0']).toContain('refinance-threshold');
   });
 });
 
 describe('older files', () => {
+  it('preserves a real 1.1.0 export and compares the changed period CPR explicitly', () => {
+    // Exported by buildScenarioFile at e185339 before the domain correction.
+    const r = parseScenarioFile(fixture('mpl-engine-1.1.0-domain-audit.json'));
+    expect(r.legacy?.fromVersion).toBe('mpl-engine-1.1.0');
+    expect(r.legacy?.note).toContain('SIFMA');
+    const out = runScenario(r.workspace.portfolio, r.workspace.scenarios[0]);
+    const old = r.savedResults[0].summary;
+    const differences = compareSummaries(old, out.summary as unknown as Record<string, number | null>);
+    expect(differences.map((d) => d.metric)).toEqual(['cpr12']);
+    expect(out.summary.servicingNpv).toBe(old.servicingNpv);
+    expect(out.summary.wal).toBe(old.wal);
+  });
   it('keep assumptions and notes, are re-labeled for recalculation, and say why', () => {
     const r = parseScenarioFile(fixture('mpl-engine-1.0.0-mixed-rate-cut.json'));
     expect(r.legacy?.fromVersion).toBe('mpl-engine-1.0.0');

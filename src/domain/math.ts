@@ -19,7 +19,8 @@ export function smmToCpr(smm: number): number {
 }
 
 /**
- * Geometric annualization of k monthly SMMs: 1 - [prod(1 - SMM_t)]^(12/k).
+ * Geometric annualization of a monthly speed series, not the SIFMA period CPR
+ * for heterogeneous amortizing loans. Retained as an explicitly named diagnostic.
  * Returns null when there are no applicable months.
  */
 export function geometricAnnualCpr(smms: readonly (number | null)[]): number | null {
@@ -29,6 +30,21 @@ export function geometricAnnualCpr(smms: readonly (number | null)[]): number | n
   for (const s of valid) survival *= 1 - s;
   if (survival <= 0) return 1;
   return 1 - Math.pow(survival, 12 / valid.length);
+}
+
+/**
+ * Period CPR for a fixed starting population (SIFMA Chapter SF, B.3, SF-12).
+ * scheduledEnd is its balance with NO prepayments over the entire period;
+ * actualEnd is the observed or projected balance at that same endpoint.
+ * No exposure remains if all loans have contractually matured: report null,
+ * rather than silently shorten the measurement window or report zero CPR.
+ */
+export function periodCpr(actualEnd: number, scheduledEnd: number, months: number): number | null {
+  if (scheduledEnd <= 0 || months <= 0) return null;
+  const survival = Math.min(1, Math.max(0, actualEnd / scheduledEnd));
+  if (survival === 0) return 1;
+  if (survival === 1) return 0;
+  return -Math.expm1(Math.log(survival) * (12 / months));
 }
 
 /** Ratio that is "not applicable" (null) when the denominator is zero. */
@@ -59,7 +75,8 @@ export function levelPayment(balance: number, annualRate: number, months: number
   if (months <= 0) return balance;
   const r = annualRate / 12;
   if (r === 0) return balance / months;
-  return (balance * r) / (1 - Math.pow(1 + r, -months));
+  // Avoid catastrophic cancellation in 1 - (1+r)^-n near the zero-rate limit.
+  return (balance * r) / -Math.expm1(-months * Math.log1p(r));
 }
 
 /** Contractual balance after k scheduled payments at payment A (no prepayment). */

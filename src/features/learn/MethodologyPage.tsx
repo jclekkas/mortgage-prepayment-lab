@@ -10,7 +10,7 @@ export function MethodologyPage() {
         <strong>Excluded cash flows.</strong> Illustrative servicing net present value (NPV), future fees less costs in today’s dollars, leaves out escrow and remittance float, ancillary and late fees, servicing advances, default and foreclosure costs, taxes, hedges and any terminal value or multiple. It is not market value or accounting fair value.
       </p>
       <p>
-        Model {MODEL_VERSION}; behavioral coefficients {C.version}; scenario schema {SCHEMA_VERSION}; synthetic generator {GENERATOR_VERSION}. All formulas are educational conventions, not calibrated forecasts, and none is a FICO parameter. The full write-up is in docs/METHODOLOGY.md in the repository.
+        Model {MODEL_VERSION}; behavioral coefficients {C.version}; scenario schema {SCHEMA_VERSION}; synthetic generator {GENERATOR_VERSION}. Standard calculation conventions are separated from illustrative assumptions; behavioral forecasts are not calibrated, and none is a FICO parameter. The full write-up is in docs/METHODOLOGY.md in the repository.
       </p>
       <section className="card">
         <h2>Scope</h2>
@@ -28,7 +28,8 @@ The surviving borrower's contractual balance becomes R; payments are never recas
         <p>Single monthly mortality (SMM) is the share of the balance left after scheduled principal that pays off early in a month. The conditional prepayment rate (CPR) is the same speed as a yearly rate. The Public Securities Association (PSA) benchmark is a standard curve that sets speed by loan age. Unpaid principal balance (UPB) is what borrowers still owe.</p>
         <div className="formula">{`SMM = prepaid / (beginning UPB − scheduled);  CPR = 1 − (1 − SMM)^12
 Portfolio speeds sum dollars first; they never average loan CPRs.
-k-month CPR = 1 − [∏(1 − SMM_t)]^(12/k) (geometric annualization). Zero denominator = not applicable.
+k-month aggregate CPR = 1 − (projected ending UPB / no-prepayment ending UPB)^(12/k).
+Same starting population and endpoint; zero scheduled ending balance = not applicable.
 PSA: CPR(age) = min(0.002 × age, 0.06) × PSA% / 100, per loan age in projected months.`}</div>
       </section>
       <section className="card">
@@ -57,12 +58,14 @@ recapture PV = Σ recaptured_t × contribution / (1 + d)^(t/12) − campaign cos
         <p>The owner view is before credit losses, funding costs, guaranty fees, remittance delays and any security structure. Recapture does not keep the original loan alive and includes no replacement servicing value.</p>
       </section>
       <section className="card">
-        <h2>Sources (checked October 18, 2026)</h2>
+        <h2>Sources reviewed October 20, 2026</h2>
         <ul>
-          <li>S1: Office of the Comptroller of the Currency (OCC), Comptroller’s Handbook, Mortgage Banking, servicing-asset and valuation sections (printed pages 67 to 72). Context for separating servicing rights from the loan and valuing projected servicing cash flows under explicit prepayment, cost and discount assumptions. Not a certification of this tool.</li>
-          <li>S2: Oracle Financial Services, PSA Method documentation: 0.2-point monthly CPR ramp to 6% at month 30, scaled by the PSA multiplier.</li>
-          <li>S3: Fannie Mae Single-Family Loan Performance Data: a candidate for a later licensed adapter. Its terms restrict redistribution; no records are bundled here.</li>
+          <li><a href="https://www.sifma.org/wp-content/uploads/2017/08/chsf.pdf">SIFMA, Standard Formulas, Chapter SF</a>: cash flows, prepayment conventions and principal average life (B.1–3, G.1.c). Settlement and delay conventions are outside this lab’s scope.</li>
+          <li><a href="https://servicing-guide.fanniemae.com/svc/a2-3-01/servicer-compensation">Fannie Mae, Servicer Compensation, A2-3-01</a>: fee basis. The lab’s full-month payoff fee and flat costs remain assumptions.</li>
+          <li><a href="https://www.occ.treas.gov/publications-and-resources/publications/comptrollers-handbook/files/mortgage-banking/pub-ch-mortgage-banking.pdf">OCC, Mortgage Banking</a>: servicing valuation and validation context, not certification.</li>
+          <li><a href="https://capitalmarkets.fanniemae.com/credit-risk-transfer/fannie-mae-single-family-loan-performance-data">Fannie Mae loan performance data</a>: candidate for future permitted research. No records are bundled.</li>
         </ul>
+        <p>Source checks do not establish forecast accuracy, market value or professional validation. See docs/DOMAIN_AUDIT.md for findings and remaining gates.</p>
       </section>
     </div>
   );

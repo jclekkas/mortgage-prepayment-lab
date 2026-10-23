@@ -139,7 +139,7 @@ Portfolio beginning balance equals scheduled principal plus voluntary principal 
 
 SMM is the monthly fraction of eligible principal prepaid: SMM = prepaid principal / (beginning UPB - scheduled principal). CPR = 1 - (1 - SMM)^12. Conversely SMM = 1 - (1 - CPR)^(1/12). CPR is an annualized conditional speed, not the actual percentage of today's book that must prepay over the next calendar year.
 
-For a portfolio, aggregate the dollar numerator and denominator first; do not average individual CPRs. For a trailing k-month measure, use 1 - [product(1-SMM_t)]^(12/k), explicitly labeled geometric annualization. A zero denominator produces "Not applicable," not 0% or not-a-number (NaN). Twelve-month prepaid dollars must come from the monthly ledger, not CPR x initial UPB.
+For a portfolio, aggregate the dollar numerator and denominator first; do not average individual CPRs. Audit amendment (October 20, 2026): for a k-month aggregate measure, use 1 - (ending actual or projected UPB / ending UPB without prepayments)^(12/k), using the same starting population and endpoint. This replaces geometric chaining of monthly portfolio SMMs, which is not generally equivalent for heterogeneous amortization. See DOMAIN_AUDIT.md D1. A zero denominator produces "Not applicable," not 0% or not-a-number (NaN). Twelve-month prepaid dollars must come from the monthly ledger, not CPR x initial UPB.
 
 ### PSA mode
 

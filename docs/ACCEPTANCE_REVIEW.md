@@ -1,5 +1,7 @@
 # Acceptance review
 
+> Historical review. The October 20 source checks, period-CPR correction and current status are in [DOMAIN_AUDIT.md](DOMAIN_AUDIT.md). Earlier blocked-source statements and numerical snapshots below describe that review date.
+
 Model `mpl-engine-1.1.0`. Synthetic data. October 19, 2026.
 
 Passing tests show that the arithmetic matches the stated rules. They do not show that the rules match market conventions, or that the model predicts real borrowers. **This review is not complete:** the source checks in section 3 are blocked, and the learner check in section 4 has not been run with a real learner.

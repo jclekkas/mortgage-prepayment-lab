@@ -26,7 +26,7 @@ import { TrendArrow, TrendKey } from '../../ui/TrendArrow';
 const METRICS: [string, (s: SummaryMetrics) => string, TermId | undefined, [TrendMetric, (s: SummaryMetrics) => number | null] | undefined][] = [
   ['Current unpaid principal balance (UPB)', (s) => usd(s.currentUpb, { compact: true }), 'upb', ['upb', (s) => s.currentUpb]],
   ['Next-month conditional prepayment rate (CPR)', (s) => pct(s.nextMonthCpr), 'cpr', ['cpr', (s) => s.nextMonthCpr]],
-  ['12-month CPR (compounded)', (s) => pct(s.cpr12), undefined, ['cpr12', (s) => s.cpr12]],
+  ['12-month CPR (balance-equivalent)', (s) => pct(s.cpr12), undefined, ['cpr12', (s) => s.cpr12]],
   ['12-month prepaid principal', (s) => usd(s.prepaid12, { compact: true }), undefined, ['prepaid12', (s) => s.prepaid12]],
   ['12-month net servicing cash flow', (s) => usd(s.netServicing12, { compact: true }), 'netServicing', ['net12', (s) => s.netServicing12]],
   ['Illustrative servicing net present value (NPV)', (s) => usd(s.servicingNpv, { compact: true }), 'npv', ['npv', (s) => s.servicingNpv]],

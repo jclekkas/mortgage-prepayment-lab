@@ -40,7 +40,7 @@ low-rate), 1:2:7 (recent higher-rate).
 
 | Field | Meaning |
 | --- | --- |
-| `schemaVersion`, `modelVersion` | Schema must be supported exactly. Model version: current (`mpl-engine-1.1.0`) loads as is; a listed older version (`mpl-engine-1.0.0`) keeps its assumptions and notes, is marked, and is recalculated with the current model only through an explicit path that shows old and new results; any other version is refused with a reason and nothing is changed |
+| `schemaVersion`, `modelVersion` | Schema must be supported exactly. Model version: current (`mpl-engine-1.2.0`) loads as is; a listed older version (`mpl-engine-1.0.0` or `mpl-engine-1.1.0`) keeps its assumptions and notes, is marked, and is recalculated with the current model only through an explicit path that shows old and new results; any other version is refused with a reason and nothing is changed |
 | `portfolioHash`, `valuationMonth` | Must match the loaded portfolio |
 | `baselineId`, `scenarioId`, `name` | Identity and label (not in the input hash) |
 | `mode` | `behavioral`, `fixedCpr` or `psa`: the behavioral model, a fixed conditional prepayment rate (CPR), or the Public Securities Association (PSA) benchmark |
@@ -96,3 +96,7 @@ Synthetic only, kept apart from `Loan`. `loanId`, `status` (`scored`, `missing`,
 ## Credit score CSV columns
 
 `loan_id`, `snapshot_id`, `snapshot_kind`, `status`, `score`, `score_model`, `source`, `observed_on`, `available_on`, `usable_on_analysis_date`, `not_usable_reason`, `fixture_version`, `snapshot_fingerprint`, `data_label` ("Illustrative score data, not actual FICO Scores").
+
+### Period CPR convention (model 1.2.0)
+
+`cpr12` is the 12-month endpoint-equivalent CPR of the starting population, using no-prepayment scheduled ending UPB as its denominator. It is null if all loans mature by month 12. It replaces the earlier chain of monthly portfolio SMMs; loan cash flows are not changed. Forecast check cohort CPRs use the corresponding 24-month endpoint and annualize by 12/24. See `DOMAIN_AUDIT.md` D1.

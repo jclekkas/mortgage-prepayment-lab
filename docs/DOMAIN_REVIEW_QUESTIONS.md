@@ -1,8 +1,8 @@
 # Questions for a qualified mortgage-domain reviewer
 
-Mortgage Prepayment Lab, model `mpl-engine-1.1.0`. Educational simulator; every loan is synthetic.
+Mortgage Prepayment Lab, model `mpl-engine-1.2.0`. Educational simulator; every loan is synthetic.
 
-**Engineering tests are not professional model validation.** The arithmetic has been checked against hand-derived examples and invariants (`docs/EVIDENCE.md`). Nobody with mortgage-modeling credentials has reviewed the conventions. The source documents could not be retrieved from the build environment, so the convention checks are incomplete.
+**Engineering tests are not professional model validation.** The arithmetic has been checked against hand-derived examples and invariants (`docs/EVIDENCE.md`). Nobody with mortgage-modeling credentials has reviewed the conventions. Primary-source checks were completed October 20 in `DOMAIN_AUDIT.md`; qualified reviewer approval remains outstanding. The reference results below are the historical 1.1.0 snapshot; CPR12 is corrected in 1.2.0, with no change to the stated cash flows or WAL.
 
 This review asks whether the conventions are right and whether the teaching claims are fair. It does not ask whether the coefficients are calibrated: they are labeled teaching values.
 
@@ -27,7 +27,7 @@ Exception the tool teaches, as a controlled comparison: two scenarios with the f
 
 ## Questions
 
-**Q1. PSA month numbering.** The tool assumes a loan with k payments made is age k + 1 in the first projected month, so a brand-new loan prepays at 0.2% CPR in month 1 and reaches 6% at month 30. Does that match the SIFMA *Standard Formulas* convention, or should the first projected month be age k?
+**Q1. PSA month numbering — source question resolved, adapter review remains.** SIFMA B.2.c confirms k+1 for the supported post-payment loan age. Future pool adapters must review same-month issuance and WALA conventions. Original question: The tool assumes a loan with k payments made is age k + 1 in the first projected month, so a brand-new loan prepays at 0.2% CPR in month 1 and reaches 6% at month 30. Does that match the SIFMA *Standard Formulas* convention, or should the first projected month be age k?
 
 **Q2. Expected-value pool.** Each loan carries a survival weight. Surviving borrowers keep the original payment, and loan counts can be fractional. Is that an acceptable teaching simplification for a servicing portfolio? Would you expect learners to misread fractional loan counts?
 

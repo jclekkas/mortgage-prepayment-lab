@@ -12,7 +12,7 @@
  * Every released MINOR or MAJOR change is listed in LEGACY_MODEL_VERSIONS (if older files can
  * be recalculated) and in docs/RELEASE_NOTES.md.
  */
-export const MODEL_VERSION = 'mpl-engine-1.1.0';
+export const MODEL_VERSION = 'mpl-engine-1.2.0';
 export const SCHEMA_VERSION = 1;
 /** 1.1.0 rounds generated balances and payments to cents so every browser builds identical loans. */
 export const GENERATOR_VERSION = 'synthetic-gen-1.1.0';
@@ -24,8 +24,10 @@ export const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [SCHEMA_VERSION];
  * them are recalculated with MODEL_VERSION; the note says what changed in the numbers.
  */
 export const LEGACY_MODEL_VERSIONS: Readonly<Record<string, string>> = {
+  'mpl-engine-1.1.0':
+    'Model 1.2.0 corrects multi-month aggregate CPR to the SIFMA endpoint-balance convention and stabilizes level payments near zero interest. Saved assumptions are preserved; old results require explicit recalculation. Monthly runoff, servicing NPV and WAL on the standard presets are unchanged. See docs/DOMAIN_AUDIT.md.',
   'mpl-engine-1.0.0':
-    'Model 1.1.0 is the first version number for the refinance-threshold correction (finding F1): loans exactly 50 basis points above the offer rate, such as 6.75% loans at the default 6.25% offer, were wrongly treated as having an incentive and accumulated burnout. That correction first shipped under the 1.0.0 label, so a 1.0.0 file may hold numbers from before or after it. Assumptions mean the same thing in both versions.',
+    'Model 1.1.0 is the first version number for the refinance-threshold correction (finding F1): loans exactly 50 basis points above the offer rate, such as 6.75% loans at the default 6.25% offer, were wrongly treated as having an incentive and accumulated burnout. That correction first shipped under the 1.0.0 label, so a 1.0.0 file may hold numbers from before or after it. Model 1.2.0 also corrects multi-month aggregate CPR and near-zero-rate payment precision. Assumptions retain their meaning; saved results require explicit recalculation.',
 };
 
 /** The source build that produced this app (git commit, or "local"/"test"), recorded in exports. */
